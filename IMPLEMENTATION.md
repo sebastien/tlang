@@ -34,8 +34,11 @@ languages tend to be quite large.
 Constraints solver
 ==================
 
-Both *types* and *capabilities* can be represented as constraints, which can
-be combined together.
+A basic assumption of `tlang` underlying constructs, *types* and
+*capabilities*, can be represented as constraints which can be combined
+together. As both types and capabilities are used extensively, it is going 
+to be important to know if an operation is allowed given a capability, and
+if a type is compatible with another one.
 
 Let's imagine that we have N unique, disjoint capability pairs `(capability,value)`, and
 we have the set `R` of relations like `{share,alias,read,write}` (we might even
@@ -93,10 +96,13 @@ as sorting the values in an array by decreasing order of frequency and using a v
 size encoding to store the index of the key within that array.
 
 The goal being that operations of retrieval given a couple `(N,R)` or `(T,T)`
-are as fast as possible for values that have a lot of occurences.
+are as fast as possible for values that have a lot of occurrences.
 
 These large matrices should be statically created based on a pre-established
 dictionary of available constraints.
+
+The implementation of such a data-structure/algorithm would be a good thing
+to do to identify which language would be best.
 
 
 
