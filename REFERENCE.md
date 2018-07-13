@@ -1,4 +1,6 @@
 
+-- NOTE: This is not really a reference, but more an in-depth guide.
+
 Design principles
 =================
 
@@ -346,3 +348,34 @@ This is possible because the following expressions are all true:
 (data-encodable? (type-encoding? Fahrenheit) (type-encoding? Celcius))
 (data-encodable? (type-encoding? Celcius)    (type-encoding? Fahrenheit))
 ```
+
+The `(type-sub? CHILD PARENT)` predicate tests the subtyping relation between
+the `CHILD` and the `PARENT`:
+
+```
+;; True, as we've defined it
+(type-sub? Celcius Number)
+(type-sub? Fahrenheit Number)
+
+;; False,  they are siblings.
+(type-sub? Celcius Fahrenheit)
+```
+
+There's nothing, physically, that prevents us from doing explicitely saying
+that `Fahrenheit` is a subtype of `Celcius` and vice-versa
+
+```
+(type-sub Fahrenheit Celcius)
+(type-sub Celcius Fahrenheit)
+```
+
+The only requirement for subtyping is that the parent's encoding can be
+re-encoded in the child's encoding. Or in other words, that the parent's data
+is a subset of the child's data.
+
+It is interesting to notice here how the parent's data encoding is a subset of
+the child's data encoding, while the child's type is subset of the parent's type.
+
+The main reason for that is that we grow data the data from 0 (the more bits, the more possibilities),
+while we reduce types from infinity (all the possible value).
+
