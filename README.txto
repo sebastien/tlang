@@ -1,16 +1,16 @@
 == TLang
 -- A Tree Processing Language
 
-The core idea of the T language is to create a language that lends itself well to
-creating, manipulating and transforming trees.
+T language is a language made to create, query and transform trees.
 
+High-level goals:
 
-Hi-level goals:
+- Support **meta-programming and macro-systems**: by its nature, TLang should work
+  well as meta-programming tool and as a macro system for another language.
 
-- **Incremental**: T primitives should be support incremental algorithm
-  that can transform *deltas* into *data transformations*.
-
-- **Typed**:
+- Support **incremental programming**: TLang programs should work with a full
+  snapshot of a tree, but also with increments (patches/deltas) that are
+  translated into effects.
 
 
 # EOF - vim: ts=2 sw=2 et syn=texto

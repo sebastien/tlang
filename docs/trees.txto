@@ -1,0 +1,104 @@
+== Trees
+
+Trees are represented as [S-Expressions]. Note that all the code examples
+in this document use our Scheme [notation].
+
+Model
+=====
+
+The tree conceptual model is founded on the notion of a node. A node is an
+element of a tree that has the following properties:
+
+- A _node_ has a *name*, which represents its _node type_, denoted as a string
+- A node has zero or more _attributes_, denoted as an ordered list of key-value pairs.
+- A _node_ has zero or more _children_
+- A _node_ may have one parent, if it is a child of another node
+
+A _tree_ is a node without parent, a _subtree_ is a node with a parent,
+a _leaf_ is a node without children and a _node set_ is a set of nodes that
+contains 0 or more nodes.
+
+Representation
+==============
+
+A single node is defined like this:
+
+```tree
+(node-name)
+```
+
+it is possible to omit the parens:
+
+```tree
+node-name
+```
+
+A single node *with attributes* is defined like this:
+
+```tree
+(node-name (@ (attribute-1 value) (attribute-1 value)))
+```
+
+A node *with children* is represented like this:
+
+```tree
+(node-name (child-1) (child-2) (child-3))    ;; node with children
+(node-name
+	(@ (attribute-1 value))
+	(child-1) (child-2) (child-3))             ;; and attributes
+```
+
+There are three special types of node that have a different notation: the
+string, the symbold and the numbers.
+
+The string node has as only one child, and its child is not a node but a litteral value,
+and is denoted like this:
+
+```tree
+(string  "Hello, world") ;; Canonical representation
+"Hello, world"           ;; Shorthand equivalent
+```
+
+Likewise for the number node:
+
+```tree
+(number 1.0)             ;; Canonical representation
+1.0                      ;; Shorthand equivalent
+```
+
+and the symbol node:
+
+```tree
+(symbol true)            ;; Canonical representation
+'true                    ;; Shorthand equivalent
+```
+
+Attributes
+----------
+
+Node attributes are denoted as a list starting with `@` as the first element,
+and followed by `(KEY VALUE)` pairs:
+
+```
+(@ )              ;; Empty attributes list
+(@ (operator +))  ;; The `operator` attribute has value `+`
+```
+
+```
+(is-attributes? '(@ ))                   ;; → #t
+(has-attribute? 'type '(@ (type number)) ;; → #t
+(has-attribute? 'id '(@ (type number))   ;; → #f
+```
+
+Subtyping
+---------
+
+A node type `A` is a subtype of a node type `B` when the name of `A` starts with  `B`.
+For instance:
+
+```
+(is-subtype? 'ref-absolute 'ref) ;; → #t
+(is-subtype? 'ref 'ref-absolute) ;; → #f
+```
+
+# EOF - vim: ts=2 sw=2 et
