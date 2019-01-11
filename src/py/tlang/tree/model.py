@@ -2,6 +2,8 @@
 from typing import Optional, Any, List, Dict
 from collections import OrderedDict
 
+NOTHING = object()
+
 __doc__ = """
 The core model representing trees and nodes.
 """
@@ -13,6 +15,37 @@ class Node:
 		self.parent:Optional['Node'] = None
 		self.attributes:Dict[str,Any] = OrderedDict()
 		self.children:List['Node'] = []
+
+	@property
+	def isTree( self ) -> bool:
+		return not self.parent
+
+	@property
+	def isEmpty( self ) -> bool:
+		return self.isLeaf and not self.hasAttributes
+
+	@property
+	def isSubtree( self ) -> bool:
+		return bool(self.parent)
+
+	@property
+	def isLeaf( self ) -> bool:
+		return len(self.children) == 0
+
+	@property
+	def isNode( self ) -> bool:
+		return len(self.children) > 0
+
+	@property
+	def hasAttributes( self ) -> bool:
+		return len(self.attributes) > 0
+
+	def attr( self, name, value=NOTHING ):
+		if value is NOTHING:
+			return self.attributes.get(name)
+		else:
+			self.attributes[name] = value
+			return self
 
 	def index( self, node ) -> int:
 		return self.children.index(node)
@@ -37,23 +70,33 @@ class Node:
 		self.children.insert(index, node)
 		return node
 
-	def isTree( self ) -> bool:
-		return not self.parent
+	def __str__( self ):
+		return "".join(Repr.Apply(self))
 
-	def isEmpty( self ) -> bool:
-		return self.isLeaf() and not self.hasAttributes()
+class Traversal:
 
-	def isSubtree( self ) -> bool:
-		return bool(self.parent)
+	def apply( self, node ):
+		pass
 
-	def isLeaf( self ) -> bool:
-		return len(self.children) == 0
+class Repr(Traversal):
 
-	def isNode( self ) -> bool:
-		return len(self.children) > 0
-
-	def hasAttributes( self ) -> bool:
-		return len(self.attributes) > 0
+	@classmethod
+	def Apply( cls, node ):
+		yield "("
+		yield node.name
+		if node.hasAttributes:
+			yield " (@ "
+			for k,v in node.attributes.items():
+				yield "("
+				yield str(k)
+				yield " "
+				yield str(v)
+				yield ")"
+			yield ")"
+		for child in node.children:
+			yield " "
+			yield from cls.Apply(child)
+		yield ")"
 
 class Adapter:
 

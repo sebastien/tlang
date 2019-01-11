@@ -55,22 +55,22 @@ The string node has as only one child, and its child is not a node but a littera
 and is denoted like this:
 
 ```tree
-(string  "Hello, world") ;; Canonical representation
-"Hello, world"           ;; Shorthand equivalent
+(string  (@ (value "Hello, world")) ;; Canonical representation
+"Hello, world"                      ;; Shorthand equivalent
 ```
 
 Likewise for the number node:
 
 ```tree
-(number 1.0)             ;; Canonical representation
+(number (@ (value 1.0))) ;; Canonical representation
 1.0                      ;; Shorthand equivalent
 ```
 
 and the symbol node:
 
 ```tree
-(symbol true)            ;; Canonical representation
-'true                    ;; Shorthand equivalent
+(symbol (@ (value true))) ;; Canonical representation
+'true                     ;; Shorthand equivalent
 ```
 
 Attributes
