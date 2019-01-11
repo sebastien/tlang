@@ -16,12 +16,13 @@ with open(DOC) as f:
 # We run through the examples and make sure they all compile
 for i,example in enumerate(EXAMPLES):
 	result = parseString(example)
-	if result.status is b'F':
-		print ("FAILED", i)
-	elif result.status is b'p':
-		print ("PARTIAL", i)
-	elif result.status is b'S':
-		print ("OK", i)
+	print ("――― Example #{0}".format(i))
+	if result.isFailure():
+		print (result.describe())
+	elif result.isPartial():
+		print (result.describe())
+	elif result.isSuccess():
+		print ("OK")
 	else:
 		raise Exception("Unknown status: {0}". format(result.status))
 
