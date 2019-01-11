@@ -1,23 +1,6 @@
-== TLang
--- A Tree Processing Language
+== Abstract representation of a program
 
-The core idea of the T language is to create a language that lends itself well to
-creating, manipulating and transforming trees.
-
-Its core features are:
-
-- **Incremental**: T offers core primitives to write incremental algorithm
-  that can transform *deltas* into *data transformations*.
-
-- **Typed**:
-
-- **Capabilities**:
-
-- **Meta-programming**
-
-Concepts
-========
-
+What
 References
 ----------
 
@@ -93,3 +76,27 @@ following operations:
 - *Mutated*: can a reference be mutated?
 - *Deleted*: can a reference be deleted?
 
+
+Definining an array type
+------------------------
+
+
+Fixed size (size = `N`), with value of type `T`
+
+```
+(type-template (T N)
+	(where
+		((type-data-length-fixed? T) true)
+	)
+	(data-array (N T))
+)
+```
+
+This given `T=Int64` and `N=10` this will yield:
+
+```
+	(data-length 80)
+	(data-repeat "<Int64 hash>")
+```
+
+# EOF - vim: ts=2 sw=2 et syn=texto

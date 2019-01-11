@@ -1,27 +1,57 @@
+== Program Model
 
--- NOTE: This is not really a reference, but more an in-depth guide.
+NOTE: This in attempt at definition a full program model, from the storage
+of data to the type system using a tree representation.
 
 Design principles
 =================
 
 `tlang`'s API is defined in an [S-Expression format](https://en.wikipedia.org/wiki/S-expression)
+that defines a rich set of primitive to describe type systems that manage how data is encoded,
+how types are related with each other, how types can be used, and how usage of types may
+affect the program.
+
+The intention behind `tlang` is to provide a building block for programming language and compiler
+implementers that makes it easier to express constraints on the program.
 
 Type system
 ============
 
-The first part of the type system is focused on defining mapping
+The first part of the type system is focused on defining a mapping
 between abstract data and its physical representation: in other words, how
 data is stored in memory. The type system, at its very basic level, is a way to define
-how to read and write data.
+how to read and write data. This is the purpose of the *data encoding* part of the type system.
+
+The second part of the type system is focused on defining equivalences, differences and
+similarities between types. If two types both defines a name and an age, but have 
+different data encodings for them, maybe there's a way to make them equivalent? This
+is the purpose of the *type interface* part of the type system.
+
+The third part of the type system is focused on how different types can be used: maybe
+on type has an `email` field that can only be accessed in a specific context. This
+is the purpose of the *type capabilities* part of the type system.
+
+The last part of the type system is focused on describing *operations*, or rather
+how a specific type might affect the state of a program in response to an operation.
+This is the durpose of the *effects* part of the type system.
 
 We are going to use a few specific terms, which are defined here for convenience:
 
 - A _value_ denotes a specific value, like a given number, string, array, etc.
+- A _value_ is _concrete_ when it can be represented by a specific encoding of bits
+- A _data encoding_ is the way a given _value_ is encoded as bits.
 - A _type_ represents a set of possible values. 
 - A type is _concrete_ when it has all the information to determine the type
   of values it represents.
-- A type is _abstract_ (also called _higher-order_) when it need more information
-  to expand into a concrete type.
+- A type is _abstract_ (also called _higher-order_) when it represents a set of
+  types, which then might be expanded to a set of values.
+- An _operation_ is an action operated on a value of a specific type. The operation
+  will affect the state of the program, by producing a value, modifying control
+  flow or communicating with another value.
+- An _effect_ is the description of the result of an operation, such as producing
+  a new value, changing a specific value, changing the control flow, etc.
+
+>>> We should introduce the notion of type data and type interface.
 
 Specifying data encoding
 ------------------------
@@ -295,15 +325,20 @@ Specifying types
 ----------------
 
 We've seen how we can define data encodings, from atoms to composite elements,
-from fixed sized to variable size, and how we can identify is one can be
+from fixed sized to variable size, and how we can identify if one can be
 converted to the other.
 
 While some values may have strictly the same value encoding, they might not
 have the same meaning. Maybe we're using a `FLOAT64` to store the temperature,
-but one is in Celcius, the other one in Fahrenheit.  Technically, these values
+but one is in Celcius and the other one in Fahrenheit. Technically, these values
 have compatible encodings, but they don't represent the same thing. A `0` celcius
 is *not* the same as a `0` Fahrenheit.
 
+This is where having *explicit types* is a good way to denote semantic differences
+for stucturally similar types.
+
+## Explicit subtyping
+
 To express this, we define types and define relations between then. We
 introduce the `(type-def NAME TYPESPEC…)` directive to define a type,
 in a similar way to `(data-def …)`:
@@ -319,7 +354,7 @@ in a similar way to `(data-def …)`:
 
 Now, we've seen that Celcius and Fahrenheit are not the same thing, but
 we could at least say that they're numbers -- their interpretation is different,
-but they still are essentially numbers.
+but they still are essentially the same thing.
 
 ```
 ;; We define a Number type that is encoded as a FLOAT64 value.
@@ -361,7 +396,7 @@ the `CHILD` and the `PARENT`:
 (type-sub? Celcius Fahrenheit)
 ```
 
-There's nothing, physically, that prevents us from doing explicitely saying
+There's nothing, physically, that prevents us from doing explicitly saying
 that `Fahrenheit` is a subtype of `Celcius` and vice-versa
 
 ```
@@ -379,3 +414,142 @@ the child's data encoding, while the child's type is subset of the parent's type
 The main reason for that is that we grow data the data from 0 (the more bits, the more possibilities),
 while we reduce types from infinity (all the possible value).
 
+# Union Types
+
+Now, what if we said that both `Fahrenheit` and `Celcius` are *temperatures*. 
+Based on what we just said, `Fahrenheit` and `Celcius` are now **disjoint**, 
+meaning that the following expressions are all false:
+
+```
+(type-sub? Fahrenheit Celcius)
+(type-sub? Celcius Fahrenheit)
+```
+
+The `(type-union NAME TYPE…)` declaration allows us to introduce a `Temperature`
+type:
+
+```
+(type-union Temperature
+	Fahrenheit
+	Celcius
+)
+```
+
+which makes the following expressions true:
+
+```
+(type-sub? Fahrenheit Temperature)
+(type-sub? Celcius Temperature)
+```
+
+note that the `type-union` declaration can take any type, even if they share
+no structural equivalence.
+
+# Type capabilities
+
+We've seen so far that types denotes how we can interpret and work with
+concrete (encoded) data. There are few key operations that can be applied
+to a value:
+
+- Arithmetic operations, denoted by *operators*, some of then being unary (like `-`),
+  some of them being binary (like `*`, `/`, …), 
+
+- Data operations, like *access* (reading the value), 
+  *assignment* (changing the value), *decomposition* (referencing a subset of the value).
+
+- Program flow operations like *invocation* (which is actually a *jump* and
+  a *context nesting* operation).
+
+Note that arithmetic operations are sometimes implemented as method calls
+in pure OOP languages, and hence are implemented as invocation instead of 
+arithmetic operations.
+
+Let's imagine that our `Temperature` type represents a class of objects with two methods
+that produce Fahrenheit and Celcius values.
+one to the other:
+
+```
+Temperature.toFarhenheit():Fahrenheit
+Temperature.toCeclius():Celcius
+```
+
+This translates into the following code, using the `(type-slot NAME …)`
+declaration to define a *slot* (a symbol that can be operated on), and
+the `(capability CAPABILITY)` to denote that the slot can be invoked.
+
+```
+(type-slot toFarhenheit
+	(type-function :self Fahrenheit)
+	(capability :Invocable)
+)
+```
+
+The `(type-function …)` declaration generates an anonymous type that
+converts `:self` (which means the current concrete type) to a `Fahrenheit`.
+
+This declaration makes the following expressions true:
+
+```
+(bool (type-slot? Temperature 'toFarhenheit))
+(capability? (type-slot? ) :Invocable)
+```
+
+We won't go into the details of **capabilities** in this section, but i
+
+
+# Higher-order types
+
+So far, we've only seen types that are directly expressed. `Fahrenheit`
+and `Celcius` are just numbers with different interpretations. But let's imagine
+the history of all temperatures, stored as a list. We don't want a list to
+only work for `Fahrenheit` or `Celcius`, or  `Temperature` for that matter.
+
+In order to have a list work for anything, we need to define a list type
+that can be *configured* to work with a *specific* type. The type that configures 
+the list is called the *type parameter* and the list a *parametric type*. Because
+the list type can generate an infinite set of concrete types, it is called a higher-order
+type: given a parameter, it can generate a *concrete type*. Without any type
+parameter, it represents an infinite set of *types*.
+
+```
+(type-parametric List (T))
+```
+
+
+# Implicit subtyping
+
+Data encoding: if two types share the same data, then they can be structurally
+similar and can be implicit subtypes: the subtyping relation does not have
+to be explicitely stated but can be queried:
+
+Likewise, if two types do not have a structurally similar encoding but provide
+a structurally similar interface .
+
+
+
+# TODO: Structural subtyping
+# TODO: Union types
+# TODO: Intesection types
+
+To define:
+
+- data
+- encoding
+- slot
+- capability
+= type
+	- type data
+	- type interface
+	- concrete type
+	- abstract type
+	- higher-order type
+	- parametric type
+	- union type
+- subtyping
+	- structural subtyping
+	- explicit subtyping
+	- implicit subtyping
+- operation
+- object
+
+# EOF - vim: ts=2 sw=2 et syn=texto
