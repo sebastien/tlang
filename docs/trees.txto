@@ -55,7 +55,7 @@ The string node has as only one child, and its child is not a node but a littera
 and is denoted like this:
 
 ```tree
-(string  (@ (value "Hello, world")) ;; Canonical representation
+(string  (@ (value "Hello, world"))) ;; Canonical representation
 "Hello, world"                      ;; Shorthand equivalent
 ```
 

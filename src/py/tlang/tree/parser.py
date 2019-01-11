@@ -13,7 +13,7 @@ def symbols( g:Grammar ) -> Symbols:
 		"WS"           : "[\s\n]+",
 		"NODE_NAME"    : "[a-z][\-a-z0-9]*",
 		"ATOM_SYMBOL"  : "[a-z][\-a-z0-9]*",
-		"ATOM_SYMBOL_Q": "'[a-z][\-a-z0-9]+",
+		"ATOM_SYMBOL_Q": "'([a-z][\-a-z0-9]+)",
 		"NUMBER"  : "[0-9]+(\.[0-9]+)?",
 		"STRING_DQ"    : "\"[^\"]*\"",
 		"EMPTY_LINE"   : "s*\n",
@@ -77,6 +77,13 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False) -> Grammar:
 
 class TreeProcessor(Processor):
 
+	INSTANCE = None
+
+	@classmethod
+	def Get(cls):
+		if not cls.INSTANCE: cls.INSTANCE = TreeProcessor()
+		return cls.INSTANCE
+
 	def createGrammar(self) -> Grammar:
 		return GRAMMAR or grammar()
 
@@ -101,7 +108,7 @@ class TreeProcessor(Processor):
 		return Node("string").attr("value", value)
 
 	def onNodeSymbol( self, match ):
-		value = self.process(match[0])[0]
+		value = self.process(match[0])[1]
 		return Node("symbol").attr("value", value)
 
 	def onLeaf( self, match, name ):
@@ -143,11 +150,17 @@ class TreeProcessor(Processor):
 	def onNodeComment( self, match ):
 		return None
 
-def parseString( text:str, isVerbose=False ):
+def parseString( text:str, isVerbose=False, process=True ):
 	g = grammar (isVerbose=isVerbose)
-	return g.parseString(text)
+	result = g.parseString(text)
+	if not process:
+		return result
+	elif result.isSuccess():
+		return TreeProcessor.Get().process(result)
+	else:
+		raise Exception("Parsing failed: {0}".format(result.describe()))
 
-def parseFile( path:str, isVerbose=False ):
+def parseFile( path:str, isVerbose=False, process=True ):
 	with open(path, "rt") as f:
 		return parseString(f.read(), isVerbose)
 
