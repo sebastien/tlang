@@ -16,8 +16,8 @@ def symbols( g:Grammar ) -> Symbols:
 		"EMPTY_LINE"    : "s*\n",
 		"NODE_NAME"     : "[a-z][\-a-z0-9]*",
 		"NODE_COMMENT"  : ";;[^\n]*[\n]?",
-		"NODE_SYMBOL"   : "[a-zA-Z][\-_A-Za-z0-9]*",
 		"NODE_SYMBOL_Q" : "'([a-zA-Z][\-_A-Za-z0-9]*)",
+		"NODE_ATTRIBUTE_VALUE" : "[^\s\)\(\[\]\{\}]+",
 		"NODE_TEMPLATE" : "(…|\.\.\.)?([A-Z][_A-Z]*)",
 	}
 	words = {
@@ -47,7 +47,7 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False) -> Grammar:
 	# Node attributes
 	g.group("NodeAttributeString", s.STRING_DQ)
 	g.group("NodeAttributeNumber", s.NUMBER)
-	g.group("NodeAttributeSymbol", s.NODE_SYMBOL)
+	g.group("NodeAttributeSymbol", s.NODE_ATTRIBUTE_VALUE)
 	g.group("NodeAttributeValue", s.NodeAttributeString, s.NodeAttributeNumber, s.NodeAttributeSymbol)
 	g.rule("NodeAttribute", s.LP, s.NODE_NAME._as("key"), s.WS, s.NodeAttributeValue._as("value"), s.RP)
 	g.rule("NodeAttributes", s.LP, s.AT, s.WS,  s.NodeAttribute.oneOrMore()._as("attributes"), s.RP)

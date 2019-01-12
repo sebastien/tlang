@@ -1,16 +1,35 @@
 == TLang
 -- A Tree Processing Language
 
-T language is a language made to create, query and transform trees.
+The T Language is a language made to represent, create, query and transform trees.
+It is primarily intended as a software engineering tool to create compilers,
+languages and incremental algorithm that transform trees.
 
 High-level goals:
 
-- Support **meta-programming and macro-systems**: by its nature, TLang should work
-  well as meta-programming tool and as a macro system for another language.
+- Support **meta-programming and macro-systems**: because TLang is all about
+  transforming trees and interfacing with text formats, it is very well 
+  suited to meta-programming and creating macro systems on top of existing
+  languages.
+
+- Provide an **efficient infrastructure for compiler implementation**: compilers
+  are essentially a set of tree transformation passes applied one after the other.
+  TLang aims at abstracting away the definition of these passes and allowing for
+  efficient combination and composition so that parsing and compilation can
+  go as fast as possible.
 
 - Support **incremental programming**: TLang programs should work with a full
   snapshot of a tree, but also with increments (patches/deltas) that are
-  translated into effects.
+  translated into effects. This is an important feature to support interactive/live
+  programming environments and efficient compiler implementation.
+
+- Be **language agnostic**: although TLang is implemented in Python, it is
+  intended to work with any general purpose programming language by implementing
+  a backend that supports it.
+
+
+TLang is implemented in Python 3 and is maintained by [Sébastien
+Pierre](https://bitbucket.org/sebastien/tlang). It is licensed under the Revised BSD License.
 
 
 # EOF - vim: ts=2 sw=2 et syn=texto

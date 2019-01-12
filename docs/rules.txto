@@ -68,10 +68,14 @@ The rule definition can contain tokens, surrounded in double quotes `"…"`.
 Tokens can also reference a range or characters, in which case the range
 is surrounded by `[` and `]` with the start and end separted by a `- `:
 
+```example
+A := 'Hello, world!'        ; // 'Hello, world!'
+B := [0-9]                  ; // Characters 0 to 9
+C := [A-Za-z]               ; // Characters A to Z or a to z
+D := [+\-*/^]               ; // Characters '+' '-' '*' '/' or '^'
+
 ```
-[0-9]                  // Characters 0 to 9
-[A-Za-z]               // Characters A to Z or a to z
-```
+
 
 Cardinality
 -----------
@@ -134,8 +138,8 @@ VALUE(numeric)   := NUMBER;
 VALUE(composite) := '(' VALUE ')';
 ```
 
-Adding tree patterns
-====================
+Tree pattern templates
+----------------------
 
 Now the interesting thing is that a pattern from the [tree language] can
 be associated with a rule by following its definition by  `--> PATTTERN;`
@@ -150,9 +154,5 @@ using an implicit naming:
 `
 
 # TODO: Add an example of operator precendence
-
-
-
-
 
 # EOF - vim: ts=2 sw=2 et

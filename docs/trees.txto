@@ -15,16 +15,16 @@ Here is an example:
 Model
 =====
 
-The tree conceptual model is founded on the notion of a node. A node is an
+The tree conceptual model is founded on the notion of a _node_. A node is an
 element of a tree that has the following properties:
 
-- A _node_ has a *name*, which represents its _node type_, denoted as a string
-- A node has zero or more _attributes_, denoted as an ordered list of key-value pairs.
-- A _node_ has zero or more _children_
-- A _node_ may have one parent, if it is a child of another node
+- A node has a **name**, which represents its _node type_, denoted as a string
+- A node has zero or more **attributes**, denoted as an ordered list of key-value pairs.
+- A node has zero or more **children**
+- A node may have one **parent**, if it is a child of another node
 
-A _tree_ is a node without parent, a _subtree_ is a node with a parent,
-a _leaf_ is a node without children and a _node set_ is a set of nodes that
+A **tree** is a node without parent, a **subtree** is a connected subset of a tree,
+a **leaf** is a node without children and a **node set** is a set of nodes that
 contains 0 or more nodes.
 
 Representation
@@ -33,20 +33,29 @@ Representation
 A single node is defined like this:
 
 ```example
-(node-name)
+(node-name)         ;; Canonical
+node-name           ;; Shorthand
 ```
 
-it is possible to omit the parens:
-
-```example
-node-name
-```
+Attributes
+----------
 
 A single node *with attributes* is defined like this:
 
 ```example
 (node-name (@ (attribute-1 value) (attribute-1 value)))
 ```
+
+Node attributes are denoted as a list starting with `@` as the first element,
+and followed by `(KEY VALUE)` pairs. Attributes cannot be empty, meaning that
+`(node (@))` will fail.
+
+```example
+(node (@ (operator +))) ;; The `operator` attribute has value `+`
+```
+
+Children
+--------
 
 A node *with children* is represented like this:
 
@@ -57,66 +66,53 @@ A node *with children* is represented like this:
 	(child-1) (child-2) (child-3))             ;; and attributes
 ```
 
-There are three special types of node that have a different notation: the
-string, the symbold and the numbers.
+Special nodes
+-------------
 
-The string node has as only one child, and its child is not a node but a litteral value,
+There are three special types of node that have a different notation: the
+string, the symbol and the numbers.
+
+The **string** node has as only one child, and its child is not a node but a litteral value,
 and is denoted like this:
 
 ```example
 (string  (@ (value "Hello, world"))) ;; Canonical representation
-"Hello, world"                      ;; Shorthand equivalent
+"Hello, world"                       ;; Shorthand equivalent
 ```
 
-Likewise for the number node:
+Likewise for the **number** node:
 
 ```example
 (number (@ (value 1.0))) ;; Canonical representation
 1.0                      ;; Shorthand equivalent
 ```
 
-and the symbol node:
+and the **symbol** node:
 
 ```example
 (symbol (@ (value true))) ;; Canonical representation
 'true                     ;; Shorthand equivalent
 ```
 
-Attributes
-----------
-
-Node attributes are denoted as a list starting with `@` as the first element,
-and followed by `(KEY VALUE)` pairs:
-
-```
-(@ )              ;; Empty attributes list
-(@ (operator +))  ;; The `operator` attribute has value `+`
-```
-
-```
-(is-attributes? '(@ ))                   ;; → #t
-(has-attribute? 'type '(@ (type number)) ;; → #t
-(has-attribute? 'id '(@ (type number))   ;; → #f
-```
-
-
 Subtyping
 ---------
 
-A node type `A` is a subtype of a node type `B` when the name of `A` starts with  `B`.
-For instance:
+A node type `A` is a subtype of a node type `B` when the name of `A` starts
+with  `B`. If followed, this simple convention can be quite powerful:
 
 ```
-(is-subtype? 'ref-absolute 'ref) ;; → #t
-(is-subtype? 'ref 'ref-absolute) ;; → #f
+(number)
+(number-float)        ;; A float is a number
+(number-float-32)     ;; A float 32 is a float and a number
+(number-integer)      ;; An integer is number but not a float
 ```
 
-Pattern extension
+Pattern templates
 -----------------
 
 The tree language also has dedicated syntax to support template patterns. 
-A template pattern is denoted in `UPPERCASE` and might be prefixed with
-`…`:
+A template pattern is denoted in `UPPER_CASE` and might be prefixed with
+`…` (or `...):
 
 ```example
 (list A …B)
