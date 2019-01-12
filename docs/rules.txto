@@ -1,0 +1,116 @@
+== Rules
+
+The _rules language_ specifies how different subtrees can be combined together.
+It's essentially a grammar definition and will look familiar to anyone
+with experience in writing parsers or reading [EBNF](https://en.wikipedia.org/wiki/Extended_Backus%E2%80%93Naur_form).
+
+Model
+=====
+
+Each _rule_ defines how (text) tokens can be combined together (like your
+traditional grammar), but also provides mapping to a tree from the [tree
+language](trees).
+
+Rules have the following properties:
+
+- A rule has a *name*, which represents its type, denoted as an `UPPERCASE` string
+
+- A rule may have a *variant*, which allows rules to have the same name, but
+  their `(name,variant)` pair has to be unique. Variants are denoted by a `(lowercase)`
+  string in parentheses.
+
+- A rule has a *definition* in the form a sequence of _tokens_ or _rule_ references_ 
+  along with _cardinalities_.
+
+A _token_ represents a string or a set of strings (see representation). A rule 
+is _terminal_ when its definition only has tokens (ie. it does not reference
+any rule).
+
+Representation
+==============
+
+A rule has a name and optionally a variant. The definition is rule definition is
+declared after `:=` and ends with a semicolon `;`.
+
+```rule
+RULE := "token";
+RULE(variant) := "another" "token";
+```
+
+The rule definition can contain tokens, surrounded in double quotes `"…"`. 
+Tokens can also reference a range or characters, in which case the range
+is surrounded by `[` and `]` with the start and end separted by a `- `:
+
+```
+[0-9]                  // Characters 0 to 9
+[A-Za-z]               // Characters A to Z or a to z
+```
+
+Rule references are denoted in `UPPERCASE` and might be suffixed with 
+a _cardinality_:
+
+- optional is denoted `?`
+- one or more is denoted `+`
+- zero or more is denoted `*`
+
+Tokens and rule references are implicitely concatenated, and the default
+separator (whitespace) will be used to skip input inbetween the recognized
+elements.
+
+```rule
+LIST(empty) := '[' ']';
+LIST        := '[' VALUE (',' VALUE)* ']';
+```
+
+Coments can be placed before or after rule definitions using `//` as a prefix.
+Here is a complete, simple example of a grammar definition.
+
+```rule
+// A simple expression language
+NUMBER           := [0-9]+ ;
+OPERATOR         := [+\-*/^] ;
+COMPUTATION      := VALUE OPERATOR VALUE;
+VALUE(numeric)   := NUMBER;
+VALUE(composite) := '(' VALUE ')';
+```
+
+Adding tree patterns
+====================
+
+Now the interesting thing is that a pattern from the [tree language] can
+be associated with a rule by following its definition by  `--> PATTTERN;`
+
+In the tree patterns, any `UPPERCASE` string references the matched element
+using an implicit naming:
+
+- `A` for the first element, `B` for the second element, etc
+- `AA` for the first element of the first match
+- `AB` for the second element of the first match
+- and so forth
+
+Here is an example:
+
+```
+NUMBER           := [0-9]+ ;
+--> (number (@ value A))
+
+OPERATOR         := [+\-*/^] ;
+--> (operator (@ value A)) ;
+
+COMPUTATION      := VALUE OPERATOR VALUE;
+--> (computation B A C) ;
+
+VALUE(numeric)   := NUMBER;
+--> A;
+
+VALUE(composite) := '(' VALUE ')';
+--> B;
+```
+
+# TODO: Add an example of operator precendence
+
+
+
+
+
+# EOF - vim: ts=2 sw=2 et

@@ -1,6 +1,7 @@
 from texto.main import run as texto
 import os
 BASE = os.path.normpath(os.path.abspath(__file__) + "/../../../../")
+NOTHING = object()
 
 def getExamples( name ):
 	path = os.path.join(BASE, "docs", name)

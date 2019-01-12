@@ -90,6 +90,7 @@ and followed by `(KEY VALUE)` pairs:
 (has-attribute? 'id '(@ (type number))   ;; → #f
 ```
 
+
 Subtyping
 ---------
 
@@ -100,5 +101,20 @@ For instance:
 (is-subtype? 'ref-absolute 'ref) ;; → #t
 (is-subtype? 'ref 'ref-absolute) ;; → #f
 ```
+
+Pattern extension
+-----------------
+
+The tree language also has dedicated syntax to support template patterns. 
+A template pattern is denoted in `UPPERCASE` and might be prefixed with
+`…`:
+
+```tree
+(list A …B)
+```
+
+is a pattern that will create `(list 1 2 3 4)` when given `A=1` and `B=(2 3
+4)`. Likewise, if we apply the pattern to `(list 1 2 3 4)`, we will get
+`A=1` and `B=(2 3 4)`.
 
 # EOF - vim: ts=2 sw=2 et

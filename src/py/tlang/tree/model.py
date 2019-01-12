@@ -1,8 +1,7 @@
 
 from typing import Optional, Any, List, Dict
 from collections import OrderedDict
-
-NOTHING = object()
+from tlang.utils import NOTHING
 
 __doc__ = """
 The core model representing trees and nodes.
@@ -73,12 +72,7 @@ class Node:
 	def __str__( self ):
 		return "".join(Repr.Apply(self))
 
-class Traversal:
-
-	def apply( self, node ):
-		pass
-
-class Repr(Traversal):
+class Repr:
 
 	@classmethod
 	def Apply( cls, node ):
