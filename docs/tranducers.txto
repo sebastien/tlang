@@ -1,0 +1,6 @@
+== Transducers
+
+The [transducer language] defines how to transform a set of changes made
+to a tree into a set of changes to be made on another three. Transducers
+support incremental transformation of trees and can be efficiently
+combined and composed.

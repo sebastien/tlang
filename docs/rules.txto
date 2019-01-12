@@ -4,6 +4,30 @@ The _rules language_ specifies how different subtrees can be combined together.
 It's essentially a grammar definition and will look familiar to anyone
 with experience in writing parsers or reading [EBNF](https://en.wikipedia.org/wiki/Extended_Backus%E2%80%93Naur_form).
 
+
+Here is an example of a very simple computation example:
+
+```rules
+NUMBER           := [0-9]+              ; --> (number (@ (value A)))   ;
+OPERATOR         := [+\-*/^]            ; --> (operator (@ (value A))) ;
+COMPUTATION      := VALUE OPERATOR VALUE; --> (computation B A C)      ;
+VALUE(numeric)   := NUMBER              ; --> A                        ;
+VALUE(composite) := '(' VALUE ')'       ; --> B                        ;
+```
+
+and here is another example for a simple S-Expression parser.
+
+```rules
+NUMBER(float) := [0-9]+ _ "." _ [0.9]+)?  ; --> (number-float (@ (radix A) (mantissa C));
+NUMBER(int)   := [0-9]+                   ; --> (number-int   (@ (value A)));
+STRING        := '"' ('\\"' | [^"])* '"'  ; --> (string       (@ (value B))); 
+SYMBOL        := [A-Za-z\-]+              ; --> (ref (@ (value A)));
+LIST          := "(" VALUE+ ")"           ; --> (list …VALUE);
+VALUE         := (NUMBER | SYMBOL | LIST) ; --> A;
+```
+
+Note that in both the [tree language] is used on the right-hand of the `-->`.
+
 Model
 =====
 
@@ -87,25 +111,7 @@ using an implicit naming:
 - `AA` for the first element of the first match
 - `AB` for the second element of the first match
 - and so forth
-
-Here is an example:
-
-```
-NUMBER           := [0-9]+ ;
---> (number (@ value A))
-
-OPERATOR         := [+\-*/^] ;
---> (operator (@ value A)) ;
-
-COMPUTATION      := VALUE OPERATOR VALUE;
---> (computation B A C) ;
-
-VALUE(numeric)   := NUMBER;
---> A;
-
-VALUE(composite) := '(' VALUE ')';
---> B;
-```
+`
 
 # TODO: Add an example of operator precendence
 
