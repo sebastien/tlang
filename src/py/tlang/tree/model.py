@@ -72,6 +72,9 @@ class Node:
 	def __str__( self ):
 		return "".join(Repr.Apply(self))
 
+class NodeTemplate(Node):
+	pass
+
 class Repr:
 
 	@classmethod
@@ -81,7 +84,7 @@ class Repr:
 		if node.hasAttributes:
 			yield " (@ "
 			for k,v in node.attributes.items():
-				yield "("
+				yield " ("
 				yield str(k)
 				yield " "
 				yield str(v)

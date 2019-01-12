@@ -4,3 +4,7 @@ The [transducer language] defines how to transform a set of changes made
 to a tree into a set of changes to be made on another three. Transducers
 support incremental transformation of trees and can be efficiently
 combined and composed.
+
+[Tree Transducers](https://en.wikipedia.org/wiki/Tree_transducer) is 
+a family of "abstract machines" that transform trees, and you can learn more
+about it in the [TATA paper](https://gforge.inria.fr/frs/download.php/10994/tata.pdf).
