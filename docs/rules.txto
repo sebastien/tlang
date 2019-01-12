@@ -7,7 +7,7 @@ with experience in writing parsers or reading [EBNF](https://en.wikipedia.org/wi
 
 Here is an example of a very simple computation example:
 
-```rules
+```XXXexample
 NUMBER           := [0-9]+              ; --> (number (@ (value A)))   ;
 OPERATOR         := [+\-*/^]            ; --> (operator (@ (value A))) ;
 COMPUTATION      := VALUE OPERATOR VALUE; --> (computation B A C)      ;
@@ -17,7 +17,7 @@ VALUE(composite) := '(' VALUE ')'       ; --> B                        ;
 
 and here is another example for a simple S-Expression parser.
 
-```rules
+```XXXexample
 NUMBER(float) := [0-9]+ _ "." _ [0.9]+)?  ; --> (number-float (@ (radix A) (mantissa C));
 NUMBER(int)   := [0-9]+                   ; --> (number-int   (@ (value A)));
 STRING        := '"' ('\\"' | [^"])* '"'  ; --> (string       (@ (value B))); 
@@ -56,10 +56,13 @@ Representation
 A rule has a name and optionally a variant. The definition is rule definition is
 declared after `:=` and ends with a semicolon `;`.
 
-```rule
-RULE := "token";
-RULE(variant) := "another" "token";
+```example
+RULE := 'token';
+RULE(variant) := 'another' 'token';
 ```
+
+Tokens
+------
 
 The rule definition can contain tokens, surrounded in double quotes `"…"`. 
 Tokens can also reference a range or characters, in which case the range
@@ -70,26 +73,59 @@ is surrounded by `[` and `]` with the start and end separted by a `- `:
 [A-Za-z]               // Characters A to Z or a to z
 ```
 
-Rule references are denoted in `UPPERCASE` and might be suffixed with 
-a _cardinality_:
+Cardinality
+-----------
+
+Cardinalities express how many times an element might be repeated:
 
 - optional is denoted `?`
 - one or more is denoted `+`
 - zero or more is denoted `*`
 
+By default, elements occur once and only once.
+
+Rule references
+---------------
+
+Rule references are denoted in `UPPERCASE` and might be suffixed with 
+a _cardinality_. Rules can also be suffixed with `:UPPERCASE_NAME` where
+the name will be used to bind the value corresponding to the rule to a variable
+that can then be used in a [tree pattern]. Cardinality should always come last.
+
+
+```example
+COMPUTATION := VALUE:LVALUE? OPERATOR VALUE:RVALUE;
+```
+
+Groups
+------
+
+Tokens and rule references can be grouped using parentheses.
+
+```example
+LIST := '(' VALUE? ( ',' VALUE )* ')';
+``` 
+
+Concatenation
+-------------
+
 Tokens and rule references are implicitely concatenated, and the default
 separator (whitespace) will be used to skip input inbetween the recognized
-elements.
+elements, unless an underscore `_` is specified, in which case the match
+must be direct.
 
-```rule
-LIST(empty) := '[' ']';
-LIST        := '[' VALUE (',' VALUE)* ']';
+```example
+// The following will match `1000.1` but not `1 000 . 1`
+FLOAT := [1-9] _ [0-9]* _ '.' _ [0-9]+;
 ```
+
+Comments
+--------
 
 Coments can be placed before or after rule definitions using `//` as a prefix.
 Here is a complete, simple example of a grammar definition.
 
-```rule
+```example
 // A simple expression language
 NUMBER           := [0-9]+ ;
 OPERATOR         := [+\-*/^] ;

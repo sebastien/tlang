@@ -5,7 +5,7 @@ in this document use our Scheme [notation].
 
 Here is an example:
 
-```tree
+```example
 ;; An abstract representation of "hello, world!"
 (program
   (let 'text "hello, world!")
@@ -32,25 +32,25 @@ Representation
 
 A single node is defined like this:
 
-```tree
+```example
 (node-name)
 ```
 
 it is possible to omit the parens:
 
-```tree
+```example
 node-name
 ```
 
 A single node *with attributes* is defined like this:
 
-```tree
+```example
 (node-name (@ (attribute-1 value) (attribute-1 value)))
 ```
 
 A node *with children* is represented like this:
 
-```tree
+```example
 (node-name (child-1) (child-2) (child-3))    ;; node with children
 (node-name
 	(@ (attribute-1 value))
@@ -63,21 +63,21 @@ string, the symbold and the numbers.
 The string node has as only one child, and its child is not a node but a litteral value,
 and is denoted like this:
 
-```tree
+```example
 (string  (@ (value "Hello, world"))) ;; Canonical representation
 "Hello, world"                      ;; Shorthand equivalent
 ```
 
 Likewise for the number node:
 
-```tree
+```example
 (number (@ (value 1.0))) ;; Canonical representation
 1.0                      ;; Shorthand equivalent
 ```
 
 and the symbol node:
 
-```tree
+```example
 (symbol (@ (value true))) ;; Canonical representation
 'true                     ;; Shorthand equivalent
 ```
@@ -118,7 +118,7 @@ The tree language also has dedicated syntax to support template patterns.
 A template pattern is denoted in `UPPERCASE` and might be prefixed with
 `…`:
 
-```tree
+```example
 (list A …B)
 ```
 
