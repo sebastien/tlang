@@ -1,7 +1,7 @@
 == Trees
 
-Trees are represented as [S-Expressions]. Note that all the code examples
-in this document use our Scheme [notation].
+Trees are represented as [S-Expressions]. Inspiration for this language
+comes from [treepace].
 
 Here is an example:
 
@@ -122,4 +122,10 @@ is a pattern that will create `(list 1 2 3 4)` when given `A=1` and `B=(2 3
 4)`. Likewise, if we apply the pattern to `(list 1 2 3 4)`, we will get
 `A=1` and `B=(2 3 4)`.
 
+References
+==========
+
+- [treepace]: https://github.com/sulir/treepace
+
 # EOF - vim: ts=2 sw=2 et
+

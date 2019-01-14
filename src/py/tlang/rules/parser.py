@@ -2,6 +2,7 @@ from libparsing import Grammar, Symbols, Processor, ensure_string
 from typing import Optional
 from tlang.rules.model import Rule
 from tlang.utils import ParserUtils
+from tlang.tree.parser import grammar as tree_grammar
 import sys, os
 
 __doc__ = """
@@ -33,14 +34,15 @@ def symbols( g:Grammar ) -> Symbols:
 		"EMPTY_LINE"   : "s*\n"
 	}
 	words = {
-		"RULE_DEF" : ":=",
-		"RULE_END" : ";",
-		"RULE_PAT" : "-->",
-		"LP"       : "(",
-		"RP"       : ")",
-		"QUOTE"    : "'",
+		"RULE_DEF"  : ":=",
+		"RULE_END"  : ";",
+		"RULE_PAT"  : "-->",
+		"LP"        : "(",
+		"RP"        : ")",
+		"PIPE"      : "|",
+		"QUOTE"     : "'",
 		"UNDERSCORE": "_",
-		"EOL"      : "\n",
+		"EOL"       : "\n",
 
 	}
 	groups = ("Tree",)
@@ -59,7 +61,8 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False) -> Grammar:
 		if GRAMMAR:
 			return GRAMMAR
 		else:
-			g=Grammar("tree", isVerbose=isVerbose)
+			g=Grammar("rules", isVerbose=isVerbose)
+	g = tree_grammar(g)
 	s = symbols(g)
 
 	# Expressions
@@ -67,16 +70,19 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False) -> Grammar:
 	g.rule("RuleExpression")
 	g.rule("RuleReference", s.RULE_NAME, s.RULE_BINDING.optional(), s.CARDINALITY.optional())
 	g.rule("RuleGroup", s.LP, s.RuleExpression, s.RP, s.CARDINALITY.optional())
-	g.rule("RuleTokenString", s.STRING_SQ)
+	g.group("RuleTokenString", s.STRING_SQ, s.STRING_DQ)
 	g.rule("RuleTokenRange", s.TOKEN_RANGE)
 	g.group("RuleTokenValue", s.RuleTokenString, s.RuleTokenRange)
 	g.rule("RuleToken", s.RuleTokenValue, s.CARDINALITY.optional())
 	s.RuleValue.set( s.RuleToken, s.RuleGroup, s.RuleReference)
-	s.RuleExpression.set(s.RuleValue, g.arule(s.UNDERSCORE.optional(), s.RuleValue).zeroOrMore ())
+	g.rule("RuleExpressionOr", s.PIPE, s.RuleValue)
+	g.rule("RuleExpressionAnd", s.UNDERSCORE.optional(), s.RuleValue)
+	g.group("RuleExpressionContinuation", s.RuleExpressionOr, s.RuleExpressionAnd)
+	s.RuleExpression.set(s.RuleValue, s.RuleExpressionContinuation.zeroOrMore ())
 
 	# Statements
-	g.rule("RulePattern",    s.EOL, s.RULE_PAT, s.Tree, s.RULE_END)
-	g.rule("RuleDefinition", s.RULE_NAME, s.RULE_VARIANT.optional(), s.RULE_DEF, s.RuleExpression, s.RULE_END, s.RulePattern.optional())
+	g.rule("RulePattern",    s.EOL.optional(), s.RULE_PAT, s.Tree)
+	g.rule("RuleDefinition", s.RULE_NAME, s.RULE_VARIANT.optional(), s.RULE_DEF, s.RuleExpression, s.RulePattern.optional(), s.RULE_END)
 	g.rule("RuleComment",    s.RULE_COMMENT, s.EOL)
 
 	# Rules
@@ -93,7 +99,6 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False) -> Grammar:
 
 	if not GRAMMAR:
 		GRAMMAR = g
-		g.prepare()
 	g.setVerbose(isVerbose)
 	return g
 

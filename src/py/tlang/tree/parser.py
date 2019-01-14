@@ -75,7 +75,6 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False) -> Grammar:
 
 	if not GRAMMAR:
 		GRAMMAR = g
-		g.prepare()
 	g.setVerbose(isVerbose)
 	return g
 

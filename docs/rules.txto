@@ -7,26 +7,25 @@ with experience in writing parsers or reading [EBNF](https://en.wikipedia.org/wi
 
 Here is an example of a very simple computation example:
 
-```XXXexample
-NUMBER           := [0-9]+              ; --> (number (@ (value A)))   ;
-OPERATOR         := [+\-*/^]            ; --> (operator (@ (value A))) ;
-COMPUTATION      := VALUE OPERATOR VALUE; --> (computation B A C)      ;
-VALUE(numeric)   := NUMBER              ; --> A                        ;
-VALUE(composite) := '(' VALUE ')'       ; --> B                        ;
+```example
+NUMBER           := [0-9]+              ;
+OPERATOR         := [+\-*/^]            ;
+COMPUTATION      := VALUE OPERATOR VALUE;
+VALUE(numeric)   := NUMBER              ;
+VALUE(composite) := '(' VALUE ')'       ;
 ```
 
-and here is another example for a simple S-Expression parser.
+and here is another example for a simple S-Expression parser that contains
+[tree expressions](trees.txto) mapping tokens to subtrees.
 
-```XXXexample
-NUMBER(float) := [0-9]+ _ "." _ [0.9]+)?  ; --> (number-float (@ (radix A) (mantissa C));
-NUMBER(int)   := [0-9]+                   ; --> (number-int   (@ (value A)));
-STRING        := '"' ('\\"' | [^"])* '"'  ; --> (string       (@ (value B))); 
-SYMBOL        := [A-Za-z\-]+              ; --> (ref (@ (value A)));
-LIST          := "(" VALUE+ ")"           ; --> (list …VALUE);
-VALUE         := (NUMBER | SYMBOL | LIST) ; --> A;
+```example
+NUMBER(float) := [0-9]+ _ ("." _ [0.9]+)?  --> (number-float (@ (radix A) (mantissa C)));
+NUMBER(int)   := [0-9]+                   --> (number-int   (@ (value A)));
+STRING        := '"' ('\\"' | [^"])* '"'  --> (string       (@ (value B))); 
+SYMBOL        := [A-Za-z\-]+              --> (ref (@ (value A)));
+LIST          := "(" VALUE+ ")"           --> (list …VALUE);
+VALUE         := (NUMBER | SYMBOL | LIST) --> A;
 ```
-
-Note that in both the [tree language] is used on the right-hand of the `-->`.
 
 Model
 =====
@@ -143,6 +142,11 @@ Tree pattern templates
 
 Now the interesting thing is that a pattern from the [tree language] can
 be associated with a rule by following its definition by  `--> PATTTERN;`
+
+```example
+RULE := 'token' --> (token A);
+```
+
 
 In the tree patterns, any `UPPERCASE` string references the matched element
 using an implicit naming:
