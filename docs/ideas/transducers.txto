@@ -1,0 +1,124 @@
+
+
+
+Link references to their definitions
+------------------------------------
+
+
+The following effector will update the link between reference nodes
+and their definition.
+
+```transducer
+
+;; The schema
+schema :=
+	(ref    (@ (name #str) (symbol (symbol) )))
+	(symbol (@ (name #str) (refs ((ref))) ))
+;
+
+
+;; We select all the references
+on {REF:ref}/{@name} change := 
+
+	;; We remove the node from the referenced symbol
+	remove ($REF/@symbol/@refs, $REF)
+
+	when(@name,
+		;; We resolve the symbol 
+		{SYMBOL:. << def*/@name[eq(@,$0)] | head}
+
+		;; We set the resolved symbol as the attribute value
+		{set    ($REF/@symbol, $SYMBOL)}
+
+		;; We remove the symbol
+		{add    ($SYMBOL/@refs, $REF}
+	)
+
+;
+
+```
+
+Here the *schema* is used to statically check that the operations
+make sense (ie. the attribute/node is defined, and its type is valid).
+
+Then the *transducer* is used to express a transformation. What we can
+deduce from the above is the following:
+
+- When the `ref` node has a `@name`, we'll need to search the up the
+  walk path for a matching `symbol`. A conclusion is that during a walk,
+  `symbol` nodes should be indexed by `@name`.
+
+- Attributes are used to maintain meta-information and effectively create
+  a graph-like structure.
+
+We can now express what happens when a symbol changes:
+
+```
+on {SYMBOL:symbol}/@name change := clear(./@refs/ref/@symbol,.);
+```
+
+However, here we can see that that we're changing the `@symbol`, and the
+compiler should tell us that we need to support that change as well.
+
+
+```
+on {REF:ref}/@symbol change := remove( $previous/@refs, $REF );
+``` 
+
+Now the compiler shoud know that `symbol/@ref` is changed, so we need to
+handle it as well:
+
+```
+on {SYMBOL:symbol}/@refs removed := 
+	{unset( $removed/@symbol, $SYMBOL )}
+
+on {SYMBOL:symbol}/@refs added := 
+	{set  ( $added/@symbol, $SYMBOL )}
+
+```
+
+We have introduced a mutually-recursive dependency, which is a potentially
+problematic. Also, in general it might be quite tricky to ensure that there
+is not going to be an issue.
+
+```
+symbol/@ref → ref/@symbol
+ref/@symbol → symbol/@ref
+```
+
+So one idea would be to setup capabilities/rights so that we know who is
+responsible for maintaining the consistency of a set of dependent attributes.
+In our case, we have `symbol/@ref` and `ref/@symbol` that are mutually
+dependent.
+
+```
+;; We set the the 
+constrain change {SYMBOL:symbol}/@ref := 
+	requires(ref/@symbol[@=SYMBOL])
+```
+
+Synthetic attributes
+--------------------
+
+It might be better to express attributes as synthetic and do that declaratively,
+as opposed to the event-driven way that implicitely denotes the actual constraints
+of the data.
+
+Compiler
+======== 
+
+The compiler should:
+
+1) Make sure that any referenced node/attribute is defined in the schema, which
+   ensures there's no type and the data is fully captured.
+
+2) Make sure that any mutating operation conforms with the constraints and
+   should be determined statically.
+
+3) Created indexes and lookup structures based on expensive selectors like
+   `>>`, `<<`, `\\` or `//`.
+
+
+
+
+

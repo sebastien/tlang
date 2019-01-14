@@ -109,6 +109,25 @@ Tokens and rule references can be grouped using parentheses.
 LIST := '(' VALUE? ( ',' VALUE )* ')';
 ``` 
 
+Choice
+------
+
+While you can explicitely define alternative matches for rules using
+_variants_, there is an implicit syntax using `|`:
+
+```example
+// matches A, B or C
+LETTER := 'A' | 'B' | 'C';
+```
+
+which is the equivalent of
+
+```example
+LETTER(A) := 'A';
+LETTER(B) := 'B';
+LETTER(C) := 'C';
+```
+
 Concatenation
 -------------
 
@@ -155,7 +174,6 @@ using an implicit naming:
 - `AA` for the first element of the first match
 - `AB` for the second element of the first match
 - and so forth
-`
 
 # TODO: Add an example of operator precendence
 

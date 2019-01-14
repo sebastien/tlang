@@ -23,6 +23,8 @@ element of a tree that has the following properties:
 - A node has zero or more **children**
 - A node may have one **parent**, if it is a child of another node
 
+- An attribute_ has a *name* and a *value*
+
 A **tree** is a node without parent, a **subtree** is a connected subset of a tree,
 a **leaf** is a node without children and a **node set** is a set of nodes that
 contains 0 or more nodes.
