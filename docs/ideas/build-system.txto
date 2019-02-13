@@ -1,0 +1,86 @@
+== T-Lang for a build system
+
+There's a lot of overlap between build system, web servers with transpilations
+(like Webpack's Dev Server) and compilers.
+
+Build systems are typically one-off: they rebuild everything, while webservers
+are more continous: a page refresh might trigger "recompilation" of files.
+Compilers, on the other hand might be invoked through several processess, but 
+need to re-use as much as possible (eg. compiling modules `a` and `b`, which 
+both use module `c`).
+
+There are a few facilities required here:
+
+- A way to detect the list of dependencies for a given `path`
+- A way to detect if a given path has changed _directly_
+- A way to detect _indirect_ changes to path, safely handling circular dependencies.
+- A way to produce an _output_ from a list of _inputs_.
+
+Most of the time, the complete list of things to output can be known by just
+having the list of paths, but sometimes it needs to process the paths themselves,
+for instance if the output paths are parametered by the contents of some of the 
+nodes/files.
+
+Expressing this in T-Lang, we would first define a schema that would accomodate
+all the different types of node that we'd like to process, here corresponding
+to file types.
+
+```schema
+(file-c (@ (path :string) (:as 'contents :string))
+(file-h (@ (path :string) (:as 'contents :string))
+(file-o (@ (path :string) (:as 'contents :string))
+```
+
+Now we need to define transformations, for instance, here is how we would
+map the result of `dep-parse-c(string)` to children of a node with 
+the file's source path under  `/deps`.
+
+# FIXME: Do we create a new node here?
+```transform
+on (//{file-c:REF}/{#contents:CONTENTS}
+	;; TODO: Should create nodes
+	set (/deps/${REF/@path}, map (run ('dep-parse-c'  CONTENTS)))
+)```
+
+The declarative equivalent of that would be:
+
+```transform
+makes (/deps/${*:FILE}/@path}/{*/@path:DEP},
+	ensure-in (run('dep-parse-c', FILE/#contents), DEP)
+)```
+
+The declarative equivent is more like a predicate, while the imperative 
+equivalent shows all the matches.
+
+Now this all makes sense when we 
+
+```
+on (
+	/src/{file-c:FILE}/@deps
+	;; Here forward means that the effect will be forwarded to the
+	;; given node.
+	forward (/deps/$PROGRAM/@deps DEP)
+)
+```
+
+or the declarative equivalent (dual):
+
+```
+makes(
+	/deps/$PROGRAM/@deps
+	/src/{file-c:FILE}/@deps
+)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,106 @@
+== Schema language
+
+The schema language is a superset of the [tree language]. It extends the S-Expr
+syntax with ways to denote which attributes and children are allowed in a tree.
+
+
+Here is an example schema definition:
+
+```schema
+(scope
+  ;; A SCOPE may have a parent SCOPE (as attribute)
+  (@ (parent (? (:node scope))))
+  ;; and holds SLOTS (as children)
+  (slots
+    (* (slot (@ 
+      ;; Each SLOT has a name and an optional VALUE, and keeps track
+      ;; of the nodes that reference it.
+      (name              :string)
+      (value         (? (:like expr)))
+      (referenced-by (*  :node))
+      )))))
+```
+
+Model
+=====
+
+The _model_ is essential the same as the tree language, where the main type
+is the _node_ that has:
+
+- *name*, which defines the node type
+- *children* (other nodes)
+- *attributes*, which is an ordered list of `(key,value)` pairs,
+  where `key` is a literal type (string,number or symbol) and value is
+  either a literal type or a node reference.
+
+Note that a given node can have zero or one parent, not more, but it can
+be referenced 0 or more times in attributes.
+
+Representation
+===============
+
+Data constraints
+----------------
+
+Specific values::
+
+- `"my-string-value"` to denote a secific string
+- `123.456` to denote a secific number
+- `'symbol-name` to denote a secific symbol
+
+Type of values::
+
+- `#string` or `(#string CONSTRAINT…)` to denote a string value
+- `#number` or `(#number CONSTRAINT…)` to denote a numeric value
+- `#symbol` or `(#symbol CONSTRAINT…)` to denote a symbolic value
+
+Node references (only in attribute constraints):
+
+- `#node`   or `(#node CONSTRAINT…)`   to denote a node reference satisfying the given constraints
+- `NODE-TYPE`  or `(NODE-TYPE CONSTRAINT…)` like above, but with  a node of the given type
+- `NODE-TYPE*`  or `(NODE-TYPE* CONSTRAINT…)` like above, but with  a node type starting with the given `NODE-TYPE`
+
+Special values::
+
+- `_` or `(_ CONSTRAINT…)` the wildcard, meaning anything
+
+Cardinality constraints
+-----------------------
+
+- `VALUE` or canonically `(! VALUE)` to denote a required value (default)
+- `(? VALUE)` to denote an optional value
+- `(* VALUE)` to denote a 0-n value
+- `(+ VALUE)` to denote a 1-n value
+
+Node constraints
+-----------------
+
+- `(:is   'TYPE)` node is exactly of type TYPE
+- `(:of   'TYPE)` node type is a subtype of TYPE
+
+Constraint combinators
+----------------------
+
+- `(:and CONSTRAINT…)`
+- `(:or  CONSTRAINT…)`
+- `(:not CONSTRAINT…)`
+
+Attributes
+----------
+
+```
+(@ (NAME CONSTRAINT…))
+```
+
+Design notes
+============
+
+The S-Expr syntax for the schema is designed to offer clear visual way
+to disambiguate types (starting with `#`), constraint combinators and 
+predicates (starting with `:`). 
+
+When writing a schema, you'll have a lot of attribute and node names, and
+you want to be able to quickly identify which are part of the schema
+language and which are part of the structure you're trying to describe.
+
+# EOF - vim: ts=2 sw=2 et syn=texto

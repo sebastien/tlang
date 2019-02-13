@@ -1,0 +1,57 @@
+== Accounting Example
+
+This example shows how to implement the rules for creating a hierarchical
+set of accounts, and ensuring that they balance.
+
+```transducer
+;; We define the schema as a tree.
+schema :=
+	(account
+		(@
+			(name    'str)
+			;; We flag the balance as synthetic
+			(balance ('synthetic 'float))
+		) 
+		;; An account can have transaction or account nodes
+		('many ('or transaction account))
+	)
+	(transaction 
+		(@ (amount 'float)))
+;
+
+;; We define the operation interface, and specify it is
+;; incremental.
+incremental operation sum list(float) -> float;
+
+;; We define a synthetic attribute. The balance of an account
+;; is the the sum of the all the transactions plus the balance
+;; of all its sub-accounts.
+synthetic schema/@balance =
+	sum(union(./transaction/@amount,./account/@balance));
+
+```
+
+here `sum` must be an incremental operation for it to have an efficient 
+implementation. Here is how we'd do it in Python.
+
+```
+class Sum(IncrementalOperation):
+
+	def compute( self, values):
+		return sum(values)
+
+	def add( self, current, added ):
+		reurn current + added
+
+	def remove( self, current, value ):
+		return current - value
+
+	def clear( self ):
+		return 0
+```
+
+We can note that in this case, the propagation of data is bottom-up: when
+a child is updated, the parent (and ancestors) are also updated.
+
+
+# EOF - vim: ts=2 sw=2 et syn=texto

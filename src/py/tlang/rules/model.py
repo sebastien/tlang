@@ -26,7 +26,7 @@ class TokenString(Token):
 		self.length = len(value)
 
 	def match( self, text:str, offset:int ) -> int:
-		n = len(self.text)
+		n = len(self.value)
 		m = offset + self.length
 		if  m > n:
 			return -1

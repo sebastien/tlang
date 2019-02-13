@@ -1,0 +1,75 @@
+== Transform
+
+The [transform language] defines how to transform a set of changes made to a
+tree into a set of changes to be made on another three. The transform language
+helps specify _transducers_ that support incremental transformation of trees
+and can be efficiently combined and composed.
+
+[Tree Transducers](https://en.wikipedia.org/wiki/Tree_transducer) is 
+a family of "abstract machines" that transform trees, and you can learn more
+about it in the [TATA paper](https://gforge.inria.fr/frs/download.php/10994/tata.pdf).
+
+
+# TODO: Move that to ideas, maybe
+
+Design Requirements
+===================
+
+XSLT is good example of what not to do, syntactically. XSLT stylesheets become
+quickly unmanagable because of the verbosity of the XML encoding and the 
+difficulty to create safe abstractions (the `template` mechanism is quite 
+error prone).
+
+We could use a S-Expr syntax for the transformation language, but because
+the transformation language is where most of the complexity of a T-Lang program
+goes, it should be expressive, readable. and safe.
+
+- Being _expressive_ means that complex tasks can be accomplished with relatively
+  little syntax.
+  
+- Being _readable_ means that the structure and gist of the what the transformation
+  does is almost immdiately apparent. There is a balance to be found between
+  expressiveness and readability, we don't want to go all the way like APL or
+  towards the other end like Java.
+
+- Being _safe_ means that as many errors are prevented at compile time. This
+  means that operations are checked against a schema and that assertions/checks
+  should be definable within the program.
+  do need to make sure
+
+Declarative vs Imperative
+=========================
+
+It is possible to say what happens when something change (imperative) or
+to say how is something constructed (declarative). Let's take our bank account
+example with `account[@amount]/transaction[@amount]`.
+
+Imperatively, we'd have:
+
+```transform
+on({transaction}/{@amount}, add!(A/../@amount, B))
+```
+
+or, using `sum`
+
+```transform
+on({transaction}/{@amount}, set!({A/../@amount},sum(C, B))
+```
+
+while declaratively, we'd have:
+
+
+```transform
+makes({account}/@amount,sum(A/transaction/@amount))
+```
+
+while the `sum` function operates the same in both declarative and imperative, 
+the declarative implies that:
+
+- Either the sum if fully re-calculated when any child transactio has 
+  changed.
+
+- Or sum supports incremental transformations, in which case changes
+  can be streamed.
+
+

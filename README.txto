@@ -2,8 +2,11 @@
 -- A Tree Processing Language
 
 The T Language is a language made to represent, create, query and transform trees.
-It is primarily intended as a software engineering tool to create compilers,
-languages and incremental algorithm that transform trees.
+It is primarily intended as a software engineering tool to create parsers, compilers,
+transpilers, analyzers and tree-transformation algorithms.
+
+Goals
+=====
 
 High-level goals:
 
@@ -12,24 +15,84 @@ High-level goals:
   suited to meta-programming and creating macro systems on top of existing
   languages.
 
-- Provide an **efficient infrastructure for compiler implementation**: compilers
+- Provide an **foundation for extensible compiler implementation**: compilers
   are essentially a set of tree transformation passes applied one after the other.
   TLang aims at abstracting away the definition of these passes and allowing for
   efficient combination and composition so that parsing and compilation can
   go as fast as possible.
 
-- Support **incremental programming**: TLang programs should work with a full
+- Support **high-performance incremental tree transformation**: TLang programs should work with a full
   snapshot of a tree, but also with increments (patches/deltas) that are
   translated into effects. This is an important feature to support interactive/live
   programming environments and efficient compiler implementation.
+
+- Expand **beyond compilers**: while compilers and analyzers are obvious applications,
+  TLang could be used to implement any system that maintains data as a tree or
+  tree-graph (using node reference in attributes). Live programming environments,
+  databases, user interface renderers or expert systems might benefit from TLang.
 
 - Be **language agnostic**: although TLang is implemented in Python, it is
   intended to work with any general purpose programming language by implementing
   a backend that supports it.
 
+TLang is implemented as a *set of mini-languages* combined together. Each
+language is designed to be relatively easy to learn by taking its roots
+in established formalism (EBNF grammars, S-Expressions or XPath/CSS selectors),
+and offers a canonical representation as an S-Expression if you don't like the
+syntactic sugar offered by the mini language.
 
-TLang is implemented in Python 3 and is maintained by [Sébastien
-Pierre](https://bitbucket.org/sebastien/tlang). It is licensed under the Revised BSD License.
+It is good to note that S-Expression are convertible to JSON and XML, and that
+JSON and XML can also be converted to S-Expressions, given some minimal conventions.
+
+Mini languages
+==============
+
+TLang is a composition of simple mini-languages with canonical representations:
+
+- The [Rules language](docs/rules.txto) that defines a mapping between text
+  representation and tree representation.
+
+- The [Tree language](docs/tree.txto) that defines a text-based representation
+  of trees using S-Expr, XML and JSON.
+
+- The [Schema language](docs/schema.txto) that defines a representation for
+  constraints and rules to be applied on a tree.
+
+- The [Query language](docs/query.txto) that defines how to retrieve values
+  and nodes from a tree.
+
+- The [Transform language](docs/transform.txto) that defines how trees can be
+  transformed into other trees or other data structures.
+ 
+
+Related work
+============
+
+Related projects:
+
+- [TXL](http://txl.ca) ― The Txl Programming Language, " Source Transformation by Example"
+- [Eclipse XText](https://www.eclipse.org/Xtext/)  ― "Language Engineering For Everyone!"
+- [Stratego](http://strategoxt.org/)/[Spoofax](http://www.metaborg.org/en/latest/) ―  "… a platform for developing textual (domain-specific) programming languages"
+- [Rascal-MPL](https://www.rascal-mpl.org/#_Metrics) ― "… integrating source code analysis, transformation, and generation primitives on the language level." (see also [ASF+SDF](http://www.meta-environment.org/))
+
+Compared to the above projects, TLang focuses more on the notion of tree-tree
+transformation as oppposed to text-tree-text transformation. It is also, at its
+core, a language-agnostic tool to write efficient incremental programs that
+transform trees.
+
+Loosely related projects:
+
+- [Treepace](https://github.com/sulir/treepace), a Python library to create and
+  query trees, featuring a compact and expressive syntax. Treespace gets many things
+  right, and has informed the design of the tree syntax.
+
+- [OHM](https://github.com/harc/ohm), the successor of OMeta, a JavaScript implementation
+  of a language to generate parsers. It has a really nice [online interactive editor](https://ohmlang.github.io/editor/)
+  that shows how live visual feedback helps building a grammar.
+  
+
+[TLang](https://bitbucket.org/sebastien/tlang) is implemented in Python 3 and is maintained by [Sébastien
+Pierre](https://sebastienpierre.nz). It is licensed under the Revised BSD License.
 
 
 # EOF - vim: ts=2 sw=2 et syn=texto

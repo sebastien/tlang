@@ -1,0 +1,41 @@
+== Compiler
+
+Errors
+======
+
+- Transducer/schema: attribute not defined 
+- Transducer/schema: node not defined
+
+- Transducer/effect: incompatible attribute type
+- Transducer/effect: incompatible node type
+- Transducer/effect: mutating synthetic attribute
+- Transducer/effect: recursive attribute definition
+
+- Transducer/process: function not defined
+- Transducer/process: missing argument
+- Transducer/process: incompatible argument
+- Transducer/process: incompatible return type
+- Transducer/process: undefined variable
+
+
+Warnings
+========
+
+- Transducer/effect: cylcic effect (A→B, B→C)
+- Transducer/effect: cascading changes (triggers more than one top-down, bottom-up)
+
+Formatting
+==========
+
+For any error or warning, there should be:
+
+- one or more source ranges indicating where the error happened
+  and the possible other declarations involved.
+
+- a suggestion of the next action to resolve the warning/error.
+
+```
+XXX not defined, did you mean 'YYY', 'ZZZ' or 'WWW'?
+```
+
+# EOF - vim: ts=2 sw=2 et syn=texto

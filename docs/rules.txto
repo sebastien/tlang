@@ -1,13 +1,22 @@
 == Rules
 
-The _rules language_ specifies how different subtrees can be combined together.
-It's essentially a grammar definition and will look familiar to anyone
-with experience in writing parsers or reading [EBNF](https://en.wikipedia.org/wiki/Extended_Backus%E2%80%93Naur_form).
+# TODO: Rules language is probably not right
+# TODO: Support for context variables (like indentation support)
 
+The _rules language_ provides tools for creating a bi-directional binding
+between a text representation and a tree representation. By mapping tokens and subtrees to rules, it becomes possible to convert
+trees to and from text format in an expressive way. The rules language is a way
+to easily implement parser and code formatters/normalizers.
 
-Here is an example of a very simple computation example:
+# SEE: http://www.program-transformation.org/Sdf/SdfLanguage
 
-```example
+The grammar definition will look familiar to anyone with experience in writing
+parsers or reading
+[EBNF](https://en.wikipedia.org/wiki/Extended_Backus%E2%80%93Naur_form). Here
+is an example of a very simple computation example, without only the mapping of
+tokens to rules:
+
+```rules
 NUMBER           := [0-9]+              ;
 OPERATOR         := [+\-*/^]            ;
 COMPUTATION      := VALUE OPERATOR VALUE;
@@ -18,13 +27,13 @@ VALUE(composite) := '(' VALUE ')'       ;
 and here is another example for a simple S-Expression parser that contains
 [tree expressions](trees.txto) mapping tokens to subtrees.
 
-```example
+```rules
 NUMBER(float) := [0-9]+ _ ("." _ [0.9]+)?  --> (number-float (@ (radix A) (mantissa C)));
-NUMBER(int)   := [0-9]+                   --> (number-int   (@ (value A)));
-STRING        := '"' ('\\"' | [^"])* '"'  --> (string       (@ (value B))); 
-SYMBOL        := [A-Za-z\-]+              --> (ref (@ (value A)));
-LIST          := "(" VALUE+ ")"           --> (list …VALUE);
-VALUE         := (NUMBER | SYMBOL | LIST) --> A;
+NUMBER(int)   := [0-9]+                    --> (number-int   (@ (value A)));
+STRING        := '"' ('\\"' | [^"])* '"'   --> (string       (@ (value B))); 
+SYMBOL        := [A-Za-z\-]+               --> (ref (@ (value A)));
+LIST          := "(" VALUE+ ")"            --> (list …VALUE);
+VALUE         := (NUMBER | SYMBOL | LIST)  --> A;
 ```
 
 Model
@@ -55,7 +64,7 @@ Representation
 A rule has a name and optionally a variant. The definition is rule definition is
 declared after `:=` and ends with a semicolon `;`.
 
-```example
+```
 RULE := 'token';
 RULE(variant) := 'another' 'token';
 ```
@@ -67,7 +76,7 @@ The rule definition can contain tokens, surrounded in double quotes `"…"`.
 Tokens can also reference a range or characters, in which case the range
 is surrounded by `[` and `]` with the start and end separted by a `- `:
 
-```example
+```rules
 A := 'Hello, world!'        ; // 'Hello, world!'
 B := [0-9]                  ; // Characters 0 to 9
 C := [A-Za-z]               ; // Characters A to Z or a to z
@@ -96,16 +105,45 @@ the name will be used to bind the value corresponding to the rule to a variable
 that can then be used in a [tree pattern]. Cardinality should always come last.
 
 
-```example
+```rules
 COMPUTATION := VALUE:LVALUE? OPERATOR VALUE:RVALUE;
 ```
+
+Rules also have _implicit references_ which are automatically named with
+a combination of uppercase letters. For instance in the following rule
+
+```rules
+ASSIGNMENT := 'let' NAME '=' EXPRESSION ';';
+```
+
+`NAME` will be implicitly bound to `A`, while `EXPRESSION` will be implicitely
+bound to `B`. Literals are not bound to anything, only rule references are.
+
+When the rule references are nested in parens or have cardinalities, then
+another letter will be added. For instance:
+
+```
+ARRAY :=  '[' (EXPRESSION (',' EXPRESSION)*)? ']'
+```
+
+will create the following implicit bindings:
+
+- `A` for `[EXPRESSION, [EXPRESSION]]`
+- `AA` for the first `EXPRESSION`
+- `AB` for the list of optional `EXPRESSION`
+- `ABA` for the first element of the `AB`
+- `ABB` for the second element of the `AB`, etc
+
+In other words, the combination of letters becomes an addressing scheme
+for implicitely retrieving parts of the parsed tree.
+
 
 Groups
 ------
 
 Tokens and rule references can be grouped using parentheses.
 
-```example
+```rules
 LIST := '(' VALUE? ( ',' VALUE )* ')';
 ``` 
 
@@ -115,14 +153,14 @@ Choice
 While you can explicitely define alternative matches for rules using
 _variants_, there is an implicit syntax using `|`:
 
-```example
+```rules
 // matches A, B or C
 LETTER := 'A' | 'B' | 'C';
 ```
 
 which is the equivalent of
 
-```example
+```rules
 LETTER(A) := 'A';
 LETTER(B) := 'B';
 LETTER(C) := 'C';
@@ -136,7 +174,7 @@ separator (whitespace) will be used to skip input inbetween the recognized
 elements, unless an underscore `_` is specified, in which case the match
 must be direct.
 
-```example
+```rules
 // The following will match `1000.1` but not `1 000 . 1`
 FLOAT := [1-9] _ [0-9]* _ '.' _ [0-9]+;
 ```
@@ -147,7 +185,7 @@ Comments
 Coments can be placed before or after rule definitions using `//` as a prefix.
 Here is a complete, simple example of a grammar definition.
 
-```example
+```rules
 // A simple expression language
 NUMBER           := [0-9]+ ;
 OPERATOR         := [+\-*/^] ;
@@ -156,13 +194,26 @@ VALUE(numeric)   := NUMBER;
 VALUE(composite) := '(' VALUE ')';
 ```
 
+Special rules
+-------------
+
+There are two special rules in the grammar: `AXIOM` and `SKIP`. The `AXIOM`
+rule (if defined) will be the top-level rule that has to be satisfied to
+produce a matching parse. The `SKIP` rule will be used to skip input (typically
+whitespace) if two tokens cannot be directly matched in sequence.
+
+```rules
+AXIOM := MY_AXIOM ;
+SKIP  := [ \t\n];
+```
+
 Tree pattern templates
 ----------------------
 
 Now the interesting thing is that a pattern from the [tree language] can
 be associated with a rule by following its definition by  `--> PATTTERN;`
 
-```example
+```rules
 RULE := 'token' --> (token A);
 ```
 
@@ -175,6 +226,14 @@ using an implicit naming:
 - `AB` for the second element of the first match
 - and so forth
 
+References
+==========
+
+- [SDF](http://www.meta-environment.org/doc/books/extraction-transformation/asfsdf-intro/asfsdf-intro.pdf):
+  _Syntax Definition Formalism_, has an expressive syntax description backed by
+  a language that makes it possible to build parsers and interpeters at the 
+  same time.
+
 # TODO: Add an example of operator precendence
 
-# EOF - vim: ts=2 sw=2 et
+# EOF - vim: ts=2 sw=2 et syn=texto

@@ -1,0 +1,17 @@
+Performance
+===========
+
+- Determine as much as possible statically. The compiler should capture as
+  much useful information as possible -- except if it's able to unambiguously
+  deduce it, in which case the information should not be asked to the user.
+
+- No dynamic operation
+
+- There should be many different node/tree implementations.
+
+- Node implementations should be synthesized using dynamic profiling and fuzzing
+  as a data source.
+
+- Minimize the number of passes. Ideally, there should be only one top-bottom 
+  and bottom-up required. If there is more, then it means the process leads
+  to an unstable tree (which might be OK, as it might converge)

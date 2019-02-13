@@ -12,26 +12,29 @@ and their definition.
 
 ;; The schema
 schema :=
-	(ref    (@ (name #str) (symbol (symbol) )))
-	(symbol (@ (name #str) (refs ((ref))) ))
+	(ref    (@ (name #str) (symbol (? symbol)) ))
+	(symbol (@ (name #str) (refs   (* ref))    ))
 ;
 
 
-;; We select all the references
-on {REF:ref}/{@name} change := 
+;; We select all the references. `$0` and `$REF` will reference the `ref`
+;; node, while `$NAME` and `$1` will reference `{@name}`.
+on {REF:ref}/{NAME:@name} change := 
 
 	;; We remove the node from the referenced symbol
 	remove ($REF/@symbol/@refs, $REF)
 
 	when(@name,
-		;; We resolve the symbol 
-		{SYMBOL:. << def*/@name[eq(@,$0)] | head}
+		;; We resolve the symbol by looking back in the traversal
+		;; for a definition with the given name. We save the
+		;; result as SYMBOL
+		when({SYMBOL: . << def*/@name[eq(@,$NAME)] | head},
+			;; We set the resolved symbol as the attribute value
+			{set    ($REF/@symbol, $SYMBOL)}
 
-		;; We set the resolved symbol as the attribute value
-		{set    ($REF/@symbol, $SYMBOL)}
-
-		;; We remove the symbol
-		{add    ($SYMBOL/@refs, $REF}
+			;; We remove the symbol
+			{add    ($SYMBOL/@refs, $REF}
+		)
 	)
 
 ;

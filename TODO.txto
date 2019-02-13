@@ -1,0 +1,4 @@
+== TLang Todo
+
+[ ] Rule language should work for grammars AND/OR for tree schema.
+[ ] Selector language should be split in selector/processing language

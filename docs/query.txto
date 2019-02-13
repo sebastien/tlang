@@ -1,0 +1,311 @@
+== Query
+
+The _query language_ defines a compact language to select nodes and node
+sets (lists of nodes) in a tree. The first part of the language is focused
+on denoting selections made on a tree, while the second part of the language is
+focused on definining expressions (predicates) that allow to dynamically 
+refine a selection based on per-node logic.
+
+```
+```
+
+The query language is used in the [transform language](transform.txto).
+
+Model
+===== 
+
+Values:
+
+- _node_: denoted by the `Node` type is a node or leaft within a tree
+- _attribute_: denoted by the `Attribute` type has a name and a value
+- _node set_: denoted by the `NodeSet` type is an ordered set of nodes
+- _subtree_: denoted by `SubTree` is a subset of a tree where nodes don't
+  necessarily share a common root and where aribtrary nodes may have been
+  removed. A subtree can be considered as a nodeset.
+
+Selection::
+
+Selections are expressions that return a subset of tree (or trees) using
+the following properties:
+
+- _axis_: defines in which direction the selection is going (children, siblings,
+  ancestors, etc).
+- _path_: an expression that determines which nodes/attributes are going to be
+  potentially included in the selection
+- _constraint_: a predicate that determines wether a node in the path is included
+  in the selection.
+
+Selections can be combined using boolean group operations (union, intersection, difference),
+and predicates can be combined using boolean logic operations (and, or, not).
+
+
+Constraint::
+
+	A constraint is the invocation of a function with arguments that
+	can be arbitrary values, selections and functions. The constraint
+	language is a purely functional typed mini-language.
+
+Production::
+
+
+	A production is a function that is used to generate the result of
+	a selection.
+
+Binding::
+
+	- name
+	- value
+
+Values::
+
+	- reference
+	- node name
+	- node name patteran
+	- string litterals
+	- numeric litterals
+
+
+Representation
+===============
+
+Axes
+----
+
+The axes are denoted with `/` (children), `\` (parent), `>` (next siblings) and
+`<` (previous siblings). The axes are shallow (single level) unless they are doubled `//`
+(descendants), `\\` (ancestors), etc. 
+
+If the axis is doubled and contains a number, the
+number will be used to limit the depth:  `/2/` will look for all the nodes up to 
+two levels. 
+
+If the axis is suffixed with a `.`, then the current node will be included.
+
+If the axis is prefixed with an expression, the expression will be used as
+the new root.
+
+Parent (`:Node?`) ::
+
+	Selects the parent, returning  a `Node` or `Nothing`
+
+	```
+	\                           ;; the current parent
+	\node                       ;; the parent if it has the name `node`
+	\*\node                     ;; the grand parent with a node name
+	\.                          ;; the current node and the parent node
+	```
+
+Ancestors (`:NodeSet`)::
+
+	```
+	\\                          ;; any ancestor
+	\\node                      ;; the ancestors of type `node`
+	\\.*                        ;; the current node and any ancestor
+	\2\                         ;; the parents and grand parents
+	```
+
+Children (`:NodeSet`)::
+
+	```
+	/                            ;; The direct children of the root
+	./                           ;; The direct children of the currennt node
+	./.                          ;; The current node and its direct children
+	```
+
+Descendants (`:NodeSet`)::
+
+	```
+	//                           ;; The descendants of the root
+	.//                          ;; The descendants of the current node
+	//.                          ;; The root node and its descendants
+	.//.                         ;; The current node and its descendants
+	/2/                          ;; The children and grand children of the root
+	```
+
+Siblings (`:NodeSet`)::
+
+	```
+	<                            ;; The previous siblings
+	<.                           ;; The current node and previous siblings
+	```
+
+	```
+	<                            ;; The next siblings
+	>.                           ;; The current node and next siblings
+	```
+
+	```
+	<>                           ;; The previous and next siblings
+	<>.                          ;; The current node, previous and next siblings
+	```
+
+Adjacent Subtrees (`:SubTree`)::
+
+	The following indicates all the nodes that come before the current
+	node in a depth-first traversal.
+
+	```
+	<<                           ;; All previously traversed nodes
+	<<.                          ;; The current node and all previously traversed nos
+	```
+
+
+	The following indicates all the nodes that come after the current
+	node in a depth-first traversal.
+
+	```
+	>>                           ;; All nodes not yet traversed
+	>>.                          ;; The current node and all not yet traversed nodes
+	```
+
+Special values
+--------------
+
+- Current node: `.`
+- Parent node: `..`
+- Current attribute `@`
+- Any node: `*`
+- A node with a name that starts with `node-`: 'node-*'
+
+
+Attributes
+----------
+
+Attributes can be selected using `@`
+
+Variable binding
+----------------
+
+Any expression can be bound to an implicit or explicit variable using
+curly braces `{…}`.
+
+
+Expression substitution
+-----------------------
+
+Expressions can have dynamic elements enclosed in `${…}`.
+
+
+Functions
+---------
+
+The selector has strongly typed polymorphic functions.
+
+Position::
+
+- `nth(n:Node)`
+- `count(n:NodeSet)`
+- `count(t:Tree)`
+- `depth(n:Node)`
+- `depth(t:Tree)`
+
+Predicates::
+
+- `is()`
+- `in(s:NodeSet,n:Node)`
+- `has()`
+- `not()`
+- `eq()`
+- `lt()`
+- `lte()`
+- `gt()`
+- `gte()`
+
+
+Combinators::
+
+- `union(a:NodeSet,b:NodeSet)`
+- `difference(a:NodeSet,b:NodeSet)`
+- `intersection(a:NodeSet,b:NodeSet)`
+
+Extractors::
+
+- `first(a:NodeSet)`, return the first, or nothing
+- `last(a:NodeSet):Node|Nothing`, returns a node, or nothing
+- `head(a:NodeSet):Node|Nothing`
+- `tail(a:NodeSet):NodeSet`
+- `nodes(a:Node):NodeSet`, converts the node to a node set.
+- `nodes(a:Tree):NodeSet`, converts all the nodes in the tree to a node-set
+
+Filtering and matching::
+
+- `filter()`
+- `match()`
+
+Subexpressions
+--------------
+
+Any selector expression can be constrained using `[…]`.
+
+```
+example[eq(@type,"test")]
+```
+
+Variables
+---------
+
+Any selection or invocation can be wrapped in a variable binding and 
+later user using a variable reference. For instance
+
+```selector
+{BEFORE:<*}{AFTER:>*}{SIBLINGS:union($BEFORE,$AFTER)}/
+```
+
+Bindings are expressions wrappend in `{…}`, optionally prefixed with
+the binding name (in `UPPER_CASE`). Bindings *won't affect the scope*, unless
+they are used in a function invocation or suffixed by a path selector.
+
+```selector
+{./*}          ;; Implicit binding, bound to 0
+{CHILDREN:./*} ;; Explicit binding
+```
+
+You can simulate a sequential execution by chaining bindings:
+
+```
+;; Returns the list of children (it's very contrived!)
+{CHILDREN:./*}{//[in($CHILDREN,.)}
+```
+
+Examples
+--------
+
+```tree
+(scope
+	(define 'a 1)
+	(scope
+		(if ('> (ref 'a) 0))))
+```
+
+The following Selects any `ref` node in the tree, stores the `ref` attribute value as NAME,
+and the select any preceding node in the traversal that is a `define`
+ node with the `ref` attribute equal to the given `$NAME`. If there is
+ no node like that, it means that the reference cannot be resolved.
+
+```selector
+.//ref/{NAME:@ref}[empty(.<<define/@ref[eq(@,$NAME)]]
+```
+
+
+References
+==========
+
+TLang's query language was inspired by the following languages:
+
+- [XPath]:<https://en.wikipedia.org/wiki/XPath>. XPath is a very powerful and
+  complete selection language that is part of the XML/XSLT toolkit. While it's
+  relatively popular, it has a few usability issues. 
+
+- [jQuery selectors]:<https://api.jquery.com/category/selectors/>. jQuery
+  selectors is a superset of CSS selectors that incorporate some of XPath's
+  syntax. It is quite intuitive to pick up, but lacks the advanced capabilities
+  of XPath such as axes.
+
+- [treepace]:<https://github.com/sulir/treepace> features a compact and versatile
+  selection language, that has the interesting property of being symmetric, ie.
+  the  `A < B` and `B > A` both mean "A is a parent of B", which makes
+  it possible to write complex selections: `a < b <c>, d`. Treepace also
+  introduces the notion of implicit groups that allows for building
+  more complex expressions by combingin results.
+
+- [Scheme]: Scheme's macro system.

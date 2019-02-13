@@ -1,0 +1,110 @@
+== Mini Python
+-- Implementing a mini Python compiler/interpreter with TLang
+
+
+Let's first sketch out what we'd like to do
+
+``` 
+import a, b, c
+
+a = 1.0
+
+def f(a, b, c, d):
+	while False:
+		pass
+	if a:
+		return a
+	elif b:
+		return c
+	else:
+		return c or d
+
+print (1 * 2 + 3 / 10.0)
+print ("Hello, world!")
+```
+
+Schema
+======
+
+Now let's sketch out what the schema would be like. Writing the schema
+is a good opportunity to document the conceptual elements that will
+define the program model.
+
+```schema
+
+;; We start with the literals, we have numbers and strings
+(value-number (@ (value #number))
+(value-string (@ (value #string))
+
+;; And we also have references to symbols. We'll assume that
+;; operators are references as well.
+(expr-ref (@ (name #string))
+
+;; Now we have some statements. The first we see is an 
+;; import of many references.
+(stmt-import (+ expr-ref))
+
+;; Another statement is the assignment, which takes
+;; an expression or a value. Actually, we should probably add the
+;; variable declaration, which is implicit in the assignment. We'll
+;; make it explicit in the model.
+(decl-slot-var (@ (name #string))
+(stmt-assign (@ decl-slot-*) (or: expr-* value-*))
+
+
+;; We do the same with the function definition `def` 
+(stmt-defun    (@ (name decl-slot-*))
+	decl-parameters
+	decl-block
+)
+
+;; The function declaration takes parameters
+(decl-parameters (* decl-parameter))
+(decl-slot-parameter (@ (name #string)) (? expr))
+
+(decl-block (* (:or
+	stmt-*
+	decl-*
+	expr-*
+)))
+
+(decl-module 
+	(* (:or
+		(stmt (:or
+			stmt-assign
+			stmt-while
+			stmt-if
+		))
+	))
+```
+
+Grammar
+=======
+
+And now we can write the grammar that will tell how to map a text
+representation to the tree representation.
+
+```
+INDENT := [ \t]*
+-> A;
+
+NAME   := [A-Za-z_]+
+-> A;
+
+SYMBOL := NAME ('.' NAME )*
+-> (decl-symbol …);
+
+IMPORT := 'import' SYMBOL (',' SYMBOL) '\n'
+->(stmt-import …) ;
+
+DEF    := 'def' NAME '(' (NAME (',' NAME)*)? ')' ':' '\n'
+->
+	(decl-def (@ (name A))
+		(decl-parameters 
+			('map ('union B C) (decl-parameter _))
+;
+
+```
+
+and now we make a pass that makes sure that all references are verified.
+

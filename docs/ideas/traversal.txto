@@ -1,0 +1,14 @@
+== Tree Traversals
+
+One of the goals of [tlang] is to optimize the traversals so N passes can
+be composed together without having to do N traversals (or N*2, for top-down
+and bottom-up).
+
+See:
+
+- https://drs.is/post/fancy-tree-traversals/
+- https://github.com/sinistersnare/robson
+- https://cis.temple.edu/~wolfgang/cis551/Week06.pdf
+
+
+# EOF - vim: ts=2 sw=2 et syn=texto

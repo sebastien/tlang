@@ -3,6 +3,8 @@ from typing import Optional, Any, List, Dict
 from collections import OrderedDict
 from tlang.utils import NOTHING
 
+# TODO: XML and JSON interop
+
 __doc__ = """
 The core model representing trees and nodes.
 """

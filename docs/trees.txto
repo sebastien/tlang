@@ -1,7 +1,11 @@
 == Trees
 
-Trees are represented as [S-Expressions]. Inspiration for this language
-comes from [treepace].
+# TODO: Describe the schema
+
+Trees are represented as [S-Expressions], which can also be represented as
+JSON and XML using conventions. The tree language is intended for both humans
+and machines, and also offers a canoncial representation, as some elements
+have shorthands that make them easier to read for humans.
 
 Here is an example:
 
@@ -114,7 +118,7 @@ Pattern templates
 
 The tree language also has dedicated syntax to support template patterns. 
 A template pattern is denoted in `UPPER_CASE` and might be prefixed with
-`…` (or `...):
+`…` (or `...`):
 
 ```example
 (list A …B)
@@ -124,10 +128,38 @@ is a pattern that will create `(list 1 2 3 4)` when given `A=1` and `B=(2 3
 4)`. Likewise, if we apply the pattern to `(list 1 2 3 4)`, we will get
 `A=1` and `B=(2 3 4)`.
 
+XML & JSON interoperability
+===========================
+
+XML mapping
+-----------
+
+XML does not inherently have any notion of type: everything is a string. As a
+result, attributes have to be specified as children. 
+
+```xml
+<node name="NODE_NAME"
+  <attr name="ATTR_NAME" TYPE="ATTR_TYPE" value="ATTR_VALUE" />
+  …
+  <node name="NODE_NAME>…</node>
+</node>
+```
+
+JSON mapping
+------------
+
+JSON mapping is easier as JSON already has rich data types including ordered
+map, so the mapping between S-Expr and JSON is more straighforward.
+
+```json
+[NODE_NAME, {ATTR_NAME:ATTR_VALUE…}, [NODE_NAME…]…]
+```
+
 References
 ==========
 
-- [treepace]: https://github.com/sulir/treepace
+- [treepace](https://github.com/sulir/treepace): a Python library for representing
+  and querying tree that informed some of the design decisions made in tlang.
 
 # EOF - vim: ts=2 sw=2 et
 
