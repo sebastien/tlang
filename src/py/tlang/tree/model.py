@@ -2,6 +2,7 @@
 from typing import Optional, Any, List, Dict
 from collections import OrderedDict
 from tlang.utils import NOTHING
+import json
 
 # TODO: XML and JSON interop
 
@@ -51,6 +52,17 @@ class Node:
 	def index( self, node ) -> int:
 		return self.children.index(node)
 
+	def detach( self ) -> 'Node':
+		if self.parent:
+			self.parent.remove(self)
+		return self
+
+	def merge( self, node:'Node' ) -> 'Node':
+		children = [_ for _ in node.children]
+		for c in children:
+			self.add(c.detach())
+		return self
+
 	def add( self, node:'Node' ) -> 'Node':
 		assert not node.parent, "Cannot add node to {0}, it already has a parent: {1}".format(self, node)
 		node.parent = self
@@ -65,10 +77,13 @@ class Node:
 
 	def insert( self, index:int, node:'Node' ) -> 'Node':
 		index = index if index >= 0 else len(self.children) + index
-		assert index >=0 and index < len(self.children), "Index out of bounds {0} in: {1}".format(index, self)
+		assert index >=0 and index <= len(self.children), "Index out of bounds {0} in: {1}".format(index, self)
 		assert not node.parent, "Cannot add node to {0}, it already has a parent: {1}".format(self, node)
 		node.parent = self
-		self.children.insert(index, node)
+		if index == len(self.children):
+			self.children.append(node)
+		else:
+			self.children.insert(index, node)
 		return node
 
 	def __str__( self ):
@@ -89,7 +104,8 @@ class Repr:
 				yield " ("
 				yield str(k)
 				yield " "
-				yield str(v)
+				# TODO: We should support node references
+				yield json.dumps(v)
 				yield ")"
 			yield ")"
 		for child in node.children:
@@ -118,6 +134,24 @@ class DOMAdapter(Adapter):
 		i = self.node.index(node)
 		assert i >= 0, "Cannot find node {0} in {1}".format(node, self.node)
 		self.node.insert(i, node)
+		return node
+
+class TreeBuilder:
+
+	def node( self, name, *content ):
+		node = Node(name)
+		if not content:
+			return node
+		head = content[0]
+		if isinstance(head, dict) or isinstance(head, OrderedDict):
+			content = content[1:]
+			for k in head:
+				v = head[k]
+				# TODO: Validate schema
+				node.attr(k, v)
+		for child in content:
+			if child is not None:
+				node.add(child)
 		return node
 
 # EOF - vim: ts=4 sw=4 noet

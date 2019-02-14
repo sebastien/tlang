@@ -49,7 +49,7 @@ Mini languages
 
 TLang is a composition of simple mini-languages with canonical representations:
 
-- The [Rules language](docs/rules.txto) that defines a mapping between text
+- The [Format language](docs/format.txto) that defines a mapping between text
   representation and tree representation.
 
 - The [Tree language](docs/tree.txto) that defines a text-based representation
@@ -64,6 +64,9 @@ TLang is a composition of simple mini-languages with canonical representations:
 - The [Transform language](docs/transform.txto) that defines how trees can be
   transformed into other trees or other data structures.
  
+
+Development
+===========
 
 Related work
 ============

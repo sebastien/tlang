@@ -6,7 +6,7 @@ import sys, os
 GRAMMAR = None
 
 def symbols( g:Grammar ) -> Symbols:
-	"""Registers tokens and words that are shader by all the grammars
+	"""Registers tokens and words that are shared by all the grammars
 	defined in this moddule."""
 	s      = g.symbols
 	tokens = {

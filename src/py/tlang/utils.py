@@ -70,39 +70,50 @@ class TestUtils:
 	documentation as a data source for the tests."""
 
 	@classmethod
-	def GetExamples( cls, name ):
+	def GetExamples( cls, name, type ):
 		path = os.path.join(BASE, "docs", name)
 		res  = []
 		with open(path) as f:
 			status, xmltree = texto(["-Odom"], f, noOutput=True)
 			for node in xmltree.getElementsByTagName("pre"):
-				if not node.getAttribute("data-lang") == "example": continue
+				if not node.getAttribute("data-lang") == type: continue
 				res.append("\n".join(_.data for _ in node.childNodes))
 		return res
 
 	@classmethod
-	def ParseExamples( cls, name, parseString ):
-		"""Ensures that the examples in the documentation compile properly"""
-		# We run through the examples and make sure they all compile
-		for i,example in enumerate(cls.GetExamples(name)):
-			result = parseString(example, process=False)
-			if result.isFailure():
-				raise Exception("Test {0} failed: {1}".format(i, result.describe()))
-			elif result.isPartial():
-				raise Exception("Test {0} failed: {1}".format(i, result.describe()))
-			elif result.isSuccess():
-				pass
-			else:
-				raise Exception("Unknown status: {0}". format(result.status))
+	def AssertParsingResult( cls, result, i=0 ):
+		if result.isFailure():
+			raise Exception("Test {0} failed: {1}".format(i, result.describe()))
+		elif result.isPartial():
+			raise Exception("Test {0} failed: {1}".format(i, result.describe()))
+		elif result.isSuccess():
+			return True
+		else:
+			raise Exception("Unknown status: {0}". format(result.status))
 
 	@classmethod
-	def ReparseExamples( cls, name, parseString ):
+	def ParseExamples( cls, name, type, parseString ):
+		"""Ensures that the examples in the documentation compile properly"""
+		# We run through the examples and make sure they all compile
+		for i,example in enumerate(cls.GetExamples(name, type)):
+			cls.AssertParsingResult(parseString(example, process=False), i)
+
+	@classmethod
+	def ParseLines( cls, text, parseString ):
+		i = 0
+		for q in text.split("\n"):
+			q = q.strip()
+			if not q: continue
+			cls.AssertParsingResult(parseString(q, process=False), i)
+			i += 1
+
+	@classmethod
+	def ReparseExamples( cls, name, type, parseString ):
 		"""Ensures that the output of a parsed element is parseable and generates
 		the exact same tree."""
-		for i,example in enumerate(cls.GetExamples(name)):
+		for i,example in enumerate(cls.GetExamples(name, type)):
 			source_repr   = "\n".join(str(_) for _ in parseString(example))
 			reparsed_repr = "\n".join(str(_) for _ in parseString(source_repr))
 			assert source_repr == reparsed_repr
-
 
 # EOF - vim: ts=4 sw=4 noet

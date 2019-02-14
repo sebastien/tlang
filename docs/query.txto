@@ -14,7 +14,7 @@ The query language is used in the [transform language](transform.txto).
 Model
 ===== 
 
-Values:
+Values::
 
 - _node_: denoted by the `Node` type is a node or leaft within a tree
 - _attribute_: denoted by the `Attribute` type has a name and a value
@@ -68,21 +68,52 @@ Values::
 Representation
 ===============
 
+A query is represented by a **selector**, which is composed of the following 
+parts:
+
+- node selectors
+- axes
+- constraints
+
+aditionnally, selectors also support:
+
+- variable binding, to capture some result in a variable
+- template expansion, to expand parts of a selector based on arbitrary
+  selection.
+
+An selection is like so:
+
+```
+SELECTION? AXIS? NODE_SELECTOR CONSTRAINT?
+```
+
 Axes
 ----
 
-The axes are denoted with `/` (children), `\` (parent), `>` (next siblings) and
-`<` (previous siblings). The axes are shallow (single level) unless they are doubled `//`
-(descendants), `\\` (ancestors), etc. 
+The axes are denoted with the following symbols:
 
-If the axis is doubled and contains a number, the
+- `/` for children
+- `\` for parent
+- `>` for next siblings
+- `<` for previous siblings
+
+The axes are shallow (single level) unless they are doubled `//`
+(descendants), `\\` (ancestors), etc. If the axis is doubled and contains a number, the
 number will be used to limit the depth:  `/2/` will look for all the nodes up to 
 two levels. 
 
-If the axis is suffixed with a `.`, then the current node will be included.
+```query
+\\         ;; all anectors
+\2\        ;; parents and grand parnents
+\*\        ;; grand parents only
+```
 
-If the axis is prefixed with an expression, the expression will be used as
-the new root.
+Unless prefixed by a selector, an axis starts at the root node of the tree.
+
+```query
+/          ;; direct children of the root
+./         ;; direct children of the current node
+``` 
 
 Parent (`:Node?`) ::
 
@@ -139,7 +170,7 @@ Siblings (`:NodeSet`)::
 	<>.                          ;; The current node, previous and next siblings
 	```
 
-Adjacent Subtrees (`:SubTree`)::
+Subtrees (`:SubTree`)::
 
 	The following indicates all the nodes that come before the current
 	node in a depth-first traversal.
@@ -165,7 +196,7 @@ Special values
 - Parent node: `..`
 - Current attribute `@`
 - Any node: `*`
-- A node with a name that starts with `node-`: 'node-*'
+- A node with a name that starts with `node-`: `node-*`
 
 
 Attributes

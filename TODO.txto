@@ -2,3 +2,8 @@
 
 [ ] Rule language should work for grammars AND/OR for tree schema.
 [ ] Selector language should be split in selector/processing language
+
+Bugs:
+
+[ ] Tests: running the rules tests gives unpredictable results, hinting at
+    some libparsing issues.
