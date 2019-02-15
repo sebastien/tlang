@@ -1,6 +1,7 @@
-from libparsing import Grammar, Symbols, Processor, ensure_string
-from typing import Optional
+from libparsing  import Grammar, Symbols, Processor, ensure_string
+from typing      import Optional
 from tlang.utils import ParserUtils
+from tlang.expr.parser import ExprProcessor, grammar as expr_grammar
 import sys, os
 
 GRAMMAR = None
@@ -13,16 +14,15 @@ def symbols( g:Grammar ) -> Symbols:
 		"WS"                      : "[\s\n]+",
 		"NUMBER"                  : "[0-9]+(\.[0-9]+)?",
 		"STRING_DQ"               : "\"[^\"]*\"",
-		"EMPTY_LINE"              : "s*\n",
-		"QUERY_VARIABLE"          : "[A-Z[A-Z0-9]*",
-		"QUERY_PATTERN"           : "[a-z\*\?][\-a-z0-9\*\?]*",
-		"QUERY_SYMBOL"            : "[a-z][\-a-z0-9]*",
-		"QUERY_COMMENT"           : ";;[^\n]*[\n]?",
-		"QUERY_AXIS_DESCENDANTS"  : "/(\d?/)?",
-		"QUERY_AXIS_ANCESTORS"    : "\\(\d?\\)?",
-		"QUERY_AXIS_AFTER"        : ">(\d?>)?",
-		"QUERY_AXIS_BEFORE"       : "<(\d?<)?",
+		"QUERY_NODE"              : "[a-z\*\?][\-a-z0-9\*\?]*",
+		"QUERY_ATTRIBUTE"         : "@[a-z\*\?]?[\-a-z0-9\*\?]*",
 		"QUERY_CURRENT_NODE"      : "\.+",
+		"QUERY_SUBSET"            : "#(\d+)",
+
+		"QUERY_AXIS_DESCENDANTS"  : "\\.?/(\d?/)?",
+		"QUERY_AXIS_ANCESTORS"    : "\\.?\\\\(\d?\\\\)?",
+		"QUERY_AXIS_BEFORE"       : "\\.?>(\d?>|-?\\=?\\+?>)?",
+		"QUERY_AXIS_AFTER"        : "\\.?<(\d?<|-?\\=?\\+?<)?",
 	}
 	words = {
 		"LP"              : "(",
@@ -31,11 +31,9 @@ def symbols( g:Grammar ) -> Symbols:
 		"RB"              : "}",
 		"LS"              : "[",
 		"RS"              : "]",
-		"AT"              : "@",
-		"STAR"            : "*",
-		"QUERY_ATTRIBUTE" : "@."
+		"QUERY_ATTRIBUTE" : "@"
 	}
-	groups = ()
+	groups = ("ExprValue", "ExprValuePrefix")
 	return ParserUtils.EnsureSymbols(g, tokens, words, groups)
 
 
@@ -47,6 +45,7 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False) -> Grammar:
 			return GRAMMAR
 		else:
 			g=Grammar("query", isVerbose=isVerbose)
+	g = expr_grammar(g)
 	s = symbols(g)
 
 	# TODO: Template
@@ -57,31 +56,46 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False) -> Grammar:
 		s.QUERY_AXIS_AFTER
 	)
 
-	g.rule("QueryNodePattern",      s.QUERY_PATTERN)
-	g.rule("QueryAttributePattern", s.AT, s.QUERY_PATTERN)
-	g.rule("QueryCurrentNode",      s.QUERY_CURRENT_NODE)
-	g.rule("QueryCurrentAttribute", s.QUERY_ATTRIBUTE)
+	g.rule("QueryNode",          s.QUERY_NODE)
+	g.rule("QueryAttribute",     s.QUERY_ATTRIBUTE)
+	g.rule("QueryCurrentNode",   s.QUERY_CURRENT_NODE)
+	g.rule("QuerySubset",        s.QUERY_SUBSET)
 
-	g.group("QueryPredicate",
-		s.QueryNodePattern,
-		s.QueryAttributePattern,
+	g.group("QuerySelectorValue",
+		s.QuerySubset,
 		s.QueryCurrentNode,
-		s.QueryCurrentAttribute,
+		s.QueryNode,
+		s.QueryAttribute,
 	)
 
-	g.rule("Selector",
+	# TODO: Support optional name
+	g.rule("QuerySelectorBinding",
+		s.LB, s.QuerySelectorValue._as("value"), s.RB
+	)
+
+	g.group("QuerySelector",
+		s.QuerySelectorBinding,
+		s.QuerySelectorValue,
+	)
+
+	g.rule("QueryPredicate",
+		s.LS,
+		s.ExprValue._as("expr"),
+		s.RS,
+	)
+
+	g.rule("QuerySelection",
 		s.QueryAxis.optional()._as("axis"),
+		s.QuerySelector._as("selector"),
 		s.QueryPredicate.optional()._as("predicate"),
 	)
 
-	g.rule("Selection",
-		s.Selector.oneOrMore()
-	)
-
 	g.rule("Query",
-		s.Selection
+		s.QuerySelection.oneOrMore()._as("selectors")
 	)
 
+	# TODO: The s.Query should be PREFIXED!
+	s.ExprValuePrefix.add(s.Query)
 	g.axiom = s.Query
 	g.skip  = s.WS
 
@@ -96,7 +110,7 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False) -> Grammar:
 #
 # -----------------------------------------------------------------------------
 
-class QueryProcessor(Processor):
+class QueryProcessor(ExprProcessor):
 
 	INSTANCE = None
 
@@ -107,6 +121,46 @@ class QueryProcessor(Processor):
 
 	def createGrammar(self) -> Grammar:
 		return GRAMMAR or grammar()
+
+	def onQueryAxis( self, match ):
+		axis = self.process(match)[0][0]
+		return self.tree.node("query-axis", {"axis":axis})
+
+	def onQueryNode( self, match ):
+		pattern = self.process(match)[0][0]
+		# TODO: Detect if patter is a regexp or not
+		return self.tree.node("query-node", {"pattern":pattern})
+
+	def onQuerySubset( self, match ):
+		index = int(self.process(match)[0][1])
+		return self.tree.node("query-subset", {"index":index})
+
+	def onQueryAttribute( self, match ):
+		pattern = self.process(match)[0][1:]
+		# TODO: Detect if patter is a regexp or not
+		return self.tree.node("query-attribute", {"pattern":pattern})
+
+	def onQueryCurrentNode( self, match ):
+		return self.tree.node("query-node")
+
+	def onQueryPredicate( self, match, expr ):
+		return self.tree.node("query-predicate", expr)
+
+	def onQuerySelectorBinding( self, match, value ):
+		# TODO: Support implicit/explict
+		return self.tree.node("query-binding", value)
+
+	def onQuerySelectorValue( self, match ):
+		return self.process(match)[0]
+
+	def onQuerySelector( self, match ):
+		return self.process(match)[0]
+
+	def onQuerySelection( self, match, axis, selector, predicate ):
+		return self.tree.node("query-selection", axis, selector, predicate)
+
+	def onQuery( self, match, selectors ):
+		return self.tree.node("query", *selectors)
 
 # -----------------------------------------------------------------------------
 #

@@ -3,7 +3,17 @@
 [ ] Rule language should work for grammars AND/OR for tree schema.
 [ ] Selector language should be split in selector/processing language
 
-Bugs:
+Bugs::
 
 [ ] Tests: running the rules tests gives unpredictable results, hinting at
     some libparsing issues.
+
+Docs::
+
+[ ] The schema language should not have model/representation. It's too
+    technical.
+
+Tests::
+
+[ ] Should add processor tests to the parser
+[ ] Should add parsing speed/throughput and processing speed/throughput

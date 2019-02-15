@@ -1,11 +1,11 @@
-== Rules
+== Format Language
 
 # TODO: Rules language is probably not right
 # TODO: Support for context variables (like indentation support)
 
-The _rules language_ provides tools for creating a bi-directional binding
+The _format language_ provides tools for creating a bi-directional binding
 between a text representation and a tree representation. By mapping tokens and subtrees to rules, it becomes possible to convert
-trees to and from text format in an expressive way. The rules language is a way
+trees to and from text format in an expressive way. The format language is a way
 to easily implement parser and code formatters/normalizers.
 
 # SEE: http://www.program-transformation.org/Sdf/SdfLanguage
@@ -16,7 +16,7 @@ parsers or reading
 is an example of a very simple computation example, without only the mapping of
 tokens to rules:
 
-```rules
+```format
 NUMBER           := [0-9]+              ;
 OPERATOR         := [+\-*/^]            ;
 COMPUTATION      := VALUE OPERATOR VALUE;
@@ -27,11 +27,11 @@ VALUE(composite) := '(' VALUE ')'       ;
 and here is another example for a simple S-Expression parser that contains
 [tree expressions](trees.txto) mapping tokens to subtrees.
 
-```rules
+```format
 NUMBER(float) := [0-9]+ _ ("." _ [0.9]+)?  --> (number-float (@ (radix A) (mantissa C)));
 NUMBER(int)   := [0-9]+                    --> (number-int   (@ (value A)));
 STRING        := '"' ('\\"' | [^"])* '"'   --> (string       (@ (value B))); 
-SYMBOL        := [A-Za-z\-]+               --> (ref (@ (value A)));
+SYMBOL        := [A-Za-z\-]+               --> (ref          (@ (value A)));
 LIST          := "(" VALUE+ ")"            --> (list …VALUE);
 VALUE         := (NUMBER | SYMBOL | LIST)  --> A;
 ```
@@ -76,7 +76,7 @@ The rule definition can contain tokens, surrounded in double quotes `"…"`.
 Tokens can also reference a range or characters, in which case the range
 is surrounded by `[` and `]` with the start and end separted by a `- `:
 
-```rules
+```format
 A := 'Hello, world!'        ; // 'Hello, world!'
 B := [0-9]                  ; // Characters 0 to 9
 C := [A-Za-z]               ; // Characters A to Z or a to z
@@ -105,14 +105,14 @@ the name will be used to bind the value corresponding to the rule to a variable
 that can then be used in a [tree pattern]. Cardinality should always come last.
 
 
-```rules
+```format
 COMPUTATION := VALUE:LVALUE? OPERATOR VALUE:RVALUE;
 ```
 
 Rules also have _implicit references_ which are automatically named with
 a combination of uppercase letters. For instance in the following rule
 
-```rules
+```format
 ASSIGNMENT := 'let' NAME '=' EXPRESSION ';';
 ```
 
@@ -143,7 +143,7 @@ Groups
 
 Tokens and rule references can be grouped using parentheses.
 
-```rules
+```format
 LIST := '(' VALUE? ( ',' VALUE )* ')';
 ``` 
 
@@ -153,14 +153,14 @@ Choice
 While you can explicitely define alternative matches for rules using
 _variants_, there is an implicit syntax using `|`:
 
-```rules
+```format
 // matches A, B or C
 LETTER := 'A' | 'B' | 'C';
 ```
 
 which is the equivalent of
 
-```rules
+```format
 LETTER(A) := 'A';
 LETTER(B) := 'B';
 LETTER(C) := 'C';
@@ -174,7 +174,7 @@ separator (whitespace) will be used to skip input inbetween the recognized
 elements, unless an underscore `_` is specified, in which case the match
 must be direct.
 
-```rules
+```format
 // The following will match `1000.1` but not `1 000 . 1`
 FLOAT := [1-9] _ [0-9]* _ '.' _ [0-9]+;
 ```
@@ -185,7 +185,7 @@ Comments
 Coments can be placed before or after rule definitions using `//` as a prefix.
 Here is a complete, simple example of a grammar definition.
 
-```rules
+```format
 // A simple expression language
 NUMBER           := [0-9]+ ;
 OPERATOR         := [+\-*/^] ;
@@ -202,7 +202,7 @@ rule (if defined) will be the top-level rule that has to be satisfied to
 produce a matching parse. The `SKIP` rule will be used to skip input (typically
 whitespace) if two tokens cannot be directly matched in sequence.
 
-```rules
+```format
 AXIOM := MY_AXIOM ;
 SKIP  := [ \t\n];
 ```
@@ -213,7 +213,7 @@ Tree pattern templates
 Now the interesting thing is that a pattern from the [tree language] can
 be associated with a rule by following its definition by  `--> PATTTERN;`
 
-```rules
+```format
 RULE := 'token' --> (token A);
 ```
 

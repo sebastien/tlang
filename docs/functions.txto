@@ -1,0 +1,49 @@
+== TLang Core Library
+
+Node and tree
+=============
+
+`(tree NODES…)`::
+
+`(attr (NODE_PATTERN ATTR_NAME TYPE?) EXPR…)`::
+
+`(rule NAME:USER_SYMBOL EXPR…)`::
+
+Predicates
+==========
+
+`(gt? A:EXPR B:EXPR)`
+
+`(gte? A:EXPR B:EXPR)`
+
+`(lt? A:EXPR B:EXPR)`
+
+`(lte? A:EXPR B:EXPR)`
+
+`(always? EXPR)`::
+
+`(has? EXPR)`::
+
+Collections
+============
+
+`(first EXPR)`::
+
+`(first EXPR INDEX:NUMBER)`::
+
+`(last EXPR)`::
+
+`(last EXPR INDEX:NUMBER)`::
+
+Loggging & Debugging
+====================
+
+`(error! EXPR…)`::
+
+`(assert EXPR FAILED:EXPR?)`::
+
+`(repr EXPR…)`::
+
+`(repr-context EXPR…)`::
+
+# EOF - vim: ts=2 sw=2 et syn=texto

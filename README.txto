@@ -1,9 +1,18 @@
 == TLang
 -- A Tree Processing Language
 
-The T Language is a language made to represent, create, query and transform trees.
-It is primarily intended as a software engineering tool to create parsers, compilers,
-transpilers, analyzers and tree-transformation algorithms.
+The T Language is a language for creating, querying and transforming trees.
+
+TLang is primarily intended as a software engineering tool to create parsers, compilers,
+transpilers, analyzers and tree-transformation algorithms, but it can be used
+for a much wider range of applications, provided they can be expressed 
+as trees.
+
+TLangs main features are:
+
+- S-Expr based tree representation 
+- Querying, transform and schema languages
+- XML & JSON interop
 
 Goals
 =====
@@ -49,21 +58,38 @@ Mini languages
 
 TLang is a composition of simple mini-languages with canonical representations:
 
-- The [Format language](docs/format.txto) that defines a mapping between text
-  representation and tree representation.
-
 - The [Tree language](docs/tree.txto) that defines a text-based representation
   of trees using S-Expr, XML and JSON.
 
-- The [Schema language](docs/schema.txto) that defines a representation for
-  constraints and rules to be applied on a tree.
+- The [Expression language](docs/expr.txto) that defines a text-based representation
+  of basic computation using a Lisp-ish dialect.
 
 - The [Query language](docs/query.txto) that defines how to retrieve values
   and nodes from a tree.
 
+- The [Schema language](docs/schema.txto) that defines a representation for
+  expressing constraints and rules to be applied on a tree.
+
 - The [Transform language](docs/transform.txto) that defines how trees can be
   transformed into other trees or other data structures.
+
+- The [Format language](docs/format.txto) that defines a mapping between text
+  representation and tree representation.
  
+
+These mini language share consistent design features and are composed together.
+Under the hood, they all produce TLang Tree structures and have associated
+TLang Schemas.
+
+Examples
+========
+
+- A mini language transpiler
+- A build system
+- A type system
+- A database engine
+- A document formatting system
+- An accounting system
 
 Development
 ===========

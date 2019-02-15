@@ -1,0 +1,132 @@
+== Expression Language
+
+The _expression language_ is a simple way to combine values together by
+providing syntax for assignment (variable binding), reference, combination (list)
+and invocation. Its syntax is a superset of S-Expr with special convenient
+syntax for feeding values and variable binding.
+
+```expr
+(print! "Hello  "World")
+(sum {(list 1 2 3 4)} (count A))
+``` 
+
+Values
+------
+
+Comments::
+
+  ```epxr
+  ;; Comments are written like in Lisp. They are not values per-say.
+  ```
+
+Numbers::
+
+  ```expr
+  1        ;; Integer
+  1.0      ;; Float
+  ```
+
+Strings::
+
+  ```expr
+  "Double quoted string"
+  "String with \" escaped double quote"
+  """
+  Multi-
+      line string
+  """
+  ```
+
+Symbol::
+
+  Symbols are `lower-case` with digits and dashes (except at the beginning),
+  and optionally a a `?` (predicate)  or `!` (side effect) suffix.
+
+  ```expr
+  function-name
+  predicate?
+  function-with-side-effects!
+  ```
+
+Variables::
+
+  Variables reference values that are bound in the expressions. They are
+  all `UPPER_CASE` with digits and dashes. The different syntax makes
+  it easier to distinguish them from symbols.
+
+  ```expr
+  A
+  MY_VARIABLE
+  V0
+  ```
+
+Operations
+----------
+
+Invocation::
+
+  An invocation takes a _symbol_ and applies _arguments_  to it. A symbol
+  is an all-lowercase mix of letters, numbers (except the first letter) and
+  `-`, optionally suffixed by `?` (for a predicate) or `!` (for an invocation
+  with side effects).
+
+  ```expr
+  (print! "Hello")
+  (sum 1 2 3 4)
+  (null? 0)
+  (list 1 2 3 4 5)
+  (symbol "asdasda")
+  ```
+
+Piped invocation::
+
+  Values can be injected as first argument to an invocation by using the `|`
+  operator:
+
+  ```expr
+  "Hello" | (print! ", World!")  ;; Print "Hello, World!"
+  1 2 3   | (sum 4)              ;; Equivalent to `(sum 1 2 3 4)`
+  ```
+
+  Baed on the above, `A | B` is equivalent to `(B A)`  and `A | (B C)` is equivalent to `(B A C)`.
+
+Reference::
+
+  Any symbol spelled out in `UPPER_CASE` (accepting digits except for the
+  first letter) is considered a _reference_. The reference must resolve
+  to either an _implicit_ or _explicit_ bindings in the curent scope for
+  the expression to be valid.
+
+Implicit binding::
+
+  Any expression surrounded by `{…}` is going to be automatically bound to
+  `A`…`Z` based on the number of lexically previous bindings.
+
+  ```expr
+  {0}{1}{2}(print! "0=" A " 1=" B " 2=" C) ;; Prints "0=0 1=1 2=2"
+  ```
+
+Explicit binding::
+
+  it is also possible to explicitly assign a value to symbol. The symbol must
+  be a combination of `UPPER_CASE` letters, digits and `_`.
+
+  ```expr
+  {0:V0}{1:V1}{2}(print! "0=" V0 " 1=" V1 " 2=" C) ;; Prints "0=0 1=1 1=2"
+  ```
+
+  in this case, the values will be bound to the implicit variable as well
+  as to the explicit variable. The explicit variable always override any
+  implicit variable.
+
+
+Nested bindings::
+
+  Bindings can also be *nested*, in which case the implicit variable name
+  will be prefixed with the parent's implicit variable name.
+
+  ```expr
+  {(list {0} {1} {2}}(print! "0=" AA " 1=" AB " 2=" AC) ;; Prints "0=0 1=1 2=2"
+  ```
+
+# EOF - vim: ts=2 sw=2 et syn=texto

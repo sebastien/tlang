@@ -5,6 +5,8 @@ from tlang.utils import NOTHING
 import json
 
 # TODO: XML and JSON interop
+# TODO: Source reference as attributes
+# TODO: Nice tree formatter
 
 __doc__ = """
 The core model representing trees and nodes.
@@ -12,8 +14,11 @@ The core model representing trees and nodes.
 
 class Node:
 
+	IDS = 0
+
 	def __init__( self, name:str ):
 		self.name = name
+		self.id   = Node.IDS ; Node.IDS += 1
 		self.parent:Optional['Node'] = None
 		self.attributes:Dict[str,Any] = OrderedDict()
 		self.children:List['Node'] = []
@@ -105,7 +110,10 @@ class Repr:
 				yield str(k)
 				yield " "
 				# TODO: We should support node references
-				yield json.dumps(v)
+				if isinstance(v, Node):
+					yield "#{0}".format(v)
+				else:
+					yield json.dumps(v)
 				yield ")"
 			yield ")"
 		for child in node.children:

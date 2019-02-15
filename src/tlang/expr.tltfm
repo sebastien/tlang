@@ -1,0 +1,65 @@
+;; @title T-Lang Expression Language Validation
+;; @updated 2019-02-14
+
+;; @h1 Annotations
+
+;; @texto
+;; The first thing we want to do is to define a mini type system that
+;; we associate to nodes. We define a tree with nodes to denote
+;; the different types our values can have.
+
+(tree
+	{(type-number):NUMBER}
+	{(type-string):STRING}
+	{(type-symbol):SYMBOL}
+	{(type-query):QUERY}
+)
+
+;; @texto
+;; Next we define synthetic attributes that assign `@type` attributes
+;; to the nodes of the `expr` and `query` namespaces.
+(attr (expr-value-number @type) NUMBER)
+(attr (expr-value-string @type) STRING)
+(attr (expr-value-symbol @type) SYMBOL)
+(attr (query*            @type) QUERY)
+
+;; @texto
+;; The type of an *invocation* is its target's `@return-type`
+;; attribute.
+(attr (expr-invocation @type)  ./#0/@return-type)
+
+;; @texto
+;;
+;; We introduce a new `expr-ref/@ref` attribute that looks for any previously defined
+;; `expr-binding` with the same name assign it to the attribute value.
+
+(attr (expr-ref @ref (optional expr-*))
+	;; NOTE: Here we use `<-<` because we want to ignore nodes that
+	;; are deeper than the current node
+	(first .<-<expr-binding[(or? (eq? @implicit VAL) (eq? @explicit VAL))]))
+
+;; @h1 Rules
+
+;; @texto
+;; Now we can start to introduce some rules. The very first one we want
+;; to introduce is to make sure that all references are solves. This does
+;; not use the `@type` attributes yet.
+;;
+;; The next thing that we want to ensure is that every reference is resolved.
+;; It's easy, we just need to have a `@ref` attribute.
+(rule :expr-ref-resolved?
+	(assert 
+		(always //expr-value-ref (has? ./@ref))
+		(error! "Could not find reference " VAL " in " (repr-context VAL))))
+
+(rule :expr-invocation-has-target?
+	(assert
+		(always? //{expr-invocation}/#0)
+		(error! "Invocation is missing its target" (repr-context A))))
+
+(rule :expr-invocation-target-invocable?
+	(assert
+		(always? //{expr-invocation}/#0 (has? ./@return-type))
+		(error! "Invocation target is not invocable" (repr-context A))))
+
+;; EOF

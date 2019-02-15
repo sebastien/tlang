@@ -6,41 +6,86 @@ Exercises the tlang.query module.
 """
 
 SELECTORS = """
+.
+..
+...
+@
+@attribute
+@attribute-*
+*
+node
+node-*
+"""
+
+AXES = """
 /*
 //*
 /2/*
-/node
-/node-*
-//node
-//node-*
-.
-..
-node/@attribute
-@.
+./*
+
+\\*
+\\\\*
+\\2\\*
+
+>*
+>>*
+>2>*
+
+<*
+<<*
+<<*
+
+.<*
+.>*
+
+<-<*
+<-=<*
+<+<*
+<=+<*
+
+.<-<*
+.<-=<*
+.<+<*
+.<=+<*
+
+
+>->*
+>-=>*
+>+>*
+>=+>*
+
+.>->*
+.>-=>*
+.>+>*
+.>=+>*
+
 """
 
-EXPRESSIONS = """
-count(//*)
-sum(/*/@amount)
-mean(/*/@amount,count(/*))
+SUBSETS = """
+./#0
+./#0/#10
 """
 
-BINDINGS = """
-{node}
-{node:A}
-/{node}
-add({sum(/*/@amount)},3)
+PREDICATES = """
+node[(has? {<<*@name})]
 """
 
 def test_selectors():
-	for ql in SELECTORS:
-		for q in ql.split("\n"):
-			q = q.strip()
-			if not q: continue
-			r = parseString(q)
-			print (q, r)
+	TestUtils.ParseLines(SELECTORS, parseString)
+
+def test_axes():
+	TestUtils.ParseLines(AXES, parseString)
+
+def test_predicates():
+	TestUtils.ParseLines(PREDICATES, parseString)
+
+def test_subsets():
+	TestUtils.ParseLines(SUBSETS, parseString)
 
 if __name__ == "__main__":
-	test_queries()
+	test_selectors()
+	test_axes()
+	test_subsets()
+	test_predicates()
 
 # EOF - vim: ts=4 sw=4 noet

@@ -1,0 +1,29 @@
+;; T-Lang Expression Language Schema
+;; 2019-02-14
+
+;; Literals
+
+(#CONTENT (* expr-value* expr-comment))
+
+(expr-comment      (@ (value :string)))
+
+(expr-value-number (@ (value :number)))
+
+(expr-value-string (@ (value :string)))
+
+(expr-value-ref    (@ (value :string)))
+
+(expr-value-symbol (@ (value :string)))
+
+;; Composites
+
+(expr-value-list
+	#CONTENT)
+
+(expr-value-invocation
+	expr-value*
+	#CONTENT)
+
+(expr #CONTENT)
+
+;; EOF

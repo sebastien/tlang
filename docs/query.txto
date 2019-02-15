@@ -1,4 +1,4 @@
-== Query
+== Query Language
 
 The _query language_ defines a compact language to select nodes and node
 sets (lists of nodes) in a tree. The first part of the language is focused
@@ -7,9 +7,15 @@ focused on definining expressions (predicates) that allow to dynamically
 refine a selection based on per-node logic.
 
 ```
+;; Returns the list of all accounts with a least one transaction
+;; above 10K
+//{account}[transaction/{@amount:V}[(gt? V 10_000)]]
 ```
 
-The query language is used in the [transform language](transform.txto).
+The query language uses the [expression language](expr.txto) to bind
+values and ally computation. They are both in turn used in the [transform language](transform.txto)
+to describe how to transform trees.
+
 
 Model
 ===== 
@@ -177,6 +183,10 @@ Subtrees (`:SubTree`)::
 
 	```
 	<<                           ;; All previously traversed nodes
+	<-<                          ;; All previously traversed nodes of lower level
+	<-=<                         ;; All previously traversed nodes of lower or equal level
+	<+<                          ;; All previously traversed nodes of deeper level
+	<=+<                         ;; All previously traversed nodes of equal or deeper level
 	<<.                          ;; The current node and all previously traversed nos
 	```
 
@@ -186,7 +196,16 @@ Subtrees (`:SubTree`)::
 
 	```
 	>>                           ;; All nodes not yet traversed
+	>->                          ;; All nodes yet to traverse with lower depth
+	>-=<                         ;; … idem with lower or EQUAL depth
+	<+<                          ;; All nodes yet to traverse with higher depth
+	<=+<                         ;; … idem with higher or EQUAL depth
 	>>.                          ;; The current node and all not yet traversed nodes
+	```
+
+	```
+	<<>>
+	<-<>->
 	```
 
 Special values
@@ -262,6 +281,18 @@ Filtering and matching::
 
 - `filter()`
 - `match()`
+
+Introspection
+
+- `type()`
+- `type?()`
+
+Debugging
+
+- `assert!()`
+- `print!()`
+- `warning!()`
+- `error!()`
 
 Subexpressions
 --------------

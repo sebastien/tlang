@@ -1,0 +1,11 @@
+== Roadmap
+
+
+Version 0.1
+===========
+
+
+[ ] Tree:   parse and export S-Expr trees 
+[ ] Schema: parse a schema and apply it on a tree
+[ ] Query:  apply selectors to a tree
+

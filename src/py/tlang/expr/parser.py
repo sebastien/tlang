@@ -13,10 +13,10 @@ def symbols( g:Grammar ) -> Symbols:
 	tokens = {
 		"WS"                      : "[\s\n]+",
 		"NUMBER"                  : "[0-9]+(\.[0-9]+)?",
-		"STRING_DQ"               : "\"[^\"]*\"",
-		"EMPTY_LINE"              : "s*\n",
+		"STRING_DQ"               : "\"([^\"]*)\"",
 		"EXPR_SYMBOL"             : "[a-z][\-a-z0-9]*[!\?]?",
-		"EXPR_VARIABLE"           : "[A-Z][\_A-Z0-9]*",
+		"EXPR_VARIABLE"           : "[_A-Z][\_A-Z0-9]*",
+		"EXPR_COMMENT"            : ";;([^\n]*)",
 	}
 	words = {
 		"LP"              : "(",
@@ -26,7 +26,6 @@ def symbols( g:Grammar ) -> Symbols:
 		"COMMA"           : ",",
 		"COLON"           : ":",
 		"PIPE"            : "|",
-		"EOL"             : "\n",
 	}
 	groups = ()
 	return ParserUtils.EnsureSymbols(g, tokens, words, groups)
@@ -43,23 +42,29 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False) -> Grammar:
 
 	s = symbols(g)
 
+	g.group("ExprValuePrefix")
+	g.group("ExprComment",   s.EXPR_COMMENT)
 	g.rule("ExprValue")
 	g.rule("ExprBinding"   , s.LB, s.ExprValue._as("value"), g.arule(s.COLON, s.EXPR_VARIABLE).optional()._as("name"), s.RB)
 
-	g.rule("ExprInvocation", s.LP,    s.ExprValue.optional()._as("arg"), s.RP)
-	g.rule("ExprPipe",       s.PIPE,  s.ExprValue._as("arg"))
-	g.rule("ExprJoin",       s.COMMA, s.ExprValue._as("arg"))
+	g.rule("ExprInvocation", s.LP,    s.ExprValue._as("arg"),  s.RP)
+	# NOTE: Here we want to avoid using `ExprValue` as otherwise we'll end up
+	# with really deeply nested matches.
+	g.rule("ExprPipe",       s.PIPE,  s.ExprValuePrefix._as("arg"))
+	g.rule("ExprJoin",       s.WS,    s.ExprValuePrefix._as("arg"))
 
-	g.group("ExprValuePrefix").set(
+	s.ExprValuePrefix.set(
 		s.ExprBinding,
+		s.ExprInvocation,
+		s.ExprComment,
 		s.NUMBER, s.STRING_DQ, s.EXPR_SYMBOL, s.EXPR_VARIABLE
 	)
 	g.group("ExprValueSuffix").set(
-		s.ExprInvocation,
 		s.ExprPipe,
 		s.ExprJoin,
+		s.ExprComment,
 	)
-	s.ExprValue.set(s.ExprValuePrefix._as("prefix"), s.ExprValueSuffix.zeroOrMore()._as("suffixes"))
+	s.ExprValue.set(s.ExprValuePrefix._as("prefix"), s.ExprValueSuffix.zeroOrMore()._as("suffixes"), s.WS.zeroOrMore())
 
 	g.axiom = s.ExprValue
 	g.skip  = s.WS
@@ -101,7 +106,15 @@ class ExprProcessor(Processor):
 
 	def onEXPR_SYMBOL( self, match):
 		value = self.process(match)[0]
-		return self.tree.node("expr-value-symbol", {"value":value})
+		return self.tree.node("expr-value-symbol", {"name":value})
+
+	def onEXPR_VARIABLE( self, match):
+		value = self.process(match)[0]
+		return self.tree.node("expr-value-ref", {"name":value})
+
+	def onExprComment( self, match ):
+		value = self.process(match)[0][1]
+		return self.tree.node("expr-comment", {"value":value})
 
 	def onExprValuePrefix( self, match ):
 		return self.process(match[0])
@@ -116,6 +129,13 @@ class ExprProcessor(Processor):
 			node.merge(arg)
 		else:
 			node.add(arg)
+		return node
+
+	def onExprBinding( self, match, value, name ):
+		node = self.tree.node("expr-value-binding")
+		if name:
+			name = name[1].attr("name")
+			node.attr("explicit", name)
 		return node
 
 	def onExprJoin( self, match, arg ):
