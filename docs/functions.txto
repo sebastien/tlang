@@ -9,6 +9,15 @@ Node and tree
 
 `(rule NAME:USER_SYMBOL EXPR…)`::
 
+Logic
+=====
+
+`(and EXPR…)`
+
+`(or EXPR…)`
+
+`(not EXPR)`
+
 Predicates
 ==========
 
@@ -27,13 +36,18 @@ Predicates
 Collections
 ============
 
-`(first EXPR)`::
+`(first EXPR INDEX:NUMBER?)`::
 
-`(first EXPR INDEX:NUMBER)`::
+`(last EXPR INDEX:NUMBER?)`::
 
-`(last EXPR)`::
+Schema
+======
 
-`(last EXPR INDEX:NUMBER)`::
+`(schema EXPR|NODE…)`
+
+`(many NODE…)`
+
+`(any NODE…)`
 
 Loggging & Debugging
 ====================
