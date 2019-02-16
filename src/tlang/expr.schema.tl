@@ -15,9 +15,9 @@
 
 	;; Composites
 
-	(expr-value-list {(many-of //expr-value* expr-comment):CONTENT})
+	(expr-value-list {(:many //expr-value* expr-comment):CONTENT})
 
-	(expr-value-invocation //expr-value* CONTENT)
+	(expr-value-invocation //expr-value* CONTENT))
 
 	(expr CONTENT)
 

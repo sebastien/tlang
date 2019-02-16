@@ -1,5 +1,14 @@
 == TLang Core Library
 
+Terminology:
+
+- `predicate`
+- `effector`
+- `consumer`
+- `stream`
+
+Notation:
+
 Node and tree
 =============
 
@@ -12,33 +21,54 @@ Node and tree
 Logic
 =====
 
-`(and EXPR…)`
+`(and Value…)`
 
-`(or EXPR…)`
+`(or Value…)`
 
-`(not EXPR)`
+`(not Value)`
+
+`(true? Value)`
 
 Predicates
 ==========
 
-`(gt? A:EXPR B:EXPR)`
+`(gt? A:Number B:Number)`
 
-`(gte? A:EXPR B:EXPR)`
+`(gte? A:Number B:Number)`
 
-`(lt? A:EXPR B:EXPR)`
+`(lt? A:Number B:Number)`
 
-`(lte? A:EXPR B:EXPR)`
+`(lte? A:Number B:Number)`
 
-`(always? EXPR)`::
+`(always? Value)`::
 
-`(has? EXPR)`::
+`(has? Value)`::
 
 Collections
 ============
 
-`(first EXPR INDEX:NUMBER?)`::
+`(first EXPR INDEX:Number?)`::
 
-`(last EXPR INDEX:NUMBER?)`::
+`(last EXPR INDEX:Number?)`::
+
+Streams
+=======
+
+`(peek) → Value`::
+
+  Peeks into the stream, returning the next value, if any.
+
+`(consume EFFECTOR?) → Optional[Value]`::
+
+  Returns then ext value, if any and removes it from the stream.
+
+`(consume-maybe PREDICATE EFFECTOR?)`::
+
+  Peeks into the stream using `PREDICATE` and consumes the element
+  using `EFFECTOR` if `PREDICATE`  is true.
+
+  Equivalent to `(and (peek PREDICATE) (consume EFFECTOR))`
+
 
 Schema
 ======
@@ -49,6 +79,19 @@ Schema
 
 `(any NODE…)`
 
+`(seq NODE…)`
+
+`(maybe NODE…)`
+
+`(transform [PATTERN TEMPLATE]… )`
+
+`(expand [PATTERN TEMPLATE]… )`
+
+Transforms
+==========
+
+`(replace NODES:NodeSet Effector:Quoted[Expr])`::
+
 Loggging & Debugging
 ====================
 
@@ -58,6 +101,11 @@ Loggging & Debugging
 
 `(repr EXPR…)`::
 
-`(repr-context EXPR…)`::
+`(repr-context EXPR… DEPTH:NUMBER?)`::
+  
+  `DEPTH` defines the scope of the context. A negative value will enclose
+  the parent (`-1`) or ancestors (`-2`, `-3`), while a positive value
+  denotes the children (`1`) or descendants (`2`, `3`, …).
+
 
 # EOF - vim: ts=2 sw=2 et syn=texto

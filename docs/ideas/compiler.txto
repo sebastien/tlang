@@ -5,7 +5,6 @@ Errors
 
 - Transducer/schema: attribute not defined 
 - Transducer/schema: node not defined
-
 - Transducer/effect: incompatible attribute type
 - Transducer/effect: incompatible node type
 - Transducer/effect: mutating synthetic attribute
@@ -37,5 +36,73 @@ For any error or warning, there should be:
 ```
 XXX not defined, did you mean 'YYY', 'ZZZ' or 'WWW'?
 ```
+
+Query/Traversal Optimization
+============================
+
+Looking at the following example:
+
+```
+(attr
+	({expr-*:NODE}  @meta-level)
+	(add
+		(max     ./expr-*/@meta-level)
+		(int (first ./expr-value-template))))
+```
+
+We have the following dependency graph
+
+
+```
+;; If the meta-level of an expr-* node changes
+;; the parent @meta-level changes as well.
+expr-*/meta-level   → .\expr-*/@meta-level
+
+;; The the expr-template changes (ie. it is added
+;; or removed),then the meta-level is invalidated.
+expr-value-template → .\expr-*/@meta-level
+```
+
+now, the computation looks like this:
+
+```
+(add  (max A:List[Attribute]) (int (first B:List[Node])))
+```
+
+If we don't want to have to re-do the full query and
+recompute the values completely, we'd need to listen 
+for changes and try an incremental update:
+
+- For `max`, we would need to know the current value. We
+  only need to recompute if a removed value is the 
+  maximum. If a new value is added, we can incrementally
+  update it.
+
+- For `first`, we will need to always recompute. This should
+  not be a problems are selections should be lazy.
+
+This means that incremental computations can work only
+if they store their previous value, which implies some
+kind of memoization. This memoization needs to be very
+lightweight as otherwise it's going to cost memory
+and CPU and offset the benefits.
+
+In terms of data storage, this means that each computation
+would produce `(VALUE,CONTEXT)` where the value 
+is the computed attirbute/node and context is the 
+memoization of the parts of the computation that might change 
+(the selections).
+
+The selections can then be used to derive a dependency
+graph and know which attributes should be invalidated.
+
+Now this leads to the two main strategies for updating the data:
+
+- lazy, which means that any change would set the dependent node/attribute as dirty. The value will be updated/recalculated next time it is accessed, but there is no opportunity for incremental computation.
+
+- eager, which means that the change is propagated directly. This has a high cost if the synthetic values do not support incremental computation, and might also trigger infinite/feedback loops. The advantage, however, is that if the computation time is large (ie. many nodes to process, or a complex traversal), eager is going to have the upper hand.
+
+
+
 
 # EOF - vim: ts=2 sw=2 et syn=texto

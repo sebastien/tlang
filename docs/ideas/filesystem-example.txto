@@ -1,0 +1,101 @@
+== Filesystem Example
+
+So let's imagine we have a filesystem with files and 
+directories, and we want to store the following information:
+
+- A file size
+- A directory size (ie. sum of sizes of its descendants)
+- A directory's average file size
+- Whether a file is above or below average in terms of size
+
+Let's start with the schema:
+
+```tlang
+(schema
+
+	(file 
+		(@path          :string)
+		(@size          :number)
+		(@relative-size :number))
+
+	(dir
+		(@path      :string)
+		(@size      :number :synthetic)
+		(@count     :number :synthetic)
+		(@mean-size :number :synthetic)
+		(:many      file)))
+```
+
+now let's define the synthetic attributes:
+
+```tlang
+(attr (dir @size)
+	;; We only want the first level of `dir`
+	(add
+		(sum ./dir/@size)
+		(sum ./file/@size)))
+
+(attr (dir @count)
+	(add
+		(count ./dir)
+		(count ./file)))
+
+(attr (dir @mean-size)
+	(div {//file}/@size (or (count A)))
+
+(attr (file @relative-size)
+	(div ./@size (or ../dir/@size 1)))
+```
+
+and let's start to see how this could be implemented efficiently. The first
+thing that we can notice is that `dir/@size` and `dir/@count` share similar
+dependencies:
+
+```
+file            → .\dir/@count
+dir/@count      → .\dir/@count
+dir/@size       → .\dir/@size
+file/@size      → .\dir/@size
+dir/@size       → ./@mean-size
+dir/@count      → ./@mean-size
+dir/@mean-size  → ./file/@relative-size
+```
+
+In the following dependency diagram we can see that the propagation of the changes
+is up one level (go to parents), then propagates to  the current level
+and finally trickles down to the children. 
+
+It's also good to notice that there is no loop.
+
+```dot
+digraph {
+	"file"           -> "dir/@count"          [ label="parent" ];
+	"dir/@count"     -> "dir/@count"          [ label="parent" ];
+	"file/@size"     -> "dir/@size"           [ label="parent" ];
+	"dir/@size"      -> "dir/@size"           [ label="parent" ];
+	"dir/@size"      -> "dir/@mean-size"      [ label="current" ];
+	"dir/@count"     -> "dir/@mean-size"      [ label="current" ];
+	"dir/@mean-size" -> "file/@relative-size" [ label="children" ];
+	"file/@size"     -> "file/@relative-size" [ label="current" ];
+}
+``` 
+
+There are different ways we can implement this:
+
+- Apply a first batch of the changes (parent, current, children) and then
+  iterate on the parent. This means we'll have many 2-level traversals. 
+
+- Minimize the traversals and do everything at once: we got up as far as
+  we can, then go down. This implies that we have to *find a way to
+  group and minimize traversals*.
+
+
+So each synthetic attribute could be implemented as a function that
+takes `(TREE,CURRENT,CONTEXT)` and returns a `(VALUE,CONTEXT)`.
+
+```
+def Dir_count_compute( tree, current, context ):
+	pass
+```
+
+# EOF - vim: syn=texto

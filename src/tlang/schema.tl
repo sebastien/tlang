@@ -1,0 +1,71 @@
+
+
+
+;; TODO: How to define min/max quantities?
+(transform schema-expand-child!
+
+	(any L…)
+		'(consume (assert (type? _ ${L})))
+
+	(many L…)
+		'(consume-many (assert (type? _ ${L})))
+
+	(maybe L…)
+		'(consume-maybe (type? _ ${L}))
+
+	(seq L…)
+		(each L
+			'(consume (assert (type? _ ${_}))))
+
+)
+
+
+;; What we want, at the end is to convert a SCHEMA into a set of rules that
+;; can be enforced on a per-node basis. For instance:
+
+(replace //schema
+	(each ./{*:NODE}
+		(each ./{@*:ATTRIBUTE}
+			;; This is an example of the transformation we'd like to
+			;; have:
+			;; - from: `(schema (expr-value-string (@value type-list))`
+			;; - to:   `(attr (expr-value-string value) (type? _ type-list))`
+
+			'(attr (NODE ${(name ATTRIBUTE))} (assert (type? _ ${ATTRIBUTE})))
+
+		'(stream ./*
+
+			${(each {./*:CHILDREN}
+				(apply schema-expand-child! _)
+				(match
+					(many L…)
+						'(consume-while (node? _ ${L})))
+					(any L…)
+						'(consume (assert (node? _ ${L})))
+			}
+						
+	
+
+;; Implementing (:seq A B C)
+
+ 	(child I          (node? A))
+	(child (add I 1)  (node? B))
+	(child (add I 2)  (node? C))
+
+;; Or alternatively
+
+	(next-children (length V)
+		;; A = The child, B = The current item of V
+		(node? A B)
+
+;; Implementing (:any V…)
+
+	;; A = The child, B = The current value C = The value index
+	(first V (node? A B))
+
+;; Implementing (:repeat V I J)
+
+	(try-repeat (I J)
+		(next-children (length V)
+			;; A = The child, B = The current item of V
+			(node? A B))

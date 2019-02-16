@@ -1,0 +1,34 @@
+
+Schemas and transforms
+======================
+
+Schemas can be considered as a transform that returnd nothing (satified) or
+a list of errors. While it's useful to just know if something is valid
+or not, it is even more useful to understand what is not valid and why.
+
+Here's what a validation of the bank account schema might look like:
+
+```tlang
+(each //{account:ACCOUNT}
+
+	(each ./{*:CHILD}
+		(assert (or (node? CHILD account-transaction) (node? CHILD account))
+			(error! "Account expected account-transaction or account nodes:" (repr-context CHILD 1))))
+	
+	(each ./{@amount:AMOUNT}
+		(assert (type-of? AMOUNT type-int)
+			(error! "Attribute expected to be of" type-int " got " (repr-type-value AMOUNT) " in " (repr-context AMOUNT -1))
+		(assert (eq? AMOUNT {(sum (select ./*/@amount)):EXPECTED})
+			(error! "Account amount" AMOUNT " is not the sum of its content's amount " EXPECTED " in " (repr-context ACCOUNT 1))))
+)
+```
+
+the corresponding schema might be
+
+```tlang
+(schema
+	({account:ACCOUNT}
+		(@amount type-int)
+		(@amount (sum ACCOUNT/*/@amount))
+		(:many account-transaction account)))
+```

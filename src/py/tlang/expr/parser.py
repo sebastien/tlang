@@ -25,7 +25,9 @@ def symbols( g:Grammar ) -> Symbols:
 		"RB"              : "}",
 		"COMMA"           : ",",
 		"COLON"           : ":",
+		"QUOTE"           : "'",
 		"PIPE"            : "|",
+		"EXPR_TEMPLATE"   : "${",
 	}
 	groups = ()
 	return ParserUtils.EnsureSymbols(g, tokens, words, groups)
@@ -46,16 +48,20 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False) -> Grammar:
 	g.group("ExprComment",   s.EXPR_COMMENT)
 	g.rule("ExprValue")
 	g.rule("ExprBinding"   , s.LB, s.ExprValue._as("value"), g.arule(s.COLON, s.EXPR_VARIABLE).optional()._as("name"), s.RB)
+	g.rule("ExprTemplate"  , s.EXPR_TEMPLATE, s.ExprValue._as("value"), s.RB)
 
 	g.rule("ExprInvocation", s.LP,    s.ExprValue._as("arg"),  s.RP)
 	# NOTE: Here we want to avoid using `ExprValue` as otherwise we'll end up
 	# with really deeply nested matches.
+	g.rule("ExprQuote",      s.QUOTE, s.ExprValuePrefix._as("arg"))
 	g.rule("ExprPipe",       s.PIPE,  s.ExprValuePrefix._as("arg"))
 	g.rule("ExprJoin",       s.WS,    s.ExprValuePrefix._as("arg"))
 
 	s.ExprValuePrefix.set(
-		s.ExprBinding,
 		s.ExprInvocation,
+		s.ExprQuote,
+		s.ExprTemplate,
+		s.ExprBinding,
 		s.ExprComment,
 		s.NUMBER, s.STRING_DQ, s.EXPR_SYMBOL, s.EXPR_VARIABLE
 	)
@@ -131,6 +137,9 @@ class ExprProcessor(Processor):
 			node.add(arg)
 		return node
 
+	def onExprTemplate( self, match, value ):
+		return self.tree.node("expr-value-template", value)
+
 	def onExprBinding( self, match, value, name ):
 		node = self.tree.node("expr-value-binding")
 		if name:
@@ -147,9 +156,10 @@ class ExprProcessor(Processor):
 			return node
 
 	def onExprPipe( self, match, arg ):
-		node = self.tree.node("expr-value-pipe")
-		node.add(arg)
-		return node
+		return self.tree.node("expr-value-pipe", arg)
+
+	def onExprQuote( self, match, arg ):
+		return self.tree.node("expr-value-quote", arg)
 
 	def onExprValue( self, match, prefix, suffixes ):
 		# NOTE: This is where we manage priorities. We should define

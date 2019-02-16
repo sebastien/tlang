@@ -19,12 +19,24 @@ INVOCATIONS = """
 (has? A)
 """
 
+QUOTES = """
+'(count)
+'(count A '(A B C))
+"""
+
 BINDINGS = """
 {1}
 {1:A}
 {(count A):A}
 {(count A):A} {(count B):B}
 """
+
+TEMPLATES = """
+${1}
+(add ${1})
+(add ${(add 1 2)})
+"""
+
 
 
 def test_values():
@@ -35,6 +47,12 @@ def test_invocations():
 
 def test_bindings():
 	TestUtils.ParseLines(BINDINGS, parseString)
+
+def test_quotes():
+	TestUtils.ParseLines(QUOTES, parseString)
+
+def test_templates():
+	TestUtils.ParseLines(TEMPLATES, parseString)
 
 def test_long():
 	TestUtils.ParseLines("1.0 " * 10000, parseString)

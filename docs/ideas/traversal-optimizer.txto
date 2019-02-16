@@ -1,0 +1,34 @@
+
+Let's start with an input data that looks like the following:
+
+```
+SRC_NODE/@SRC_ATTR → DST_NODE/@DST_ATTR : AXIS DEPTH?
+```
+
+or, as a dictionary:
+
+```
+{
+	srcNode : "…",
+	srcAttr : "…",
+	dstNode : "…",
+	dstAttr : "…",
+	axis    : "…",
+	depth   : 0
+}
+```
+
+with our [filesystem-example] we have an input  like so:
+
+```
+file           -> dir/@count          : parent
+dir/@count     -> dir/@count          : parent
+file/@size     -> dir/@size           : parent
+dir/@size      -> dir/@size           : parent
+dir/@size      -> dir/@mean-size      : current
+dir/@count     -> dir/@mean-size      : current
+dir/@mean-size -> file/@relative-size : children
+file/@size     -> file/@relative-size : current 
+```
+
+

@@ -12,6 +12,10 @@ refine a selection based on per-node logic.
 //{account}[transaction/{@amount:V}[(gt? V 10_000)]]
 ```
 
+TODO:
+
+Subtle difference between `//{node}` implies (for each node) and `{//node}` (all nodes).
+
 The query language uses the [expression language](expr.txto) to bind
 values and ally computation. They are both in turn used in the [transform language](transform.txto)
 to describe how to transform trees.

@@ -25,10 +25,12 @@ Expressing this in T-Lang, we would first define a schema that would accomodate
 all the different types of node that we'd like to process, here corresponding
 to file types.
 
-```schema
-(file-c (@ (path :string) (:as 'contents :string))
-(file-h (@ (path :string) (:as 'contents :string))
-(file-o (@ (path :string) (:as 'contents :string))
+```tlang
+(schema
+	(file-c (@path :string) (:as 'contents :string))
+	(file-h (@path :string) (:as 'contents :string))
+	(file-o (@path :string) (:as 'contents :string))
+)
 ```
 
 Now we need to define transformations, for instance, here is how we would
@@ -36,18 +38,20 @@ map the result of `dep-parse-c(string)` to children of a node with
 the file's source path under  `/deps`.
 
 # FIXME: Do we create a new node here?
+
 ```transform
-on (//{file-c:REF}/{#contents:CONTENTS}
-	;; TODO: Should create nodes
-	set (/deps/${REF/@path}, map (run ('dep-parse-c'  CONTENTS)))
-)```
+(on //{file-c:REF}/{#contents:CONTENTS}
+	(set /deps/${REF/@path}
+		(run 'dep-parse-c' CONTENTS)))
+```
 
 The declarative equivalent of that would be:
 
 ```transform
 makes (/deps/${*:FILE}/@path}/{*/@path:DEP},
 	ensure-in (run('dep-parse-c', FILE/#contents), DEP)
-)```
+)
+```
 
 The declarative equivent is more like a predicate, while the imperative 
 equivalent shows all the matches.
@@ -66,12 +70,27 @@ on (
 or the declarative equivalent (dual):
 
 ```
-makes(
+(makes
 	/deps/$PROGRAM/@deps
 	/src/{file-c:FILE}/@deps
 )
 ```
 
+
+
+```
+(attr ({file-o:NODE} @content)
+
+	;; The compiler should now that the result type is a string
+	{(splitext NODE/@path) | head | (str ".c"):SOURCE}
+
+	;; This is going to be a dynamic selection with a string as
+	;; a node name.
+	(all 
+		{//file/@path[(eq _ SOURCE)]:SOURCES}
+		(:depends SOURCES/@contents …SOURCES/@depends)
+		(:compile-c …SOURCES)))
+```
 
 
 
