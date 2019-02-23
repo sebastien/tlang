@@ -91,6 +91,17 @@ class Node:
 			self.children.insert(index, node)
 		return node
 
+	def walk( self, functor ):
+		return self._walk(self, functor)
+
+	def _walk( self, node, functor ):
+		if functor(node) is False:
+			return False
+		for c in node.children:
+			if self._walk(c, functor) is False:
+				return False
+		return True
+
 	def __str__( self ):
 		return "".join(Repr.Apply(self))
 

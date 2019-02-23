@@ -35,6 +35,8 @@ TEMPLATES = """
 ${1}
 (add ${1})
 (add ${(add 1 2)})
+${VARIABLE_NAME}
+${VARIABLE_NAME/node}
 """
 
 
@@ -61,6 +63,7 @@ if __name__ == "__main__":
 	test_values()
 	test_invocations()
 	test_bindings()
+	test_templates()
 	test_long()
 
 # EOF - vim: ts=4 sw=4 noet

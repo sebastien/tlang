@@ -160,13 +160,14 @@ class ExprProcessor(Processor):
 	def onExprQuote( self, match, arg ):
 		return self.tree.node("expr-value-quote", arg)
 
+	# FIXME: Not sure what the difference between invocation and list
+	# is in practice. Should be the same.
 	def onExprValue( self, match, prefix, suffixes ):
 		# NOTE: This is where we manage priorities. We should define
 		# more clearly what happens there.
 		for suffix in suffixes:
 			if suffix.name == "expr-value-list":
 				# NOTE: Not sure about that... and BTW, do we 
-				# use expr-value-list anyway?
 				if prefix.name == "expr-value-list":
 					prefix.merge(suffix)
 				else:

@@ -15,6 +15,7 @@ SELECTORS = """
 *
 node
 node-*
+VARIABLE_NAME
 """
 
 AXES = """

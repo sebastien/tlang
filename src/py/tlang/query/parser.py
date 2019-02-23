@@ -16,6 +16,7 @@ def symbols( g:Grammar ) -> Symbols:
 		"STRING_DQ"               : "\"[^\"]*\"",
 		"QUERY_NODE"              : "[a-z\*\?][\-a-z0-9\*\?]*",
 		"QUERY_ATTRIBUTE"         : "@[a-z\*\?]?[\-a-z0-9\*\?]*",
+		"QUERY_VARIABLE"          : "[A-Z][_A-Z0-9]*",
 		"QUERY_CURRENT_NODE"      : "\.+",
 		"QUERY_SUBSET"            : "#(\d+)",
 
@@ -57,6 +58,7 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False) -> Grammar:
 	)
 
 	g.rule("QueryNode",          s.QUERY_NODE)
+	g.rule("QueryVariable",      s.QUERY_VARIABLE)
 	g.rule("QueryAttribute",     s.QUERY_ATTRIBUTE)
 	g.rule("QueryCurrentNode",   s.QUERY_CURRENT_NODE)
 	g.rule("QuerySubset",        s.QUERY_SUBSET)
@@ -64,6 +66,7 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False) -> Grammar:
 	g.group("QuerySelectorValue",
 		s.QuerySubset,
 		s.QueryCurrentNode,
+		s.QueryVariable,
 		s.QueryNode,
 		s.QueryAttribute,
 	)
@@ -94,8 +97,9 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False) -> Grammar:
 		s.QuerySelection.oneOrMore()._as("selectors")
 	)
 
-	# TODO: The s.Query should be PREFIXED!
-	s.ExprValuePrefix.add(s.Query)
+	# We insert the Query just before the EXPR_VARIABLE, as the query
+	# also has a variable.
+	s.ExprValuePrefix.insert(8,s.Query)
 	g.axiom = s.Query
 	g.skip  = s.WS
 
@@ -143,6 +147,10 @@ class QueryProcessor(ExprProcessor):
 	def onQueryCurrentNode( self, match ):
 		return self.tree.node("query-node")
 
+	def onQueryVariable( self, match ):
+		name = self.process(match)[0][0]
+		return self.tree.node("query-variable", {"name":name})
+
 	def onQueryPredicate( self, match, expr ):
 		return self.tree.node("query-predicate", expr)
 
@@ -160,6 +168,24 @@ class QueryProcessor(ExprProcessor):
 		return self.tree.node("query-selection", axis, selector, predicate)
 
 	def onQuery( self, match, selectors ):
+		# OK, so here we have an edge case which is related to the parser:
+		# queries have precedence over EXPR_VARIABLES, so we might end up
+		# with a query that has just one query-variable, like so:
+		#
+		# ```
+		#  (query
+		#       (query-selection
+		#           (query-variable (@  (name NAME)))))))
+		# ```
+		# 
+		# The following routine normalizes the subtree as a proper
+		# `(expr-variable NAME)`
+		if len(selectors) == 1 and selectors[0].name == "query-selection":
+			s = selectors[0].children
+			if len(s) == 1 and s[0].name == "query-variable":
+				n = s[0]
+				n.name = "expr-variable"
+				return n.detach()
 		return self.tree.node("query", *selectors)
 
 # -----------------------------------------------------------------------------

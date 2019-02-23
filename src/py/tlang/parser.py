@@ -9,7 +9,7 @@ P = QueryProcessor(G)
 def parseString( text:str ):
 	res = G.parseString(text)
 	if not res.isSuccess():
-		raise res
+		raise SyntaxError(res.describe())
 	else:
 		return P.process(res)
 
