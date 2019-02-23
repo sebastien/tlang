@@ -60,11 +60,11 @@ class Optimizer:
 
 	def __init__( self ):
 		self.transforms:List[Transform]   = []
-		self.sources:Dict[str,Transform] = {}
+		self.sources:Dict[str,List[Transform]] = {}
 
 	def add( self, transform:Transform ) -> 'Optimizer':
 		self.transforms.append(transform)
-		self.sources[transform.srcKey] = transform
+		self.sources.setdefault(transform.srcKey,[]).append(transform)
 		return self
 
 	def query( self, query:str ):

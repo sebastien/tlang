@@ -1,0 +1,28 @@
+== Sum Example
+
+The `sum` example is a simple tree structure that has interesting
+compilation outcomes.
+
+We have nodes that have a value, and synthetic attributes
+`sum` and `mean` that represent the sum of all the predecessors
+in tree traversal and the current mean.
+
+```schema
+(node (@value  :number)
+      (@sum    :number :synthetic) 
+      (@mean   :number :synthetic)))
+```
+
+The `sum` and `mean` both share the same expensive selection
+which is "all nodes that came before in depth-traversal order".
+
+```transform
+(attr (node @sum)
+  (sum .<<node/@sum))
+
+(attr (node @mean)
+  (div (count .<<node/@sum) ./@sum))
+
+```
+
+# EOF - vim: ts=2 sw=2 et syn=texto

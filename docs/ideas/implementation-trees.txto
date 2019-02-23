@@ -1,0 +1,65 @@
+== Tree Implementations
+
+Node structures
+===============
+
+We should offer different implementation of nodes and trees in order 
+to benchmark the tree transformations. Ideally, we should use some
+kind of program synthesis so that he fasted implementations are chosen.
+
+Linked nodes
+------------
+
+The linked nodes implementation makes traversal very easy as all the axes
+have direct pointers.
+
+```
+Node
+	nextNode
+	previousNode
+	parentNode
+	firstChild
+```
+
+Traversal lists
+---------------
+
+Nodes are part of a list which is a breadth-first or depth-first traversal.
+In depth-first, we can use the node index to know if the node is before or after,
+in breadth-first we can use the node index to know if the node is deeper or higher
+in the tree.
+
+```
+Depth:   [Node, Node, Node]
+```
+
+The problem is that while things might be fast in one traversal, they might not
+be with the other. The major advantage is that there is potentially a higher
+change of cache-locality.
+
+We might think of hybrid implmentations where some node attributes are 
+encoded in depth-first traversal, while some others are in breadth-first
+traversal, so that updates are cheap.
+
+The advantage of depth-first traversal is that it follows the most likely
+order of propagation and can be easily paralellized (the subtrees are 
+in disjoint memory segments).
+
+
+Topology cache
+--------------
+
+Another idea would be to have the nodes organized in a custom memory layout
+that puts the nodes that are close to each other in transformation close
+to each other in memory. This would mean something like
+
+Let `Dc(N1,N2)` be the distance function in computation, ie. Dc(N1,N2)==0 if
+some attribute of N1 is computed with some attribute of N2. Or we could 
+think of an affinity function that computes scores for an (N1,N2) pair, and
+the nodes are laid oud so that high(N1,N2) means low memory distance.
+
+The next question is how to optimize traversals. The easy solution would
+be to pre-compute traversals altogether... or we could, for each node, 
+have a pre-computed lists of all the nodes it depends on for a computation. This
+would have a high memory footprint, and unclear benefits.
+

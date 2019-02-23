@@ -15,3 +15,6 @@ Performance
 - Minimize the number of passes. Ideally, there should be only one top-bottom 
   and bottom-up required. If there is more, then it means the process leads
   to an unstable tree (which might be OK, as it might converge)
+
+- Traversals build lists that can be re-used and should provide
+  fast access. These lists should be reused as much as possible.

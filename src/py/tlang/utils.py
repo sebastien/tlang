@@ -1,7 +1,11 @@
-from texto.main import run as texto
 import os, sys
 BASE = os.path.normpath(os.path.abspath(__file__) + "/../../../../")
 NOTHING = object()
+
+try:
+	from texto.main import run as texto
+except ImportError as e:
+	texto = None
 
 # -----------------------------------------------------------------------------
 #
@@ -71,6 +75,7 @@ class TestUtils:
 
 	@classmethod
 	def GetExamples( cls, name, type ):
+		assert texto, "The 'texto' Python module is not availabled, but is required"
 		path = os.path.join(BASE, "docs", name)
 		res  = []
 		with open(path) as f:

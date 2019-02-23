@@ -1,0 +1,65 @@
+== Templates
+
+An important part of TLang is the ability to rewrite parts of a tree. If
+we look at XSLT, this process can be as simply as applying a template
+to a selection. However, there are obvious limitations when we're transforming
+a subtree, as many sub-selections need to be nested and guarded with 
+conditionals.
+
+Lisp and Scheme offer interesting tree-based templates that offer a more
+declarative way of definition patterns, and TLang takes inspiration
+from both.
+
+Let's start with a pattern that rewrites lists starting with 'attr'
+into a '(declare-attribute NODE NAME VALUE)`. We have an input like this:
+
+```
+(expr-value-list
+   (expr-value-symbol (@  (name "attr")))
+   (expr-value-list
+       (expr-value-symbol (@  (name "name")))
+       …)
+   …)
+```
+
+which we can represent as the following template
+
+```
+(expr-value-list
+   (expr-value-symbol (@  (name "attr")))
+   (expr-value-list
+       (expr-value-symbol (@  (name "name")))
+       (query ATTRIBUTE_QUERY))
+    VALUE
+)
+```
+and we know that the query might have a `query-node`
+and a `query-attribute`, which we do want to extract:
+
+```
+(declare-attribute
+  ${ATTRIBUTE_QUERY/query-node}
+  ${ATTRIBUTE_QUERY/query-attribute}
+  VALUE
+)
+```
+
+we see that the first part is the template that defines the 
+structure of the subtree to be matched, then we have the expansion
+that defines how to create the resulting tree.
+
+We have two main steps there:
+
+1)  The partial traversal of a subtree to determine if it matches
+    the template or not.
+
+2) The traversal of the expansion and the creation of a new subtree.
+
+Both of these steps should support iterative matching and update, so that
+when a subset of the matched subtree changes, only the matching 
+substen of the expansion is updated (an important use case for model-view
+rendering in a DOM-like view).
+
+
+
+# EOF - vim: ts=2 sw=2 syn=texto et

@@ -118,6 +118,10 @@ Loosely related projects:
 - [OHM](https://github.com/harc/ohm), the successor of OMeta, a JavaScript implementation
   of a language to generate parsers. It has a really nice [online interactive editor](https://ohmlang.github.io/editor/)
   that shows how live visual feedback helps building a grammar.
+
+- [Zephyr ASDL](https://www.cs.princeton.edu/research/techreps/TR-554-97), a language
+  to describe ASTS. It is notably [used in Python](https://github.com/python/cpython/blob/master/Parser/Python.asdl).
+  The Oil Shell blog has [two](https://www.oilshell.org/blog/2016/12/11.html) [articles](https://www.oilshell.org/blog/2016/12/16.html) on the subject.
   
 
 [TLang](https://bitbucket.org/sebastien/tlang) is implemented in Python 3 and is maintained by [Sébastien

@@ -1,24 +1,26 @@
+== Traversal Optimization
 
-Let's start with an input data that looks like the following:
+In this document we'll be exploring ideas on how to optimize the application
+of changes so that we optimize the traversal. We assume that navigating the
+tree has a cost (most likely in cache locality), so we have an advantage
+to group computation that are "closest together" in terms of data layout.
+
+Aditionally, we also want to minimize the back and forth. Instead of doing
+top-down, and then bottom-up we might be able, under some circumstances to
+just do a top-down. We're going to explore how this can be done.
+
+
+Example and transform encoding
+==============================
+
+Let's start with by defining a format to encode the dependency between
+attribues. We can use the following format:
 
 ```
 SRC_NODE/@SRC_ATTR → DST_NODE/@DST_ATTR : AXIS DEPTH?
 ```
 
-or, as a dictionary:
-
-```
-{
-	srcNode : "…",
-	srcAttr : "…",
-	dstNode : "…",
-	dstAttr : "…",
-	axis    : "…",
-	depth   : 0
-}
-```
-
-with our [filesystem-example] we have an input  like so:
+which once applied to our [filesystem-example] looks like this:
 
 ```
 file           -> dir/@count          : parent
@@ -31,4 +33,100 @@ dir/@mean-size -> file/@relative-size : children
 file/@size     -> file/@relative-size : current 
 ```
 
+with the following graph representation
 
+```dot
+digraph {
+	"file"           -> "dir/@count"          [ label="parent" ];
+	"dir/@count"     -> "dir/@count"          [ label="parent" ];
+	"file/@size"     -> "dir/@size"           [ label="parent" ];
+	"dir/@size"      -> "dir/@size"           [ label="parent" ];
+	"dir/@size"      -> "dir/@mean-size"      [ label="current" ];
+	"dir/@count"     -> "dir/@mean-size"      [ label="current" ];
+	"dir/@mean-size" -> "file/@relative-size" [ label="children" ];
+	"file/@size"     -> "file/@relative-size" [ label="current" ];
+}
+```
+
+Now, if a `file` changes (it is added or removed), we'll neeed to follow the
+arrows in the graph, which denote a change propagation.  However, we sometime
+have more than one arrow stemming from a node. This means that we have a
+choice, and we need to find criteria to make the best choice.
+
+For instance `dir/@count` points to `dir/@count`, through the
+parent, and `dir/@mean-size` through the descendants. We
+have a choice here: which one are we going to apply first?
+
+We know that `dir/@count→dir/@count` uses the parent axis and
+the `dir/@count→dir/@mean-size` uses the current axis.
+
+If we look one step ahead, we can see that `dir/@count→dir/@count`
+goes strictly up in the traversal, and then `dir/@count→dir/@mean-size` 
+goes down in the traversal.
+
+We're currently going up (`file→dir/@count`) so it would make sense
+to continue going up if we want to minimize back and forth. 
+
+Optimizing for traversal or locality
+------------------------------------
+
+So we propose the following:
+
+    When presented with a choice, we should choose in priority the 
+    first path that continues along the same axis if we want to minimize
+    traversals.
+
+However, we might prefer to apply all the changes locally, so that we
+take advantage of cache locality:
+
+    If we want to optimize cache locality, we should pick the closes
+    path based on a data distance function `D(SOURCE,TARGET,AXIS,DEPTH)`.
+
+It's interesting to see here that maximizing data locality does not align
+with minimizing traversals.
+
+Constructing the walk
+---------------------
+
+When we calculate the impact of a change, we need to create a walk through
+the tree. Let's focus on the `dir/@count` node:
+
+```
+file --[parent]-- > dir/@count --[parent ]--> dir/@count
+                               --[current]--> dir/@mean-size
+```
+
+and if we have
+
+```
+0:dir
+  1:file
+  2:file
+  3:dir
+    4:file
+    5:file
+```
+
+and `5:file` is removed, we would have:
+
+```
+5 → 3 → 3 → 0 → 0   # current first   (max locality)
+5 → 3 → 0 → 0 → 3   # same-axis first (min traveral)
+```
+
+but we don't know the topology of the tree at compile time, so if we want
+to optimize things at compile time we need to do relative moves instead:
+
+``` 
+CUR=5 → PAR=3 → CUR=3 → PAR=0 → PAR=0
+CUR=5 → PAR=3 → PAR=0 → CUR=0 → CHL=3
+```
+
+Now, let's rephrase that walk as a sequence of simple instructions:
+
+UP(N) → Go up N times
+DOWN(N) → Go down N times
+ATTR(N) → Retrieve/Process attribute N
+
+
+# EOF - vim: ts=2 sw=2 et syn=texto

@@ -100,7 +100,9 @@ class NodeTemplate(Node):
 class Repr:
 
 	@classmethod
-	def Apply( cls, node ):
+	def Apply( cls, node, pretty=True, depth=0 ):
+		prefix = "  " * depth if pretty else ""
+		yield prefix
 		yield "("
 		yield node.name
 		if node.hasAttributes:
@@ -117,8 +119,11 @@ class Repr:
 				yield ")"
 			yield ")"
 		for child in node.children:
+			if pretty:
+				yield "\n"
+			yield prefix
 			yield " "
-			yield from cls.Apply(child)
+			yield from cls.Apply(child, pretty, depth + 1)
 		yield ")"
 
 class Adapter:

@@ -37,6 +37,43 @@ For any error or warning, there should be:
 XXX not defined, did you mean 'YYY', 'ZZZ' or 'WWW'?
 ```
 
+Compiler phases
+===============
+
+- Parse the schema
+
+  - Ensure that all the reference nodes are defined
+  - Warns when nodes are declared but not reachable
+
+- Parse the transducers
+
+  - Ensure that each node and attribute is declared in the schema
+  - Ensure that every function is defined in the interface
+  - Warns when expressions are potentially sub-optimal and asks for an 
+    annotation to confirm it's OK.
+
+- Compute the mutation state machine
+
+  - Based on all the attributes and their relations, compute a single
+    mutation state machine taking `(node,transition,stack)` that can then
+    be used by every attribute to trigger the matches.
+
+  - Traversals should be minimized using some strategy that has to be defined
+
+- Implementation generation
+
+  - The data structures should be synthesized based on different strategies
+    than are then evaluated based on the theory (what the compiler thinks
+    is the best) and in practice (by feeding many synthesized test cases)
+
+
+Required tools:
+
+- Given a schema, produce a sample tree of arbitrary complexity, to be used
+  in the identification of the best data structures.
+
+
+
 Query/Traversal Optimization
 ============================
 

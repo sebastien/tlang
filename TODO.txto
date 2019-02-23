@@ -41,3 +41,8 @@ Docs::
 
 [ ] Texto: ensure [cross-references] are here
 [ ] Script: use texto XML+XSLT to generate the docs, JavaScript to cross reference
+
+Experiments::
+
+[ ] Generate C code, and make sure it's fully instrumented and that memory
+    errors are caught.

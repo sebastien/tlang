@@ -123,8 +123,7 @@ class ExprProcessor(Processor):
 		return self.tree.node("expr-comment", {"value":value})
 
 	def onExprValuePrefix( self, match ):
-		return self.process(match[0])
-		return res
+		return self.process(match)[0]
 
 	def onExprValueSuffix( self, match ):
 		return self.process(match[0])
@@ -166,8 +165,13 @@ class ExprProcessor(Processor):
 		# more clearly what happens there.
 		for suffix in suffixes:
 			if suffix.name == "expr-value-list":
-				suffix.insert(0, prefix)
-				prefix = suffix
+				# NOTE: Not sure about that... and BTW, do we 
+				# use expr-value-list anyway?
+				if prefix.name == "expr-value-list":
+					prefix.merge(suffix)
+				else:
+					suffix.insert(0, prefix)
+					prefix = suffix
 			elif suffix.name == "expr-value-invocation":
 				suffix.insert(0, prefix)
 				prefix = suffix

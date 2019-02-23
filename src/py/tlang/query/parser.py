@@ -151,10 +151,10 @@ class QueryProcessor(ExprProcessor):
 		return self.tree.node("query-binding", value)
 
 	def onQuerySelectorValue( self, match ):
-		return self.process(match)[0]
+		return self.process(match[0])
 
 	def onQuerySelector( self, match ):
-		return self.process(match)[0]
+		return self.process(match[0])
 
 	def onQuerySelection( self, match, axis, selector, predicate ):
 		return self.tree.node("query-selection", axis, selector, predicate)
