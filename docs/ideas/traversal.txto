@@ -11,4 +11,18 @@ See:
 - https://cis.temple.edu/~wolfgang/cis551/Week06.pdf
 
 
+It's important to take into consideration the fact that if a query/traversal
+traverses attributes (ie `node/@depends/@depends` we need to make sure not to
+traverse the same node twice or we'll loop)
+
+```
+;; @attribute
+;; A nodes dependencies is the union of its direct dependencies and the
+;; dependendencies of 
+(attr node/@depends
+  ;; NOTE: This might trigger recursive traversals, so we need to 
+  ;; make sure TLang is guarded against that.
+  (union ./@depends-direct ./@depends-direct/@depends))
+```
+
 # EOF - vim: ts=2 sw=2 et syn=texto

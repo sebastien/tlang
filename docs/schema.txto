@@ -6,19 +6,20 @@ syntax with ways to denote which attributes and children are allowed in a tree.
 
 Here is an example schema definition:
 
-```schema
-(scope
-  ;; A SCOPE may have a parent SCOPE (as attribute)
-  (@ (parent (? (:node scope))))
-  ;; and holds SLOTS (as children)
-  (slots
-    (* (slot (@ 
-      ;; Each SLOT has a name and an optional VALUE, and keeps track
-      ;; of the nodes that reference it.
+```tlang-schema
+(schema
+
+  ;; A scope has `slot`s and `scope`s that might be interwoven.
+  (scope
+    (* slot scope))
+
+  ;; A `slot` has a `name`, a `value` and might be referenced
+  ;; by one or more nodes.
+  (slot
+    (@ 
       (name              :string)
       (value         (? (:like expr)))
-      (referenced-by (*  :node))
-      )))))
+      (referenced-by (*  :node)))))
 ```
 
 Model
@@ -50,13 +51,13 @@ Specific values::
 
 Type of values::
 
-- `#string` or `(#string CONSTRAINT…)` to denote a string value
-- `#number` or `(#number CONSTRAINT…)` to denote a numeric value
-- `#symbol` or `(#symbol CONSTRAINT…)` to denote a symbolic value
+- `:String` or `(:String CONSTRAINT…)` to denote a string value
+- `:Number` or `(:Number CONSTRAINT…)` to denote a numeric value
+- `:Symbol` or `(:Symbol CONSTRAINT…)` to denote a symbolic value
 
 Node references (only in attribute constraints):
 
-- `#node`   or `(#node CONSTRAINT…)`   to denote a node reference satisfying the given constraints
+- `:node`   or `(:node CONSTRAINT…)`   to denote a node reference satisfying the given constraints
 - `NODE-TYPE`  or `(NODE-TYPE CONSTRAINT…)` like above, but with  a node of the given type
 - `NODE-TYPE*`  or `(NODE-TYPE* CONSTRAINT…)` like above, but with  a node type starting with the given `NODE-TYPE`
 
@@ -77,6 +78,15 @@ Node constraints
 
 - `(:is   'TYPE)` node is exactly of type TYPE
 - `(:of   'TYPE)` node type is a subtype of TYPE
+
+Annotations
+-----------
+
+
+- `#synthetic` means the attribute cannot be assigned, it is dynamically
+   computed.
+- `#key`     means the attribute value is unique for the node type
+- `#ref-key` means the attribute is unique for any node and can be used for a reference
 
 Constraint combinators
 ----------------------

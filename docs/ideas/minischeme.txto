@@ -1,0 +1,32 @@
+== MiniScheme
+
+MiniScheme is the codename for the expression language used in tlang. It's based
+on a few conventions:
+
+
+- `#name` denote symbolic values (like `#t` for true, `#f` for false, `#inf` for infinity, etc)
+- `:name` denote literal immutable values (like `:String`, `:Number`, etc), usually type names
+- `UPPER_CASE` symbols denote placeholders/parameters
+
+
+s around the expression are not necessary when the contents is
+indented:
+
+```
+match (count input.files)
+	case (= 0)
+		none
+	case (= 1)
+		one
+	else
+		many
+```
+
+is equivalent to
+
+```
+(match (count input.files) (case (= 0) none) (case (= 1) one) (else many))
+`
+
+
+# EOF - vim: ts=2 sw=2 et syn=texto

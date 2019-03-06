@@ -97,6 +97,28 @@ or the declarative equivalent (dual):
 
 
 
+Caching
+=======
+
+Brainstorming here: caching is just like a build system. A resource
+depends on a set of resources, and you want to know either:
+
+- If a depending resource has changed (poll)
+- When a depedning resource has changed, which values need to be invalidated
+
+So basically, we need two main operations:
+
+- `list_dependencies`: lists the dependencies of the given resource.
+
+- `has_changed(id, previous)`: test if the resource with the given id has
+  changed, given the previous version. If it has changed, then it should be
+  set dirty. If a resource is already dirty, we don't need to test if it
+  has changed.
+
+- `set_changed(id)`: flags the given resource as dirty (has changed)
+
+- `set_dirty_recursive(id)`: a variant that explicitely flags all the 
+  transitive dependencies as recurisve.
 
 
 

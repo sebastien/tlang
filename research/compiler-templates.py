@@ -15,8 +15,8 @@ TEMPLATE = parseString("""
 EXPANSION = parseString("""
 (declare-attribute
   (@ (name "name"))
-  ${ATTRIBUTE_QUERY | /query-node}
-  ${ATTRIBUTE_QUERY | ./query-attribute}
+  ${ATTRIBUTE_QUERY/query-node}
+  ${ATTRIBUTE_QUERY/query-attribute}
   VALUE
 )
 """)
@@ -55,37 +55,69 @@ class TemplateTranspiler:
 # Now we want to expand the template and potentially execute the queries
 # that it contains.
 
+# TODO: We should really use an FSM instead
 class ExpansionTranspiler:
 
 	def process( self, node, indent=0 ):
 		prefix = "\t" * indent
-		if node.name == "expr-value-invocation":
-			for i,c in enumerate(node.children):
-				if i == 0:
-					# Main node
-					node_name = node.children[0].attr("name")
-					yield "{0}node = create_node('{1}')".format(prefix, node_name)
-				else:
-					# Children, which might be attributes
-					yield "{0}"
+		if node.name == "expr-list":
+			first_child = node.children[0]
+			assert first_child.name == "expr-value-symbol"
+			if first_child.attr("name") == "@":
+				# We have an attribute, we expect the source to be
+				# (expr-list
+				#    (expr-value-symbol (@ (name NAME)))
+				for c in node.children[1:]:
+					assert c.name == "expr-list"
+					assert len(c.children) == 2
+					name  = c.children[0].attr("name")
+					value = c.children[1].attr("value")
+					yield "{0}node.attr('{1}', {2})".format(prefix, name, repr(value))
+			else:
+				# A list means that we're creating a new node
+				for i,c in enumerate(node.children):
+					if i == 0:
+						# We're creating a new node and we have a symbol
+						# as first child.
+						node_name = node.children[0].attr("name")
+						yield "{0}node = create_node('{1}')".format(prefix, node_name)
+					else:
+						# Children, which might be attributes
+						yield from self.process(c, indent)
 			# TODO
 		elif node.name == "expr-value-template":
+			# If it's a template, then we run the query and merge
+			# in the selection
+			for c in node.children:
+				yield from self.process(c, indent)
+				yield "{0}node.merge(selection)".format(prefix)
 			pass
+		elif node.name == "expr-variable":
+			yield "{0}node.merge(context['{1}'])".format(prefix, node.attr("name"))
 		elif node.name == "query":
-			pass
-		elif node.name == "query-selection":
-			pass
-		elif node.name == "query-axis":
-			pass
-		elif node.name == "query-node":
-			pass
+			# A query always starts at the root
+			yield "{0}query_root = root_node".format(prefix)
+			for c in node.children:
+				yield from self.process(c)
 		elif node.name == "query-variable":
-			pass
+			yield "{0}query_root = context['{1}']".format(prefix, node.attr("name"))
+		elif node.name == "query-selection":
+			yield "{0}query_axis = None ; query_node = None ; query_attribute = None ; query_predicate = None".format(prefix)
+			for c in node.children:
+				yield from self.process(c)
+			yield "{0}selection = query(query_root, query_axis, query_node, query_attribute, query_predicate)".format(prefix)
+		elif node.name == "query-axis":
+			# TODO: Axis should be an enum
+			yield "{0}query_axis = '{1}'".format(prefix, node.attr("axis"))
+		elif node.name == "query-node":
+			yield "{0}query_node = '{1}'".format(prefix, node.attr("pattern"))
 		else:
-			raise Error("Unsupported node: {0}".format(node))
+			raise ValueError("Unsupported node: {0}".format(node))
 
+# print ("------" * 10)
+#print (TEMPLATE)
 print (EXPANSION)
-print ("------" * 10)
-print (TEMPLATE)
+for _ in ExpansionTranspiler().process(EXPANSION):
+	print (_)
 
 # EOF - vim: ts=4 sw=4 noet

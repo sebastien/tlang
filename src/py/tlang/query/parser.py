@@ -178,14 +178,25 @@ class QueryProcessor(ExprProcessor):
 		#           (query-variable (@  (name NAME)))))))
 		# ```
 		# 
+		# We also have case where we have the following:
+		#
+		# ```
+		#     (query
+		#           (query-selection
+		#               (query-attribute (@  (pattern [])))))
+		# ```
+		#
 		# The following routine normalizes the subtree as a proper
-		# `(expr-variable NAME)`
+		# `(expr-variable NAME)` or `(expr-value-symbol (@ (name "@")))`
 		if len(selectors) == 1 and selectors[0].name == "query-selection":
 			s = selectors[0].children
-			if len(s) == 1 and s[0].name == "query-variable":
+			if len(s) == 1:
 				n = s[0]
-				n.name = "expr-variable"
-				return n.detach()
+				if n.name == "query-variable":
+					n.name = "expr-variable"
+					return n.detach()
+				elif n.name == "query-attribute":
+					return self.tree.node("expr-value-symbol", {"name":"@"})
 		return self.tree.node("query", *selectors)
 
 # -----------------------------------------------------------------------------

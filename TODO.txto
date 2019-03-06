@@ -2,6 +2,7 @@
 
 [ ] Rule language should work for grammars AND/OR for tree schema.
 [ ] Selector language should be split in selector/processing language
+[ ] Expr: expr-value-invocation should actually be expr-list
 
 Bugs::
 

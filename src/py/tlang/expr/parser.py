@@ -50,7 +50,7 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False) -> Grammar:
 	g.rule("ExprBinding"   , s.LB, s.ExprValue._as("value"), g.arule(s.COLON, s.EXPR_VARIABLE).optional()._as("name"), s.RB)
 	g.rule("ExprTemplate"  , s.EXPR_TEMPLATE, s.ExprValue._as("value"), s.RB)
 
-	g.rule("ExprInvocation", s.LP,    s.ExprValue._as("arg"),  s.RP)
+	g.rule("ExprList",       s.LP,    s.ExprValue._as("arg"),  s.RP)
 	# NOTE: Here we want to avoid using `ExprValue` as otherwise we'll end up
 	# with really deeply nested matches.
 	g.rule("ExprQuote",      s.QUOTE, s.ExprValuePrefix._as("arg"))
@@ -58,7 +58,7 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False) -> Grammar:
 	g.rule("ExprJoin",       s.WS,    s.ExprValuePrefix._as("arg"))
 
 	s.ExprValuePrefix.set(
-		s.ExprInvocation,
+		s.ExprList,
 		s.ExprQuote,
 		s.ExprTemplate,
 		s.ExprBinding,
@@ -128,9 +128,9 @@ class ExprProcessor(Processor):
 	def onExprValueSuffix( self, match ):
 		return self.process(match[0])
 
-	def onExprInvocation( self, match, arg ):
-		node = self.tree.node("expr-value-invocation")
-		if arg.name.startswith("expr-value-list"):
+	def onExprList( self, match, arg ):
+		node = self.tree.node("expr-list")
+		if arg.name.startswith("expr-seq"):
 			node.merge(arg)
 		else:
 			node.add(arg)
@@ -147,10 +147,12 @@ class ExprProcessor(Processor):
 		return node
 
 	def onExprJoin( self, match, arg ):
-		if arg.name == "expr-value-list":
+		# NOTE: The join suffix creates a sequence of values which
+		# is denoted as a different type from list.
+		if arg.name == "expr-seq":
 			return arg
 		else:
-			node = self.tree.node("expr-value-list")
+			node = self.tree.node("expr-seq")
 			node.add(arg)
 			return node
 
@@ -166,24 +168,24 @@ class ExprProcessor(Processor):
 		# NOTE: This is where we manage priorities. We should define
 		# more clearly what happens there.
 		for suffix in suffixes:
-			if suffix.name == "expr-value-list":
-				# NOTE: Not sure about that... and BTW, do we 
-				if prefix.name == "expr-value-list":
+			# Sequences are always flat, so we merge sequences together
+			if suffix.name == "expr-seq":
+				if prefix.name == "expr-seq":
 					prefix.merge(suffix)
 				else:
 					suffix.insert(0, prefix)
 					prefix = suffix
-			elif suffix.name == "expr-value-invocation":
+			elif suffix.name == "expr-list":
 				suffix.insert(0, prefix)
 				prefix = suffix
 			elif suffix.name == "expr-value-pipe":
 				assert (len(suffix.children)) == 1
 				first_child = suffix.children[0]
-				if first_child.name == "expr-value-invocation":
+				if first_child.name == "expr-list":
 					first_child.insert(1,prefix)
 					prefix = first_child.detach()
 				else:
-					prefix = self.tree.node("expr-value-invocation", prefix, first_child.detach())
+					prefix = self.tree.node("expr-list", prefix, first_child.detach())
 			else:
 				raise ValueError("Suffix not supported yet: {0}".format(suffix))
 		return prefix

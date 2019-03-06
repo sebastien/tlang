@@ -1,0 +1,131 @@
+;; @title A simple build system expressed in TLang
+;; @created 2019-03-06
+;; @updated 2019-03-06
+
+;; TODO: Awkward formulation
+;; @texto
+;; This example shows how to create a simple build system (or a cache system)
+;; using TLang's primitives. We'll see how all the dependency tracking
+;; and optimial update/rebuilding can be expressively defined
+;; using TLang's primitives, which then acts as a glue for
+;; native functions of the host language.
+
+;; @h1 Dependency Graph
+
+;; @texto
+;; We want to define a graph made of nodes identified by a path, where
+;; a node has direct dependencies and indirect (transitive) dependencies.
+;; We differentiate between `modified` (the node itself was modified) and `changed`
+;; (the node itself, or one of its dependency has changed).
+
+(schema 
+  (node
+    (@
+      ;; We define a global identified used for references
+      (path             :String #ref-key)
+      ;; When the node's file is physically modified (timestamp)
+      (modified         :Float)
+      (changed          :Float #synthetic)
+      (depends          (:list node) #synthetic)
+      (dependencies     (:list node) #synthetic))))
+
+;; @attribute
+;; A node's changed attribute is the maximum value of it's `modified` attribute
+;; and all its dependencies `@modified` attribute. We could alternatively express
+;; it recursively as `(max node/@modified … ./@depends-direct/@changed)`.
+(attr node/@changed
+  (max node/@modified … ./@depends/@modified))
+
+;; @attribute
+;; A nodes dependencies is the union of its direct dependencies and the
+;; dependendencies of 
+(attr node/@dependencies
+  ;; NOTE: This might trigger recursive traversals, so we need to 
+  ;; make sure TLang is guarded against that.
+  (union ./@depends ./@depends/@dependencies))
+  
+
+;; @h2 Building C projects
+
+;; @texto
+;; The above schema defines a substrate on top of which we can define
+;; specific nodes. Let's start with a simple build system for the C language.
+
+(schema
+  node-c
+  node-h
+  (node-o (@
+    (sources (:list node-c))
+    (object     :Opaque #synthetic)))
+  (node-executable-c (@
+    (objects    (:list node-o))
+    (executable :Opaque #synthetic))))
+
+;; @texto
+;; C source (`.c`) and header (`.h`) files need to have their
+;; dependencies computed, we use custom primitives that we'll define
+;; in the [interface](#CINTER) later on.
+
+(attr node-c/@depends
+  (depends ./@modified)
+  (make-node-c-depends ./@path))
+
+(attr node-h/@depends
+  (depends ./@modified)
+  (make-node-h-depends ./@path))
+
+(attr node-o/@depends
+  (union ./@sources/@depends))
+
+(attr node-o/@object
+  (depends ./@dependencies)
+  (make-node-o-object ./@path ./@sources))
+
+(attr node-executable-c/@executable
+  (depends ./@dependencies)
+  (make-node-o-object ./@path ./@sources))
+
+;; @anchor CINTER
+(interface
+  (make-node-c-depends  PATH)
+  (make-node-h-depends  PATH)
+  (make-node-o-object   PATH SOURCES)
+  (make-node-o-exec     PATH OBJECT))
+
+;; @h2 PCSS Transpiler
+
+;; @texto
+;; We define the effectors that we're need to implement in the host language
+;; to compute  the synthetic properties.
+
+
+;; @texto
+;; We introduce a PCSS node that compiles PCSS files to CSS. It keeps
+;; track of the AST and the model as well.
+(schema
+  (node-pcss
+    (@
+      (ast   :Any    :SYNTHETIC)
+      (model :Any    :SYNTHETIC)
+      (css   :String SYNTHETIC))))
+
+(interface
+  (node-pcss-ast-compute   PATH)
+  (node-pcss-model-compute AST)
+  (node-pcss-css-compute   MODEL))
+
+(attr node-pcss/@ast
+  (depends ./@modified)
+  (node-pcss-ast-compute ./@path))
+
+(attr node-pcss/@model
+  (depends ./@changed)
+  (node-pcss-model-compute ./@ast))
+
+(attr node-pcss/@css
+  (node-pcss-css-compute ./@model))
+
+
+
+
+;; EOF - vim: ts=2 sw=2 et

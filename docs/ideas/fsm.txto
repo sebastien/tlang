@@ -1,0 +1,20 @@
+== FSM
+
+One of the performance-critical aspect of the compiler is going to be the
+parallel execution of FSMs, which could happen at different levels:
+
+- During traversal, for instance by breaking down the traversal in subtrees
+  which attributes can be computed in parallel.
+
+- During expansion, where independent values/queries can be computed before
+  being integrated in the result (which is arguably an easier task).
+
+It would be nice to have a way to automatically identify given an FSM, 
+which parts can lead to parallel execution, and to synthesize code that
+takes advantage of that (provided there is a cheap way to dispatch computation,
+like a thread pool of N * CPU cores).
+
+The advantage of FSMs is that a process that contains loops and conditionals
+can fit into a single inlined function, with the potential benefit of
+parallelization, so we should assume that any transpiling/code generation
+would generate code that is similar to an FSM loop.
