@@ -87,14 +87,20 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False) -> Grammar:
 		s.RS,
 	)
 
-	g.rule("QuerySelection",
+	g.rule("QueryPrefix",
 		s.QueryAxis.optional()._as("axis"),
 		s.QuerySelector._as("selector"),
 		s.QueryPredicate.optional()._as("predicate"),
 	)
 
+	g.rule("QuerySuffix",
+		s.QueryAxis._as("axis"),
+		s.QuerySelector._as("selector"),
+		s.QueryPredicate.optional()._as("predicate"),
+	)
+
 	g.rule("Query",
-		s.QuerySelection.oneOrMore()._as("selectors")
+		s.QueryPrefix._as("prefix"), s.QuerySuffix.zeroOrMore()._as("suffixes")
 	)
 
 	# We insert the Query just before the EXPR_VARIABLE, as the query
@@ -123,6 +129,12 @@ class QueryProcessor(ExprProcessor):
 		if not cls.INSTANCE: cls.INSTANCE = QueryProcessor()
 		return cls.INSTANCE
 
+	@classmethod
+	def IsPattern( cls, text ):
+		for c in text:
+			if c in ".*?_":
+				return True
+
 	def createGrammar(self) -> Grammar:
 		return GRAMMAR or grammar()
 
@@ -132,17 +144,17 @@ class QueryProcessor(ExprProcessor):
 
 	def onQueryNode( self, match ):
 		pattern = self.process(match)[0][0]
-		# TODO: Detect if patter is a regexp or not
-		return self.tree.node("query-node", {"pattern":pattern})
+		attr = {"pattern":pattern} if self.IsPattern(pattern) else {"name":pattern}
+		return self.tree.node("query-node", attr)
 
 	def onQuerySubset( self, match ):
 		index = int(self.process(match)[0][1])
 		return self.tree.node("query-subset", {"index":index})
 
 	def onQueryAttribute( self, match ):
-		pattern = self.process(match)[0][1:]
-		# TODO: Detect if patter is a regexp or not
-		return self.tree.node("query-attribute", {"pattern":pattern})
+		pattern = self.process(match)[0][0][1:]
+		attr = {"pattern":pattern} if self.IsPattern(pattern) else {"name":pattern}
+		return self.tree.node("query-attribute", attr)
 
 	def onQueryCurrentNode( self, match ):
 		return self.tree.node("query-node")
@@ -164,10 +176,19 @@ class QueryProcessor(ExprProcessor):
 	def onQuerySelector( self, match ):
 		return self.process(match[0])
 
-	def onQuerySelection( self, match, axis, selector, predicate ):
+	def onQueryPrefix( self, match, axis, selector, predicate ):
 		return self.tree.node("query-selection", axis, selector, predicate)
 
-	def onQuery( self, match, selectors ):
+	def onQuerySuffix( self, match, axis, selector, predicate ):
+		return self.onQueryPrefix(match, axis, selector, predicate)
+
+	def onQuery( self, match, prefix, suffixes ):
+		node = self.tree.node("query")
+		node.add(prefix)
+		for _ in suffixes:node.add(_)
+		return self.normalizeQueryNode(node)
+
+	def normalizeQueryNode( self, node ):
 		# OK, so here we have an edge case which is related to the parser:
 		# queries have precedence over EXPR_VARIABLES, so we might end up
 		# with a query that has just one query-variable, like so:
@@ -188,6 +209,7 @@ class QueryProcessor(ExprProcessor):
 		#
 		# The following routine normalizes the subtree as a proper
 		# `(expr-variable NAME)` or `(expr-value-symbol (@ (name "@")))`
+		selectors = node.children
 		if len(selectors) == 1 and selectors[0].name == "query-selection":
 			s = selectors[0].children
 			if len(s) == 1:
@@ -195,9 +217,13 @@ class QueryProcessor(ExprProcessor):
 				if n.name == "query-variable":
 					n.name = "expr-variable"
 					return n.detach()
+				elif n.name == "query-node" and n.attr("name"):
+					# TODO: Maybe check for wether it's a pattern or a name?
+					# FIXME: This should be attr("name")
+					return self.tree.node("expr-value-symbol", {"name":n.attr("name")})
 				elif n.name == "query-attribute":
 					return self.tree.node("expr-value-symbol", {"name":"@"})
-		return self.tree.node("query", *selectors)
+		return node
 
 # -----------------------------------------------------------------------------
 #

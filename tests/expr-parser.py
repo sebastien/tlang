@@ -9,7 +9,10 @@ VALUES = """
 1
 1.0
 symbol-name
+:Singleton
+#key-value
 "string value"
+;; Comment
 """
 
 INVOCATIONS = """
@@ -17,6 +20,14 @@ INVOCATIONS = """
 (count A)
 (count A B)
 (has? A)
+"""
+
+SUFFIXES = """
+(list A ... B)
+(list A … B)
+(list A … B C D)
+(list A | A)
+(list A | A B)
 """
 
 QUOTES = """
@@ -36,16 +47,16 @@ ${1}
 (add ${1})
 (add ${(add 1 2)})
 ${VARIABLE_NAME}
-${VARIABLE_NAME/node}
 """
-
-
 
 def test_values():
 	TestUtils.ParseLines(VALUES, parseString)
 
 def test_invocations():
 	TestUtils.ParseLines(INVOCATIONS, parseString)
+
+def test_suffixes():
+	TestUtils.ParseLines(SUFFIXES, parseString)
 
 def test_bindings():
 	TestUtils.ParseLines(BINDINGS, parseString)
@@ -62,6 +73,8 @@ def test_long():
 if __name__ == "__main__":
 	test_values()
 	test_invocations()
+	test_suffixes()
+	test_quotes()
 	test_bindings()
 	test_templates()
 	test_long()

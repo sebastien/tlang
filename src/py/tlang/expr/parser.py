@@ -16,7 +16,10 @@ def symbols( g:Grammar ) -> Symbols:
 		"STRING_DQ"               : "\"([^\"]*)\"",
 		"EXPR_SYMBOL"             : "[a-z][\-a-z0-9]*[!\?]?",
 		"EXPR_VARIABLE"           : "[_A-Z][\_A-Z0-9]*",
+		"EXPR_SINGLETON"          : ":[A-Za-z][\_a-zA-Z0-9]*",
+		"EXPR_KEY"                : "#[a-z][\-a-z0-9]*[!\?]?",
 		"EXPR_COMMENT"            : ";;([^\n]*)",
+		"REST"                    : "(\\.\\.\\.)|…",
 	}
 	words = {
 		"LP"              : "(",
@@ -56,6 +59,7 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False) -> Grammar:
 	g.rule("ExprQuote",      s.QUOTE, s.ExprValuePrefix._as("arg"))
 	g.rule("ExprPipe",       s.PIPE,  s.ExprValuePrefix._as("arg"))
 	g.rule("ExprJoin",       s.WS,    s.ExprValuePrefix._as("arg"))
+	g.rule("ExprRest",       s.REST,  s.ExprValuePrefix._as("arg"))
 
 	s.ExprValuePrefix.set(
 		s.ExprList,
@@ -63,10 +67,11 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False) -> Grammar:
 		s.ExprTemplate,
 		s.ExprBinding,
 		s.ExprComment,
-		s.NUMBER, s.STRING_DQ, s.EXPR_SYMBOL, s.EXPR_VARIABLE
+		s.NUMBER, s.STRING_DQ, s.EXPR_SINGLETON, s.EXPR_KEY, s.EXPR_SYMBOL, s.EXPR_VARIABLE
 	)
 	g.group("ExprValueSuffix").set(
 		s.ExprPipe,
+		s.ExprRest,
 		s.ExprJoin,
 		s.ExprComment,
 	)
@@ -114,6 +119,14 @@ class ExprProcessor(Processor):
 		value = self.process(match)[0]
 		return self.tree.node("expr-value-symbol", {"name":value})
 
+	def onEXPR_KEY( self, match):
+		value = self.process(match)[0]
+		return self.tree.node("expr-value-key", {"name":value})
+
+	def onEXPR_SINGLETON( self, match):
+		value = self.process(match)[0]
+		return self.tree.node("expr-value-singleton", {"name":value})
+
 	def onEXPR_VARIABLE( self, match):
 		value = self.process(match)[0]
 		return self.tree.node("expr-value-ref", {"name":value})
@@ -130,10 +143,17 @@ class ExprProcessor(Processor):
 
 	def onExprList( self, match, arg ):
 		node = self.tree.node("expr-list")
-		if arg.name.startswith("expr-seq"):
+		if arg.name == "expr-seq":
 			node.merge(arg)
 		else:
-			node.add(arg)
+			if arg.parent:
+				root = arg.root
+				if root.name == "expr-seq":
+					node.merge(root)
+				else:
+					node.add(root)
+			else:
+				node.add(arg)
 		return node
 
 	def onExprTemplate( self, match, value ):
@@ -156,39 +176,61 @@ class ExprProcessor(Processor):
 			node.add(arg)
 			return node
 
+	def onExprRest( self, match, arg ):
+		# FIXME: This is probably not right
+		node = self.tree.node("expr-rest")
+		node.add(arg)
+		return node
+
 	def onExprPipe( self, match, arg ):
-		return self.tree.node("expr-value-pipe", arg)
+		return self.tree.node("expr-pipe", arg)
 
 	def onExprQuote( self, match, arg ):
-		return self.tree.node("expr-value-quote", arg)
+		return self.tree.node("expr-quote", arg)
 
 	# FIXME: Not sure what the difference between invocation and list
 	# is in practice. Should be the same.
 	def onExprValue( self, match, prefix, suffixes ):
 		# NOTE: This is where we manage priorities. We should define
 		# more clearly what happens there.
-		for suffix in suffixes:
-			# Sequences are always flat, so we merge sequences together
-			if suffix.name == "expr-seq":
-				if prefix.name == "expr-seq":
+
+		# The result is what we return
+		result  = prefix
+		# NOTE: Arguably, these transformations would probably be
+		# better explained/represented in TLang itself.
+		for i,suffix in enumerate(suffixes):
+			prefix_name  = prefix.name
+			suffix_name  = suffix.name
+			# … VALUE (REST)
+			if suffix_name == "expr-rest":
+				if prefix_name != "expr-seq":
+					# If the prefix is not a SEQ, then we wrap it in a sequence
+					# as REST requires a SEQ.
+					assert prefix is result
+					prefix = self.tree.node("expr-seq", prefix)
+					result = prefix
+				# We have a … VALUE and the prefix is already
+				# a SEQ, then we append the REST at the end of the SEQ,
+				# and the REST becomes the new prefix/context.
+				prefix.add(suffix)
+				prefix  = suffix
+			# <SPACE> VALUE (SEQ)
+			elif suffix_name == "expr-seq":
+				if prefix_name == "expr-rest" or prefix_name == "expr-seq":
+					# If the SEQ is preceded by a REST or SEQ, then its
+					# content is merged.
 					prefix.merge(suffix)
 				else:
+					# Otherwise we inject the preceding value in the SEQ
 					suffix.insert(0, prefix)
 					prefix = suffix
-			elif suffix.name == "expr-list":
-				suffix.insert(0, prefix)
-				prefix = suffix
-			elif suffix.name == "expr-value-pipe":
-				assert (len(suffix.children)) == 1
-				first_child = suffix.children[0]
-				if first_child.name == "expr-list":
-					first_child.insert(1,prefix)
-					prefix = first_child.detach()
-				else:
-					prefix = self.tree.node("expr-list", prefix, first_child.detach())
-			else:
-				raise ValueError("Suffix not supported yet: {0}".format(suffix))
-		return prefix
+					result = suffix
+			# | VALUE (PIPE)
+			elif suffix_name == "expr-pipe":
+				if prefix_name != "expr-seq":
+					prefix = self.tree.node("expr-seq", prefix)
+				prefix.merge(suffix)
+		return result
 
 # -----------------------------------------------------------------------------
 #

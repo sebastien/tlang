@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+from tlang.interpreter import run
+res = run()
+if res:
+    print(res)
+# EOF

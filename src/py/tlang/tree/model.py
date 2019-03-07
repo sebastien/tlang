@@ -24,6 +24,15 @@ class Node:
 		self.children:List['Node'] = []
 
 	@property
+	def root( self ) -> Optional['Node']:
+		root   = None
+		parent = self.parent
+		while parent:
+			root = parent
+			parent = parent.parent
+		return root
+
+	@property
 	def isTree( self ) -> bool:
 		return not self.parent
 
