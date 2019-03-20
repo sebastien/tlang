@@ -32,7 +32,8 @@ def symbols( g:Grammar ) -> Symbols:
 		"RB"              : "}",
 		"LS"              : "[",
 		"RS"              : "]",
-		"QUERY_ATTRIBUTE" : "@"
+		"QUERY_ATTRIBUTE" : "@",
+		"QUERY_AXIS_SELF" : "|",
 	}
 	groups = ("ExprValue", "ExprValuePrefix")
 	return ParserUtils.EnsureSymbols(g, tokens, words, groups)
@@ -54,7 +55,8 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False) -> Grammar:
 		s.QUERY_AXIS_DESCENDANTS,
 		s.QUERY_AXIS_ANCESTORS,
 		s.QUERY_AXIS_BEFORE,
-		s.QUERY_AXIS_AFTER
+		s.QUERY_AXIS_AFTER,
+		s.QUERY_AXIS_SELF,
 	)
 
 	g.rule("QueryNode",          s.QUERY_NODE)
@@ -106,6 +108,7 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False) -> Grammar:
 	# We insert the Query just before the EXPR_VARIABLE, as the query
 	# also has a variable.
 	s.ExprValuePrefix.insert(8,s.Query)
+	print (s.ExprValuePrefix)
 	g.axiom = s.Query
 	g.skip  = s.WS
 

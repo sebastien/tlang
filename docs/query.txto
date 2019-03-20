@@ -102,10 +102,12 @@ Axes
 
 The axes are denoted with the following symbols:
 
+
 - `/` for children
 - `\` for parent
 - `>` for next siblings
 - `<` for previous siblings
+- `|` for current node (self)
 
 The axes are shallow (single level) unless they are doubled `//`
 (descendants), `\\` (ancestors), etc. If the axis is doubled and contains a number, the
@@ -113,10 +115,14 @@ number will be used to limit the depth:  `/2/` will look for all the nodes up to
 two levels. 
 
 ```query
-\\         ;; all anectors
+\\         ;; all ancestors
 \2\        ;; parents and grand parnents
 \*\        ;; grand parents only
 ```
+
+When not doubled and directly followed by `#N` where `N` is a natural number,
+only the `N`-th node of the set will be selected. `./#2` means the second
+child of the current node.
 
 Unless prefixed by a selector, an axis starts at the root node of the tree.
 
@@ -178,6 +184,16 @@ Siblings (`:NodeSet`)::
 	```
 	<>                           ;; The previous and next siblings
 	<>.                          ;; The current node, previous and next siblings
+	```
+
+
+Self (`:NodeSet`)::
+
+  The `|` denotes that the rest of the pattern applies to the current node.
+  For instance `.|text` means that the current node is expected to be `text`.
+
+	```
+	|                            ;; The current node
 	```
 
 Subtrees (`:SubTree`)::
@@ -330,8 +346,33 @@ You can simulate a sequential execution by chaining bindings:
 
 ```
 ;; Returns the list of children (it's very contrived!)
-{CHILDREN:./*}{//[in($CHILDREN,.)}
+{CHILDREN:./*}{//[(in $CHILDREN .)}
 ```
+
+Constraints
+-----------
+
+Constraints can be denoted by wrapping an expression in square brackets
+`[CONSTRAINT]`. A constraint can be query or an expression of the expression
+language.
+
+```tlang
+;; Selects all file nodes with a `path` attribute
+file[@path]
+;; Same as above, but the node also needs a size attirbute > 100, and the
+;; path in captured as variable.
+file[{@path}][(> @size 100)]  
+``` 
+
+Constraints can be nested, here we capture the paths of all the `dir` nodes
+with at least 10 `file` nodes of size > 100.
+
+```tlang
+dir[(> (count ./file/[(> size 100) 10))]/{@path}
+```
+
+In general, constraints also play the role of sub-selections and allow for
+the selection of subtrees as opposed to plain nodesets.
 
 Examples
 --------
@@ -375,3 +416,5 @@ TLang's query language was inspired by the following languages:
   more complex expressions by combingin results.
 
 - [Scheme]: Scheme's macro system.
+
+# EOF - vim: ts=2 sw=2 et syn=texto

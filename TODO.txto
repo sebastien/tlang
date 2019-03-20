@@ -4,20 +4,36 @@
 [ ] Selector language should be split in selector/processing language
 [ ] Expr: expr-value-invocation should actually be expr-list
 
+
+Priority::
+
+[ ] Namespace support `ns:node`, for templates
+[ ] tlang: options and -vp --verbose-parsing  (with verbose grammar)
+
 Bugs::
 
 [ ] Tests: running the rules tests gives unpredictable results, hinting at
     some libparsing issues.
 
+New features::
+
+[ ] Indexes: define the notion of an index that can be used to speed up queries.
+    See the `richtext-editor` example.
+[ ] State: define primitives to define context and slots and refer to them. We
+    want to be able to define functions/values and query the contents
+    of stuff like schema.
+
 Docs::
 
-[ ] The schema language should not have model/representation. It's too
+[ ] The schema language should not have model/representation. It's too
     technical.
 
 Query::
 
 [ ] A syntax to say "all A that are not nested within an A, from 
     the current node."
+[ ] Priorities: define the priority of query/selectors so that we know
+    which ones are going to be selected when matching a template.
 
 Expr::
 

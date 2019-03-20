@@ -1,0 +1,174 @@
+;; @title Modeling a rich text editor
+;; @created 2019-03-20
+;; @updated 2019-03-20
+
+;; @texto
+;; A rich text editor essentially manages a tree conforming to a document schema
+;; and its representation as a list of strings with offsets, so that
+;; string-operations like search, replace and insert can be done on the tree,
+;; as well as node operations, all while conforming to the overall schema.
+;;
+;; Here we define a subset of HTML as our schema for the model.
+
+(schema
+
+  (document
+    (* h1 h2 h3 h4 h5 h6 h7 p ul ol image))
+
+  (p
+    (* text styled link))
+
+  (ul
+    (* li ul ol))
+
+  (ol
+    (* li ul ol))
+
+  (link 
+    (@ (href :String :URL))
+    text)
+
+  (image
+    (@ (src   :String :URL))
+    text)
+
+  (styled
+    (@
+      (bold    :Bool)
+      (italic  :Bool)
+      (bg      :String :RGB)
+      (fg      :String :RGB))
+    (* text link)))
+
+  (text (@ (text :String)))
+
+;; @texto
+;; Now that we have our content schema defined, we also want to define the
+;; schema for our tree-as-a-list-as-a-string data structure:
+
+(schema
+  (text (* token))
+  (token
+    (@ (start  :Number :Natural #synthetic)
+       (end    :Number :Natural #synthetic)
+       (length :Number :Natural #synthetic)
+       (node  document p ul ol link image styled))))
+
+;; @texto
+;; The crucial question at this point is: how do we maintain a mapping
+;; between the document model schema and the list of token schema
+;; so that they are always in sync.
+;;
+;; The first step is to express the `token/@length` attribute, which is
+;; the length of the a text node's `text` attribute, or 0.
+(attr token/@length 
+  (match
+    (case ./@node|text (len ./@node/@text))
+    (else 0)))
+
+;; @texto
+;; The `token/@start` of a token is the same as the `token/@end` of the previous
+;; token.
+(attr token/@start
+  (or .<token/@end 0))
+
+;; @texto
+;; and the `token/@end` attribute is simply the addition of the `@start` and
+;; `@length`.
+(attr token/@end
+  (add ./@start ./@length))
+
+;; @texto
+;; We now have a declarative definition of the main attributes of a `token`, the
+;; next step is to define the process that creates the node from the tree, which
+;; is essentially a tree transformation.
+;;
+;; We can start with the easy case: `text` nodes:
+
+(transform 
+  {(text _)}
+  (token (@ (node A))))
+
+;; @texto
+;; and we can walk our way up to more complicated forms, which are nodes
+;; that might contain other nodes.
+
+(transform 
+  {(* (@ _) …NODES)}
+  (token (@ (node A))) … ${(expand NODES)})
+
+;; @texto
+;; we want the document node to produce the top-level `list` node which
+;; then contains the `token` nodes.
+
+(transform 
+  {(document (@ _) …NODES)}
+  (list ${(expand NODES)}))
+
+;; @h2 Making everything fast
+;; @texto
+;; A key concern here is to make sure that the transformation goes fast. In its
+;; most basic way, we could regenerate the list of `token` each time the structure
+;; of the model changes, as the list of token only changes if nodes are added
+;; or remove. If a `text/@text` node changes, only the offsets will change and
+;; the structure will remain the same.
+;;
+;; This means that the in the worst case scenario, when the tree has multiple
+;; changes, we'll need to rebuilt the token list entirely. However, it is
+;; also possible to define _incremental_ operations that will insert/remove
+;; token nodes at the given positions.
+
+(on #remove {text}
+  (do #remove token/@node[(is? A)]))
+
+;; @texto
+;; Removing nodes that have children means removing all the tokens from
+;; any descendant. We could define this in a recursive way, but it's easier
+;; here to simply denote that we're moving all the descendants, and let
+;; TLang optimize the traversals.
+(on #remove {document p ul li img style}
+  (do #remove token/@node[(in? A//*)]))
+
+;; @texto
+;; Adding nodes is a bit trickier, as we need to insert the expanded
+;; version of the text node after the previous sibling or after the parent
+;; if there is no previous sibling. The upside is that this works for
+;; both leaves and nodes.
+(on #add {document text p ul li img style}
+  (when 
+    ({A<*} (do #insert-after token/@node[(is? B)] …(expand A)))
+    ({A/..} (do #insert-after token/@node[(is? B)] …(expand A)))
+    (else  (fail! "The text node must have a parent"))))
+
+;; @texto
+;; We can see in the `#remove` and `#add text` rules that we're doing a queries to
+;; find the `token` that is mapped to the node. It's a potentially expensive
+;; operation as the whole tree needs to be traversed. We could make this faster
+;; by using an _index_, in this case the index is a 1-1 mapping. 
+
+(index #1-1 {text} token/@node[(is? A)])
+
+;; @h2 Bi-directional linking
+;; @texto
+;; The icing on the cake here would be to allow for the manipulation of 
+;; the `token` list and define effects on the corresponding node model. It
+;; turns out that this is quite easy to do:
+
+(on #remove token
+  (do #remove token/@node))
+
+(on #add {token}
+  (when 
+    ;; When the token has a sibling, we need to find the sibling's node
+    ;; parent and see if it has children
+    ({A<token}
+      (match
+        ;; If the previous node is a `text` node, we need to insert the
+        ;; token's node after it.
+        (case B/{@node|text}  (do #insert-after C A/@node))
+        ;; Otherwise it's potentially ambigious. Let's say we're adding
+        ;; a text node in  an ul/li/b node. The text node could
+        ;; go either in the `li` or in `the `b` node. 
+        #TODO))))
+
+;; # EOF - vim: ts=2 sw=2 et syn=scheme

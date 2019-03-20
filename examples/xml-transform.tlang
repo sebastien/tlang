@@ -1,0 +1,31 @@
+;; @title Transformation of XML
+;; @created 2019-03-11
+
+;; @abstract
+;; This example shows how TLang can be used to implement XSLT-like 
+;; functionality with a better syntax and more maintainable code.
+
+(namespace x 'html)
+
+(produce
+
+  (x:html
+    (x:head
+      ${title/#text|head|x:title})
+
+    (body
+      ${(map ./*
+        (apply
+        
+      )}
+    )))
+      
+  (replace
+    (template 
+      (x:h1 A
+      (
+        
+
+
+;; EOF - vim: ts=2 sw=2 et syn=scheme
+

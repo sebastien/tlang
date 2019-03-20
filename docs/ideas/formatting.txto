@@ -1,0 +1,62 @@
+== Tree Formatting & Templates
+
+XSLT is probably most well-know tree transformation and formatting language.
+It can generate a valid XML tree, but can also generate plain text. 
+
+One of the challenge of working with plain text is that whitespace matters,
+if you're transpiling an AST to Python, you'll need to have the indentation
+right, or if you're formatting to a 80-column wide text file, you'll need
+to make sure the line fits and wraps properly (with all the required escape
+characters and indentation).
+
+```tlang
+(tree
+  (if (> 'a 10)
+    (print "a > 10")
+    (if (< 100)
+      (print "a < 100"))))
+```
+
+To do this, we can introduce the notion of _lines_ in a text file. A given
+line has an indentation and a maximum character width, which will trigger
+line wrapping. It is up to the line formatter to determine how the line
+maybe be expanded into multiple lines.
+
+```
+(template
+  (if COND STATEMENT…)
+  (line "if ${COND|format}:")
+  (indented …(map STATEMENT expand)))
+```
+
+which could alternatively be expressed as
+
+```
+if ${COND}
+@each STATEMENT
+@indent ${_}
+@end
+```
+
+Basically, formatting is going to be a tree transformation that outputs
+a tree with line formatting primitives, which is then interpeted by the formatter.
+
+```
+(line WORDS…)
+(indented LINE…)
+(indent)
+(dedent)
+(line-wrap! #t)
+(line-wrap-indent! #f)
+(line-wrap-terminator! \)
+(line-wrap-break! :space)
+```
+
+
+
+
+
+
+
+
+# EOF - vim: ts=2 sw=2 et syn=texto

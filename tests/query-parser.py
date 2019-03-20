@@ -60,6 +60,7 @@ AXES = """
 .>+>*
 .>=+>*
 
+.|*
 """
 
 SUBSETS = """
@@ -68,7 +69,7 @@ SUBSETS = """
 """
 
 PREDICATES = """
-node[(has? {<<*@name})]
+node[(has? {<<*/@name})]
 """
 
 VARIABLES = """

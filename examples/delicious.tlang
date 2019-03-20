@@ -1,0 +1,75 @@
+;; @title Del.icio.us-like bookmarking system
+
+;; @h1 Data model
+;; @texto
+;; We define a data model with `user`, `tag`, `page` and `bookmark`, where
+;; relations betweeen all the elements are defined as synthetic attributes.
+
+(schema
+
+  (user
+    (@
+      (id           :Id)
+      (name         :String)
+      (email        :Email)
+      (shadowPasswd :String)
+      (tags         (list tag)  #synthetic)
+      (pages        (list page) #synthetic))
+    (* bookmark))
+
+  (tag
+    (@
+      (id           :Id)
+      (name         :String)
+      (users        (list user) #synthetic)
+      (pages        (list page) #synthetic)))
+
+  (page
+    (@url
+      (bookmarks (list bookmark) #synthetic)
+      (users     (list user)     #synthetic)
+      (tags      (list bookmark) #synthetic)))
+
+  (bookmark
+    (@
+      (url          :URL)
+      (title        :String)
+      (description  :String #optional)
+      (by           user)
+      (tags         (list tag))
+      (page         page  #synthetic)))
+
+  (users
+    (* user))
+
+  (pages
+    (* page))
+
+  (tags
+    (* tag)))
+
+
+
+;; @h2 Synthetic attributes
+;; @texto
+;; The synthetic attributes are actually indexe that link two elements
+;; of the data model. They use the `occurences` function that takes
+;; a list of elements and return a map of elements along with their
+;; occurences.
+
+(attr user/@tag
+  (occurences ./bookmark/@tags))
+
+(attr user/@pages
+  (occurences ./bookmark/@page))
+
+(attr {tag}/@users
+  (occurences users/{user}[(in? ./bookmarks/@tags A)]))
+
+(attr {tag}/@pages
+  (occurences users/user/bookmark[(in? ./@tags A)]/{@page} ))
+
+(attr {bookmark}/@page
+  (occurences pages/{page}[(is? A/@url  B/@url)]))
+
+;; EOF - vim: ts=2 sw=2 et syn=scheme

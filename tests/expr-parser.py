@@ -20,6 +20,7 @@ INVOCATIONS = """
 (count A)
 (count A B)
 (has? A)
+(fail! A)
 """
 
 SUFFIXES = """

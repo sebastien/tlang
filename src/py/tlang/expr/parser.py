@@ -14,10 +14,10 @@ def symbols( g:Grammar ) -> Symbols:
 		"WS"                      : "[\s\n]+",
 		"NUMBER"                  : "[0-9]+(\.[0-9]+)?",
 		"STRING_DQ"               : "\"([^\"]*)\"",
-		"EXPR_SYMBOL"             : "[a-z][\-a-z0-9]*[!\?]?",
+		"EXPR_SYMBOL"             : "[a-z][\-a-z0-9]*[\!\?]?",
 		"EXPR_VARIABLE"           : "[_A-Z][\_A-Z0-9]*",
 		"EXPR_SINGLETON"          : ":[A-Za-z][\_a-zA-Z0-9]*",
-		"EXPR_KEY"                : "#[a-z][\-a-z0-9]*[!\?]?",
+		"EXPR_KEY"                : "#[a-z][\-a-z0-9]*[\!\?]?",
 		"EXPR_COMMENT"            : ";;([^\n]*)",
 		"REST"                    : "(\\.\\.\\.)|…",
 	}
@@ -62,12 +62,18 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False) -> Grammar:
 	g.rule("ExprRest",       s.REST,  s.ExprValuePrefix._as("arg"))
 
 	s.ExprValuePrefix.set(
-		s.ExprList,
+		s.ExprList,              # 0
 		s.ExprQuote,
 		s.ExprTemplate,
 		s.ExprBinding,
 		s.ExprComment,
-		s.NUMBER, s.STRING_DQ, s.EXPR_SINGLETON, s.EXPR_KEY, s.EXPR_SYMBOL, s.EXPR_VARIABLE
+		s.NUMBER,                # 5
+		s.STRING_DQ,
+		s.EXPR_SINGLETON,
+		s.EXPR_KEY,
+		# NOTE: Query is going to be inserted here #8
+		s.EXPR_SYMBOL,           # 9
+		s.EXPR_VARIABLE          # 10
 	)
 	g.group("ExprValueSuffix").set(
 		s.ExprPipe,

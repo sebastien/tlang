@@ -1,0 +1,103 @@
+== 2019-03-09
+
+I'm thinking about templates, queries and traversals, trying to find a 
+unifying paradigm. So far it seems like queries and templates are dual
+versions of each other. For instance:
+
+```tlang
+(list (symbol (@  (name "attr"))))
+```
+
+would be equivalent to
+
+```tlang
+list/@attr
+```
+
+this equivalence also works when the template has many branches:
+
+```tlang
+(list
+   (symbol (@  (name "attr")))
+   (list
+       (symbol (@  (name "name")))
+       (query ATTRIBUTE_QUERY))
+    VALUE)
+```
+
+with the compact query syntax below:
+
+```tlang
+list[./#0/symbol/@attr][./#1/list[./symbol/@name]][./query/{ATTRIBUTE_QUERY}[/#2:{VALUE}]]
+```
+
+if we expand the query to multi-line, we arrive to a similar structure as the
+template:
+
+```tlang
+list
+  [./#0:symbol/@attr]
+  [./#1:list
+    [./symbol/@name]
+    [./:query/{ATTRIBUTE_QUERY}]]
+  [/#2:{VALUE}]
+```
+
+which means that essentially a query and a template are the same thing, the
+main difference is the denotation and the usage context: queries are intended
+to select nodes and subtrees, and are mean to be short and compact (like a regexp),
+while template are meant to capture and process subtrees, and usually have
+many branches.
+
+Template and query matching upon traversal
+------------------------------------------
+
+We assume that the most likely type of traversal is going to be top-down, depth-first,
+but in theory we could have any combination of
+`{top-down,bottom-up}x{depth-first,breadth-first}`. The question of which traversal(s)
+to do and when is left for another time. For the moment, let's focus on our template.
+
+```tlang
+(list (symbol (@  (name "attr"))))
+```
+
+which we can translate in the following conditions that must be all met for
+the query/template to match:
+
+- C0: `(parent?   "list")` 
+- C1: `(current?  "symbol")` 
+- C2: `(attr? 'name "attr")`
+
+From `C0` we can introduce a fact:
+
+- F0: `(current? "list") -[child]-> C0`, which reads: when the currrent
+  node is a list then `C0` is going to be met for all children.
+
+Now we can see an algorithm emerge from there.
+
+1) We extract all the predicates/conditions from the template (we leave aside
+   dynamic conditions, ie. those involving evaluating an expression).
+  
+2) When a set of conditions are all present, a new derivative condition
+   becomes valid, for instance `(C0 C1 C2) → T0` where `T0` is our
+   template/query.
+
+3) Some conditions have effects, if we consider `C0 = (parent? "list")`, we could
+   express it as saying that if the current element is a list, then `C0` will
+   be valid for all children.
+
+Now steps (1) and (2) are relatively trivial to implement, but (3) becomes
+slightly more difficult when we consider the different types of traversals.
+
+A virtual machine for tree traversal
+------------------------------------
+
+Let's imagine that for any subtree we can assign a rank `(d,i)` which defines
+its depth and its index in the chilren. Many nodes in the tree might share
+the same rank.
+
+
+
+
+
+# EOF - vim: ts=2 sw=2 et syn=texto

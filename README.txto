@@ -3,16 +3,19 @@
 
 The T Language is a language for creating, querying and transforming trees.
 
-TLang is primarily intended as a software engineering tool to create parsers, compilers,
-transpilers, analyzers and tree-transformation algorithms, but it can be used
-for a much wider range of applications, provided they can be expressed 
-as trees.
+TLang is primarily intended as a DSL to write software that works primarily
+with trees. TLang can be usef to create parsers, compilers,
+transpilers, analyzers, but also build systems, caching layers, database
+systems and basically and application which data model can be represented
+as a tree.
 
 TLangs main features are:
 
-- S-Expr based tree representation 
-- Querying, transform and schema languages
-- XML & JSON interop
+- S-Expr syntax and data format
+- Mini languages for defining a schema, tree transformations and queris
+- Optimizing transpiler targetting many languages
+- Easy interfacing with host languages
+- Tree XML & JSON interop
 
 Goals
 =====
