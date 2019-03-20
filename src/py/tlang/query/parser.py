@@ -38,9 +38,10 @@ def symbols( g:Grammar ) -> Symbols:
 	groups = ("ExprValue", "ExprValuePrefix")
 	return ParserUtils.EnsureSymbols(g, tokens, words, groups)
 
-
-def grammar(g:Optional[Grammar]=None, isVerbose=False) -> Grammar:
-	"""Defines the grammar that parses grammar rule definitions."""
+def grammar(g:Optional[Grammar]=None, isVerbose=False, suffixed=False) -> Grammar:
+	"""Defines the grammar that parses grammar rule definitions. When
+	`suffixed` is `True`, Query matches will need to have at least one
+	suffix, which is necessary embedded in the expression language."""
 	global GRAMMAR
 	if not g:
 		if GRAMMAR:
@@ -101,14 +102,21 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False) -> Grammar:
 		s.QueryPredicate.optional()._as("predicate"),
 	)
 
-	g.rule("Query",
-		s.QueryPrefix._as("prefix"), s.QuerySuffix.zeroOrMore()._as("suffixes")
-	)
+	if suffixed:
+		g.rule("Query",
+			s.QueryPrefix._as("prefix"), s.QuerySuffix.oneOrMore()._as("suffixes")
+		)
+	else:
+		g.rule("Query",
+			s.QueryPrefix._as("prefix"), s.QuerySuffix.zeroOrMore()._as("suffixes")
+		)
 
-	# We insert the Query just before the EXPR_VARIABLE, as the query
-	# also has a variable.
-	s.ExprValuePrefix.insert(8,s.Query)
-	print (s.ExprValuePrefix)
+	# We insert the QuerySuffixed just before the EXPR_VARIABLE, as the query
+	# also has a variable. We only want ExprValuePrefix to be queries with
+	# a suffix, not just a query with a prefix as things like `(fail!) would not
+	# parse as `fail` is a query prefix, and the `!` would then become
+	# unparseable.
+	s.ExprValuePrefix.insert(9,s.Query)
 	g.axiom = s.Query
 	g.skip  = s.WS
 

@@ -17,6 +17,7 @@ def symbols( g:Grammar ) -> Symbols:
 		"EXPR_SYMBOL"             : "[a-z][\-a-z0-9]*[\!\?]?",
 		"EXPR_VARIABLE"           : "[_A-Z][\_A-Z0-9]*",
 		"EXPR_SINGLETON"          : ":[A-Za-z][\_a-zA-Z0-9]*",
+		"EXPR_SPECIAL"            : "@|\\*|\\+|\\-",
 		"EXPR_KEY"                : "#[a-z][\-a-z0-9]*[\!\?]?",
 		"EXPR_COMMENT"            : ";;([^\n]*)",
 		"REST"                    : "(\\.\\.\\.)|…",
@@ -71,9 +72,10 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False) -> Grammar:
 		s.STRING_DQ,
 		s.EXPR_SINGLETON,
 		s.EXPR_KEY,
-		# NOTE: Query is going to be inserted here #8
-		s.EXPR_SYMBOL,           # 9
-		s.EXPR_VARIABLE          # 10
+		s.EXPR_SPECIAL,
+		# NOTE: Query is going to be inserted here #9
+		s.EXPR_SYMBOL,           # 10
+		s.EXPR_VARIABLE          # 11
 	)
 	g.group("ExprValueSuffix").set(
 		s.ExprPipe,
@@ -122,6 +124,10 @@ class ExprProcessor(Processor):
 		return self.tree.node("expr-value-string", {"value":value})
 
 	def onEXPR_SYMBOL( self, match):
+		value = self.process(match)[0]
+		return self.tree.node("expr-value-symbol", {"name":value})
+
+	def onEXPR_SPECIAL( self, match):
 		value = self.process(match)[0]
 		return self.tree.node("expr-value-symbol", {"name":value})
 

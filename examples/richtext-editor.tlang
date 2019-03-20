@@ -138,7 +138,7 @@
   (when 
     ({A<*} (do #insert-after token/@node[(is? B)] …(expand A)))
     ({A/..} (do #insert-after token/@node[(is? B)] …(expand A)))
-    (else  (fail! "The text node must have a parent"))))
+    (else  (fail "The text node must have a parent"))))
 
 ;; @texto
 ;; We can see in the `#remove` and `#add text` rules that we're doing a queries to
@@ -146,7 +146,7 @@
 ;; operation as the whole tree needs to be traversed. We could make this faster
 ;; by using an _index_, in this case the index is a 1-1 mapping. 
 
-(index #1-1 {text} token/@node[(is? A)])
+(index #one-to-one {text} token/@node[(is? A)])
 
 ;; @h2 Bi-directional linking
 ;; @texto
@@ -165,10 +165,10 @@
       (match
         ;; If the previous node is a `text` node, we need to insert the
         ;; token's node after it.
-        (case B/{@node|text}  (do #insert-after C A/@node))
+        (case B/@node|{text}  (do #insert-after C A/@node))
         ;; Otherwise it's potentially ambigious. Let's say we're adding
         ;; a text node in  an ul/li/b node. The text node could
         ;; go either in the `li` or in `the `b` node. 
-        #TODO))))
+        #todo))))
 
 ;; # EOF - vim: ts=2 sw=2 et syn=scheme
