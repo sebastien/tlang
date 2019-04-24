@@ -1,43 +1,33 @@
 
-
-
 Link references to their definitions
 ------------------------------------
-
 
 The following effector will update the link between reference nodes
 and their definition.
 
-```transducer
+```tlang
 
-;; The schema
-schema :=
-	(ref    (@ (name #str) (symbol (? symbol)) ))
-	(symbol (@ (name #str) (refs   (* ref))    ))
-;
+(schema
+	(ref    (@ (name :String) (symbol (? symbol)) ))
+	(symbol (@ (name :string) (refs   (* ref))    )))
 
 
 ;; We select all the references. `$0` and `$REF` will reference the `ref`
 ;; node, while `$NAME` and `$1` will reference `{@name}`.
-on {REF:ref}/{NAME:@name} change := 
+(on #change {REF:ref}/{NAME:@name}
 
 	;; We remove the node from the referenced symbol
-	remove ($REF/@symbol/@refs, $REF)
+	(do #remove REF/@symbol/@refs  REF)
 
-	when(@name,
+    (when @name
 		;; We resolve the symbol by looking back in the traversal
 		;; for a definition with the given name. We save the
 		;; result as SYMBOL
-		when({SYMBOL: . << def*/@name[eq(@,$NAME)] | head},
+		(when {SYMBOL:.<<def*/{@name:ATTR}[(eq? ATTR NAME)] | head}
 			;; We set the resolved symbol as the attribute value
-			{set    ($REF/@symbol, $SYMBOL)}
-
+			(do #set $REF/@symbol  SYMBOL)
 			;; We remove the symbol
-			{add    ($SYMBOL/@refs, $REF}
-		)
-	)
-
-;
+			(do #add   $SYMBOL/@refs REF))))
 
 ```
 
@@ -56,28 +46,29 @@ deduce from the above is the following:
 
 We can now express what happens when a symbol changes:
 
-```
-on {SYMBOL:symbol}/@name change := clear(./@refs/ref/@symbol,.);
+```tlang
+(on #change {SYMBOL:symbol}/@name 
+    (do #clear ./@refs/ref/@symbol .))
 ```
 
 However, here we can see that that we're changing the `@symbol`, and the
 compiler should tell us that we need to support that change as well.
 
 
-```
-on {REF:ref}/@symbol change := remove( $previous/@refs, $REF );
+```tlang
+(on #change {REF:ref}/@symbol 
+    (do #remove  PREVIOUS/@refs, REF ))
 ``` 
 
 Now the compiler shoud know that `symbol/@ref` is changed, so we need to
 handle it as well:
 
-```
-on {SYMBOL:symbol}/@refs removed := 
-	{unset( $removed/@symbol, $SYMBOL )}
+```tlang
+(on #remove {SYMBOL:symbol}/@refs
+	(do #unset REMOVED/@symbol  SYMBOL))
 
-on {SYMBOL:symbol}/@refs added := 
-	{set  ( $added/@symbol, $SYMBOL )}
-
+(on #added {SYMBOL:symbol}/@refs
+	(do #set  ADDED/@symbol  SYMBOL))
 ```
 
 We have introduced a mutually-recursive dependency, which is a potentially
@@ -95,9 +86,8 @@ In our case, we have `symbol/@ref` and `ref/@symbol` that are mutually
 dependent.
 
 ```
-;; We set the the 
-constrain change {SYMBOL:symbol}/@ref := 
-	requires(ref/@symbol[@=SYMBOL])
+(on #change {SYMBOL:symbol}/@ref
+	(pre ref/@symbol[@=SYMBOL]))
 ```
 
 Synthetic attributes
@@ -120,8 +110,4 @@ The compiler should:
 
 3) Created indexes and lookup structures based on expensive selectors like
    `>>`, `<<`, `\\` or `//`.
-
-
-
-
 

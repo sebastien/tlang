@@ -25,4 +25,9 @@ traverse the same node twice or we'll loop)
   (union ./@depends-direct ./@depends-direct/@depends))
 ```
 
+From [Michael Vollmer - Compiling tree transforms to operate on packed representations](https://www.youtube.com/watch?v=YDa60NpXp6Q),
+there is the "cursor passing style", where the tree is a packed array ordered
+according to traversal. Overall, packed trees seem like 1/10th of the time (10x
+sped increase) vs pointer-based.
+
 # EOF - vim: ts=2 sw=2 et syn=texto

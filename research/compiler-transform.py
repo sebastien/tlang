@@ -177,6 +177,4 @@ class TraversalA:
 			node.attr("mean", node_mean(self.q2, self.q3))
 		return True
 
-
-
 # EOF - vim: ts=4 sw=4 noet

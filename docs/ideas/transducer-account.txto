@@ -3,48 +3,52 @@
 This example shows how to implement the rules for creating a hierarchical
 set of accounts, and ensuring that they balance.
 
-```transducer
-;; We define the schema as a tree.
-schema :=
+```tlang
+
+(schema
 	(account
 		(@
-			(name    'str)
+			(name    :String)
 			;; We flag the balance as synthetic
-			(balance ('synthetic 'float))
+			(balance :Float #synthetic)
 		) 
 		;; An account can have transaction or account nodes
-		('many ('or transaction account))
+		(* transaction account)
 	)
 	(transaction 
-		(@ (amount 'float)))
-;
+		(@ (amount :Float)))
+)
 
 ;; We define the operation interface, and specify it is
 ;; incremental.
-incremental operation sum list(float) -> float;
+(interface
+  (sum (:List :Float) :Float))
 
 ;; We define a synthetic attribute. The balance of an account
 ;; is the the sum of the all the transactions plus the balance
 ;; of all its sub-accounts.
-synthetic schema/@balance =
-	sum(union(./transaction/@amount,./account/@balance));
+(attr schema/@balance
+  (sum ./account/@balance … ./transaction/@amount ))
 
 ```
 
 here `sum` must be an incremental operation for it to have an efficient 
 implementation. Here is how we'd do it in Python.
 
-```
+```python
+from typing import List
 class Sum(IncrementalOperation):
 
-	def compute( self, values):
+	def compute( self, values:List[float] ) -> float:
 		return sum(values)
 
-	def add( self, current, added ):
-		reurn current + added
+  # NOTE: If we have more than one argument, we would have add_remove
+  # for each argument.
+	def add( self, current:float, added:List[float] ) -> float:
+		reurn current + sum(added)
 
-	def remove( self, current, value ):
-		return current - value
+	def remove( self, current:float, removed:List[float] ) -> float:
+		return current - sum(value)
 
 	def clear( self ):
 		return 0

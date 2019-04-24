@@ -13,7 +13,7 @@ from both.
 Let's start with a pattern that rewrites lists starting with 'attr'
 into a '(declare-attribute NODE NAME VALUE)`. We have an input like this:
 
-```
+```tlang
 (expr-value-list
    (expr-value-symbol (@  (name "attr")))
    (expr-value-list
@@ -24,7 +24,7 @@ into a '(declare-attribute NODE NAME VALUE)`. We have an input like this:
 
 which we can represent as the following template
 
-```
+```tlang
 (expr-value-list
    (expr-value-symbol (@  (name "attr")))
    (expr-value-list
@@ -33,10 +33,11 @@ which we can represent as the following template
     VALUE
 )
 ```
+
 and we know that the query might have a `query-node`
 and a `query-attribute`, which we do want to extract:
 
-```
+```tlang
 (declare-attribute
   ${ATTRIBUTE_QUERY/query-node}
   ${ATTRIBUTE_QUERY/query-attribute}

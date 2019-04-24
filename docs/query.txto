@@ -116,7 +116,7 @@ two levels.
 
 ```query
 \\         ;; all ancestors
-\2\        ;; parents and grand parnents
+\2\        ;; parents and grand parents
 \*\        ;; grand parents only
 ```
 
@@ -187,7 +187,7 @@ Siblings (`:NodeSet`)::
 	```
 
 
-Self (`:NodeSet`)::
+Self (`:Node`)::
 
   The `|` denotes that the rest of the pattern applies to the current node.
   For instance `.|text` means that the current node is expected to be `text`.
@@ -320,7 +320,7 @@ Subexpressions
 Any selector expression can be constrained using `[…]`.
 
 ```
-example[eq(@type,"test")]
+example[(eq? @type "test")]
 ```
 
 Variables
@@ -330,7 +330,7 @@ Any selection or invocation can be wrapped in a variable binding and
 later user using a variable reference. For instance
 
 ```selector
-{BEFORE:<*}{AFTER:>*}{SIBLINGS:union($BEFORE,$AFTER)}/
+{BEFORE:<*}{AFTER:>*}{SIBLINGS:(union $BEFORE $AFTER)}/
 ```
 
 Bindings are expressions wrappend in `{…}`, optionally prefixed with
@@ -338,7 +338,7 @@ the binding name (in `UPPER_CASE`). Bindings *won't affect the scope*, unless
 they are used in a function invocation or suffixed by a path selector.
 
 ```selector
-{./*}          ;; Implicit binding, bound to 0
+{./*}          ;; Implicit binding, bound to A
 {CHILDREN:./*} ;; Explicit binding
 ```
 
@@ -346,7 +346,8 @@ You can simulate a sequential execution by chaining bindings:
 
 ```
 ;; Returns the list of children (it's very contrived!)
-{CHILDREN:./*}{//[(in $CHILDREN .)}
+;; FIXME: Bad example
+{CHILDREN:./*}{//[(in? CHILDREN .)}
 ```
 
 Constraints
@@ -359,6 +360,7 @@ language.
 ```tlang
 ;; Selects all file nodes with a `path` attribute
 file[@path]
+
 ;; Same as above, but the node also needs a size attirbute > 100, and the
 ;; path in captured as variable.
 file[{@path}][(> @size 100)]  

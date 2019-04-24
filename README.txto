@@ -11,11 +11,11 @@ as a tree.
 
 TLangs main features are:
 
-- S-Expr syntax and data format
-- Mini languages for defining a schema, tree transformations and queris
-- Optimizing transpiler targetting many languages
-- Easy interfacing with host languages
-- Tree XML & JSON interop
+- Main syntax based on S-Expr
+- Embedded query language
+- Extensible optimizing transpiler to native language
+- S-Expr, XML & JSON tree import/export
+- Easy interoparability with many languages
 
 Goals
 =====
@@ -78,7 +78,6 @@ TLang is a composition of simple mini-languages with canonical representations:
 
 - The [Format language](docs/format.txto) that defines a mapping between text
   representation and tree representation.
- 
 
 These mini language share consistent design features and are composed together.
 Under the hood, they all produce TLang Tree structures and have associated
@@ -106,6 +105,7 @@ Related projects:
 - [Eclipse XText](https://www.eclipse.org/Xtext/)  ― "Language Engineering For Everyone!"
 - [Stratego](http://strategoxt.org/)/[Spoofax](http://www.metaborg.org/en/latest/) ―  "… a platform for developing textual (domain-specific) programming languages"
 - [Rascal-MPL](https://www.rascal-mpl.org/#_Metrics) ― "… integrating source code analysis, transformation, and generation primitives on the language level." (see also [ASF+SDF](http://www.meta-environment.org/))
+- [Fast](https://rise4fun.com/Fast) ― 
 
 Compared to the above projects, TLang focuses more on the notion of tree-tree
 transformation as oppposed to text-tree-text transformation. It is also, at its
@@ -125,10 +125,17 @@ Loosely related projects:
 - [Zephyr ASDL](https://www.cs.princeton.edu/research/techreps/TR-554-97), a language
   to describe ASTS. It is notably [used in Python](https://github.com/python/cpython/blob/master/Parser/Python.asdl).
   The Oil Shell blog has [two](https://www.oilshell.org/blog/2016/12/11.html) [articles](https://www.oilshell.org/blog/2016/12/16.html) on the subject.
-  
+
+- [Gremlin](https://www.slideshare.net/slidarko/gremlin-a-graphbased-programming-language-3876581), a graph-based
+  programming language.
 
 [TLang](https://bitbucket.org/sebastien/tlang) is implemented in Python 3 and is maintained by [Sébastien
 Pierre](https://sebastienpierre.nz). It is licensed under the Revised BSD License.
 
+Misc links:
+
+- http://www.jclark.com/dsssl/
+- https://www.youtube.com/watch?v=OyfBQmvr2Hc
+- https://github.com/ollef/sixten/blob/master/docs/QueryCompilerDriver.md
 
 # EOF - vim: ts=2 sw=2 et syn=texto

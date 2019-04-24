@@ -1,0 +1,36 @@
+== Incremental Operations
+
+
+An incremental operation is a set of functions/operations that define how
+a _fractional change_ affects the computed state.
+
+For instance, a function that computes the *sum of a list of numbers*
+would, in its worse case scenario, iterate through all the numbers 
+to calculate the sum, so it is `O(n)`.
+
+However, if we know precisely which item has changed, and we know the
+previous value of the changed item and the previous value of the sum,
+we can recalculate the sum:
+
+```
+current_sum = previous_sum - changed_item_previous_value + changed_item_current_value
+```
+
+This implies the following:
+
+- An incremental operation maintains a state, which is its current value.
+- An incremental operation is able to interpret changes to all of its 
+  arguments, independently.
+- A change to an argument must contain the current and the previous of this
+  argument.
+
+To this, we can add the following:
+
+- Change descriptions are specific to the types of values: numbers, strings,
+  lists and maps.
+- Change descriptions are objects that are going to be very frequently exchanged,
+  and need to cost as little as possible both in memory and CPU.
+- An incremental operation should work, in the absence of a stored state, exactly
+  like the non-incremental version of the operation.
+
+# EOF - vim: ts=2 sw=2 et syn=texto

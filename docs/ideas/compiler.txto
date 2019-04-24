@@ -1,5 +1,64 @@
 == Compiler
 
+Components
+==========
+
+Queries
+-------
+
+The query compiler and optimizer is going to be a crucial element in 
+optimizing tree traversals based on a set of queries and depdenencies.
+
+We've seen that a query can be summed up as:
+
+- a base node (or node set), from which the query is run
+- an axis to traverse, with an optional depth limit
+- a selector on the node name, either direct or with an expression
+- a set predicate containing sub-expressions, which in most cases
+  require dynamic evaluation.
+
+Queries can be chained to form selectors, and queries can be nested
+within the predicate sub-expression to perform parallel sub-queries.
+
+In its most basic form, given a set of queries, the compiler should be
+able to *order them* so that they can be applied in the least possible
+amout of traversals.
+
+The other thing that the compiler should do is to *assign queries a priority*
+based on their specificity. In case of pattern matching, the priority will be
+useful to known which query should apply first.
+
+Aditionnally, the query compiler should be able to *identify if a query
+is a subset of another* and derive a *query that is the intersection
+of a set of other queries*.
+
+
+Traversals
+----------
+
+As TLang is intented to support *incremental updates*, an important part of
+the compiler is to define and schedule traversals to propagate (eager)
+or compute (lazy) the effects resulting of an update on the tree. 
+
+There should be as little computation required at runtime to determine these
+traversals, which means that they either need to be hardcoded or implemented
+as part of a state machine.
+
+In any case, the *traversal scheduler* should take a set of events (node 
+added, removed, updated) and schedule the applications of their effects, 
+either eagerly (direct propagation) or lazily (deferred computation), based
+on hints in TLang or some criteria identified by the compiler.
+
+The resulting traversal state machine should basically work like this:
+
+1) A set of changes is given
+2) Each change results in a sequence/tree of queries to be scheduled
+3) Queries are scheduled in traversals (top-down,bottom-up,left-right,right-left)
+   and cycles (some synthetic attributes might require more than one cycle to
+   compute the result)
+4) Query result should be 
+
+
 Errors
 ======
 
@@ -73,6 +132,16 @@ Required tools:
   in the identification of the best data structures.
 
 
+Optimizations
+=============
+
+Queries
+-------
+
+Queries should be grouped by similarity, and if many rules/effects involve
+the same query, then the queries should be cached. If the queries have
+dynamic predicates, indexes should be created/suggested in order to
+speed up everything.
 
 Query/Traversal Optimization
 ============================

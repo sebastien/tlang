@@ -29,14 +29,14 @@
       (depends          (:list node) #synthetic)
       (dependencies     (:list node) #synthetic))))
 
-;; @attribute
+;; @symbol attribute node/@change
 ;; A node's changed attribute is the maximum value of it's `modified` attribute
 ;; and all its dependencies `@modified` attribute. We could alternatively express
 ;; it recursively as `(max node/@modified … ./@depends-direct/@changed)`.
 (attr node/@changed
   (max node/@modified … ./@depends/@modified))
 
-;; @attribute
+;; @symbol attribute node/@dependencies
 ;; A nodes dependencies is the union of its direct dependencies and the
 ;; dependendencies of 
 (attr node/@dependencies

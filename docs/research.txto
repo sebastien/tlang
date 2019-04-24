@@ -1,0 +1,23 @@
+== Research material
+
+
+Papers
+======
+
+- [Stream Fusion, to Completeness](http://okmij.org/ftp/meta-programming/strymonas.pdf)
+- [Compiling tree transforms to operate on packed representations](https://2017.ecoop.org/event/ecoop-2017-papers-compiling-tree-transforms-to-operate-on-packed-representations)
+- [Miniphases: Compilation using modular and efficient tree transformations](https://scholar.google.com/scholar?cluster=7946863864036706551&hl=en&as_sdt=0,5&sciodt=0,5)
+- [Fast: A Transducer-based Language for Tree Manipulation](https://lobste.rs/s/58sg58/fast_transducer_based_language_for_tree) and [site](https://rise4fun.com/Fast/)
+
+Collections
+===========
+
+- [Lobste.rs: Tree Language query](https://lobste.rs/search?utf8=%E2%9C%93&q=tree+language&what=stories&order=relevance)
+- [Oil shell: Compact AST representation](https://github.com/oilshell/oil/wiki/Compact-AST-Representation)
+
+Discussions
+===========
+
+- [Lobste.rs: Compiler Performance and LLVM](https://lobste.rs/s/dyz4qh/compiler_performance_llvm)
+- [Reddit PL: Papers and algorithms in LLVM](https://www.reddit.com/r/ProgrammingLanguages/comments/b22tw6/papers_and_algorithms_in_llvms_source_code/)
+ 

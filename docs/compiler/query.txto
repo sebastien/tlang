@@ -1,0 +1,107 @@
+== Query Compiler
+
+This document defines the representation and processing of queries by
+the TLang compiler.
+
+Query data model
+================
+
+Tree traversals
+---------------
+
+Tree traversals represent different ways to traverse (or walk) the tree. A
+traversal has an `axis`, which can be any of the following:
+
+- `descendants`
+- `ancestors`
+- `before`
+- `after`
+- `self`
+
+any traversal other than `self` can be guarded by a `depth`, for instance:
+
+- `descendants[0]` denotes the direct children
+- `ancestors[0]` denotes the parent
+- `before[0]` denotes previous siblings
+- `next[0]` denotes previous siblings
+
+# TODO: Define before[1], before[2], after[1], after[2], etc.
+
+In terms of process, a traversal is a functor `(Node,Axis,Depth)→Iterator[Node]`, and should
+typically support lazy evaluation. This iterator represents the 
+_node set_ resulting from the traversal.
+
+Queries are specialized traversals
+----------------------------------
+
+A _query_ is a *specialized traversal* that has a node selector (a static predicate
+on the node type) as well as dynamic predicate and the possibility to capture
+the result and make it available in the environment.
+
+- `axis` and `depth`, inherited from the traversal
+- `selector`
+- `predicate?`
+- `capture?`
+
+A _selector_ can be of different types:
+
+- A node selector, in which case the node name must match exaclty
+- A wilcard selector, in which case the node must match the expression
+- A group selector, in which case the node must be part of the group
+
+A _predicate_ can be of different types:
+
+- A _closed predicate_, is a predicate that does not depend on any external
+  data, ie. it only depends on the node's state.
+
+- An _open predicate_, which is any predicate that involves a computation
+  that relies on the context/environment (ie. it does a query, it uses
+  a variable, etc)
+
+The _capture_ 
+By applying the selector and predicate on the nodes visited the traversal,
+the query constructs a _result set_. The result set should be lazy by default.
+
+Just like traversals, queries are applied to a *base node* and yield a *result set*, which is
+an *iterator* on nodes.
+
+Queries are combined in selections
+----------------------------------
+
+A _selection_ is a combination of queries which are connected to each other.
+By chaining queries together, it is possible
+to create complex selection scenario. The following example shows how
+to extract a set of `size` attributes from `file` nodes nested within
+`dir` nodes:
+
+```tlang
+dir/file/@size
+```
+
+which is actually three queries:
+
+- `dir`, which is the query *base*
+- `/file`, which is applied in sequence to the result set of `dir`
+- `/@size`, which is also applied in sequence to the result set of `/file`
+
+Using guards `[…]` and value capture `{…}` we can create complex
+expressions. The expression below will return all the `dir` nodes
+that have at least a file with a size greater than 100, capturing
+both the file nodes and dir nodes in two implicit result sets:
+
+```
+dir[//file[(gt? @size 100)]|{.}]|{.}
+```
+
+# TODO: We might want to move this somwhere else
+
+The breakdown of the above query is as follows:
+
+- Gets the `dir` nodes at the root
+- Query all the `file` descendendants of these nodes
+- Filter the node set by keeping only the file nodes with a `@size > 100`
+- Capture the matching `nodes` in the first output
+- Capture the matching `dir  nodes in the second output
+
+This process is still sequential, but contains nested queries that are
+run out of more than one node as a base.

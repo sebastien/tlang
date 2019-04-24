@@ -15,10 +15,21 @@ Bugs::
 [ ] Tests: running the rules tests gives unpredictable results, hinting at
     some libparsing issues.
 
+Rework::
+
+[ ] Naming: I find the AST very verbose (`expr-value-number`), and I primarily
+    did that because I wanted an easy way to know if a node is a subset of 
+    another. I think it's easier to create groups that we name:
+    `(group :Expressions number string computation …)`. There's something
+    to be said, though, about the advantage of using prefixes like `type-data-*`,
+    as it acts pretty much like namespaces and also makes it possible to
+    define groups easily.
+
 New features::
 
 [ ] Indexes: define the notion of an index that can be used to speed up queries.
     See the `richtext-editor` example.
+
 [ ] State: define primitives to define context and slots and refer to them. We
     want to be able to define functions/values and query the contents
     of stuff like schema.
@@ -63,3 +74,5 @@ Experiments::
 
 [ ] Generate C code, and make sure it's fully instrumented and that memory
     errors are caught.
+
+# EOF - vim: ts=2 sw=2 et syn=texto
