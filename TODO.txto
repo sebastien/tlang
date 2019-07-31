@@ -1,19 +1,8 @@
 == TLang Todo
 
-[ ] Rule language should work for grammars AND/OR for tree schema.
-[ ] Selector language should be split in selector/processing language
-[ ] Expr: expr-value-invocation should actually be expr-list
 
-
-Priority::
-
-[ ] Namespace support `ns:node`, for templates
-[ ] tlang: options and -vp --verbose-parsing  (with verbose grammar)
-
-Bugs::
-
-[ ] Tests: running the rules tests gives unpredictable results, hinting at
-    some libparsing issues.
+Priorities
+==========
 
 Rework::
 
@@ -25,6 +14,52 @@ Rework::
     as it acts pretty much like namespaces and also makes it possible to
     define groups easily.
 
+[ ] Expr: expr-value-invocation should actually be expr-list
+[ ] Selector: Selector language should be split in selector/processing language
+
+Design::
+
+[ ] Architecture: define the architecture document so that we have
+    a clearer roadmap, implementation-wise.
+
+[ ] Templates: define the priority of query/selectors so that we know
+    which ones are going to be selected when matching a template.
+
+Roadmap
+=======
+
+API::
+
+[ ]  Implement `Pattern` and `Template`
+[ ]  Implement `NodeSet`
+
+
+Topics
+======
+
+Documentation::
+
+[ ] Process .txto into blocks, and parse .tlang into blocks, then
+    orgnanize them in pages.
+[ ] The schema language should not have model/representation. It's too
+    technical.
+[ ] Texto: ensure [cross-references] are here
+[ ] Script: use texto XML+XSLT to generate the docs, JavaScript to cross reference
+
+Templates::
+
+[ ] Namespace support `ns:node`, for templates
+
+Rules::
+
+[ ] Rule language should work for grammars AND/OR for tree schema.
+
+Tools::
+
+[ ] format: ASCII representation of the tree
+[ ] format: dot output
+[ ] tlang: options and -vp --verbose-parsing  (with verbose grammar)
+
 New features::
 
 [ ] Indexes: define the notion of an index that can be used to speed up queries.
@@ -34,45 +69,58 @@ New features::
     want to be able to define functions/values and query the contents
     of stuff like schema.
 
-Docs::
-
-[ ] The schema language should not have model/representation. It's too
-    technical.
-
 Query::
 
 [ ] A syntax to say "all A that are not nested within an A, from 
-    the current node."
-[ ] Priorities: define the priority of query/selectors so that we know
-    which ones are going to be selected when matching a template.
+    the current node." (what does this even mean?)
 
 Expr::
 
 [ ] Namespaced symbols prefixed with `:` or `*:`
 [ ] The … syntax for `(A …B)` and `(A B…)`
-[ ] Define a type language (maybe separate)
-[ ] Support for `(expr-*)`
+[ ] Define a type language (maybe separate)
+[ ] Support for `(expr-*)`
 
 Tests::
 
-[ ] Should add processor tests to the parser
+[ ] Tests: running the rules tests gives unpredictable results, hinting at
+    some libparsing issues.
+[ ] Should add processor tests to the parser
 [ ] Should add parsing speed/throughput and processing speed/throughput
 
 Ideas::
 
-[ ] Find examples where attributes are calculated using `\\` and `//` and
+[ ] Find examples where attributes are calculated using `\\` and `//` and
     see how this impacts performance. It's going to be important to identify
     the cases for a good or bad network of attributes.
 [ ] Find an example with a loop
 
-Docs::
-
-[ ] Texto: ensure [cross-references] are here
-[ ] Script: use texto XML+XSLT to generate the docs, JavaScript to cross reference
-
 Experiments::
 
-[ ] Generate C code, and make sure it's fully instrumented and that memory
+[ ] Generate C code, and make sure it's fully instrumented and that memory
     errors are caught.
 
+References
+==========
+
+- https://github.com/github/semantic
+- https://labs.quansight.org/blog/2019/05/metadsl-dsl-framework/
+- https://queue.acm.org/detail.cfm?id=1039534
+- https://www.reddit.com/r/nosyntax/wiki/projects
+- https://github.com/bazaarvoice/jolt
+- https://stackoverflow.com/questions/1618038/xslt-equivalent-for-json
+- http://loyc.net/loyc-trees/
+- http://dynamicaspects.org/
+- http://cell-lang.net/
+- [Rosie Pattern Language](https://rosie-lang.org/), which also has a tree output
+
+- Tree diffing: http://thume.ca/2017/06/17/tree-diffing/
+http://regent-lang.org/
+
+Functional Programs that Explain their Work
+    Roly Perera and Umut A. Acar (Max Planck Institute for Software Systems), James Cheney (University of Edinburgh), and Paul Blain Levy (University of Birmingham)
+
+https://pldi16.sigplan.org/details/pldi-2016-papers/38/Programmatic-and-Direct-Manipulation-Together-at-Last
+
 # EOF - vim: ts=2 sw=2 et syn=texto
+

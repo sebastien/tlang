@@ -18,3 +18,19 @@ Performance
 
 - Traversals build lists that can be re-used and should provide
   fast access. These lists should be reused as much as possible.
+
+
+Building/compilation
+--------------------
+
+Large trees should be serializable so that they can be cached and reused
+in a cross-process way. This is especially important an non-interactive case (ie. using make or
+some other build  tool), where transformed trees should be reused across projects (being
+careful of not to introduce side effects)
+
+VM
+--
+
+- Each operation should have a theoeretical cost, and then an actual cost
+  using profiling data. The compiler should have an optimizer that constructs
+  a program that minimizes the total cost.

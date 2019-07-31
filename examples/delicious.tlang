@@ -5,9 +5,12 @@
 ;; We define a data model with `user`, `tag`, `page` and `bookmark`, where
 ;; relations betweeen all the elements are defined as synthetic attributes.
 
+(use tlang/schema (schema attr))
+(use std (map count))
+
 (schema
 
-  (user
+  (User
     (@
       (id           :Id)
       (name         :String)
@@ -17,20 +20,20 @@
       (pages        (list page) #synthetic))
     (* bookmark))
 
-  (tag
+  (Tag
     (@
       (id           :Id)
       (name         :String)
-      (users        (list user) #synthetic)
+      (Users        (list user) #synthetic)
       (pages        (list page) #synthetic)))
 
-  (page
+  (Page
     (@url
       (bookmarks (list bookmark) #synthetic)
-      (users     (list user)     #synthetic)
+      (Users     (list user)     #synthetic)
       (tags      (list bookmark) #synthetic)))
 
-  (bookmark
+  (Bookmark
     (@
       (url          :URL)
       (title        :String)
@@ -39,14 +42,14 @@
       (tags         (list tag))
       (page         page  #synthetic)))
 
-  (users
-    (* user))
+  (Users
+    (* User))
 
-  (pages
-    (* page))
+  (Pages
+    (* Page))
 
-  (tags
-    (* tag)))
+  (Tags
+    (* Tag)))
 
 
 
@@ -58,18 +61,18 @@
 ;; occurences.
 
 (attr user/@tag
-  (occurences ./bookmark/@tags))
+  (map count ./bookmark/@tags))
 
 (attr user/@pages
-  (occurences ./bookmark/@page))
+  (map count ./bookmark/@page))
 
 (attr {tag}/@users
-  (occurences users/{user}[(in? ./bookmarks/@tags A)]))
+  (map count Users/{user}[(in? ./bookmarks/@tags A)]))
 
 (attr {tag}/@pages
-  (occurences users/user/bookmark[(in? ./@tags A)]/{@page} ))
+  (map count Users/user/bookmark[(in? ./@tags A)]/{@page} ))
 
 (attr {bookmark}/@page
-  (occurences pages/{page}[(is? A/@url  B/@url)]))
+  (map count Pages/{page}[(is? A/@url  B/@url)]))
 
 ;; EOF - vim: ts=2 sw=2 et syn=scheme

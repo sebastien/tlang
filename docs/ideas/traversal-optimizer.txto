@@ -124,9 +124,9 @@ CUR=5 → PAR=3 → PAR=0 → CUR=0 → CHL=3
 
 Now, let's rephrase that walk as a sequence of simple instructions:
 
-UP(N) → Go up N times
+UP(N)   → Go up N times
 DOWN(N) → Go down N times
-ATTR(N) → Retrieve/Process attribute N
+ATTR(T) → Retrieve/Process attribute T
 
 
 # EOF - vim: ts=2 sw=2 et syn=texto

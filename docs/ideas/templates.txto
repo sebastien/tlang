@@ -1,7 +1,7 @@
 == Templates
 
 An important part of TLang is the ability to rewrite parts of a tree. If
-we look at XSLT, this process can be as simply as applying a template
+we look at XSLT, this process can be as simple as applying a template
 to a selection. However, there are obvious limitations when we're transforming
 a subtree, as many sub-selections need to be nested and guarded with 
 conditionals.
@@ -58,8 +58,117 @@ We have two main steps there:
 
 Both of these steps should support iterative matching and update, so that
 when a subset of the matched subtree changes, only the matching 
-substen of the expansion is updated (an important use case for model-view
+subset of the expansion is updated (an important use case for model-view
 rendering in a DOM-like view).
+
+Transforms in DOM rendering 
+===========================
+
+Here's an example of rendering applied to a structural/projective editor. Here,
+we'd like to render a program model element into an HTML nodeset.
+
+```tlang
+(assign 'a (compute '+ 10 20))
+```
+
+and we want something like
+
+```html
+<div class="assign">
+  <div class="symbol">a</div>
+  <div class="assign-equals">=</div>
+  <div class="computation">
+    <div class="number">10</div>
+    <div class="operator">+</div>
+    <div class="number">20</div>
+  </div>
+</div>
+```
+
+which would be expressed in TLang as:
+
+```tlang
+(div (@ (class "assign"))
+  (div (@ (class "symbol")) "a")
+  (div (@ (class "assign-equals")) '=)
+  (div (@ (class "computation"))
+    (div (@ (class "number")) 10)
+    (div (@ (class "operator")) '+)
+    (div (@ (class "number")) 20)))
+```
+
+The notion of *template* would allow us to express the transformed view
+based on a selection on the original node set:
+
+```tlang
+(rewrite (assign SYMBOL EXPRESSION)
+  (div (@ (class "assign"))
+    ${SYMBOL|rewrite}
+    (div (@ (class "symbol") ${SYMBOL|rewrite}))
+    (div (@ (class "assign-equals")) '=)
+    ${EXPRESSION|rewrite}))
+
+(rewrite (computation OPERATOR OPERANDS…)
+  (div (@ (class "computation"))
+    ${OPERATOR|rewrite}
+    …${OPERANDS|rewrite}))
+```
+
+Here some of the transformed nodes are readonly, or at least disconnected
+from the model, but some others are directly linked. It's important to 
+notice that any model→view transform should be reversible, at the very
+least have reversible addressing, so that we can go back to the model
+from the view.
+
+Note that the `(rewrite PATTERN TEMPLATE)` replaces the whole `PATTERN` with the expanded `TEMPLATE`.
+
+# TODO: Hypothesis: a template PATTERN can be converted to a QUERY
+
+# TODO: Naming
+# TODO: Priority/conflicts
+# TODO: Phases/stages
+# TODO: Explicit
+# TODO: Conditionals
+
+Conditionals
+------------
+
+Let's consider a document that embeds some code, some of which (ie. `javascript`)
+can be directly executed in the document.
+
+```tlang
+(code (@ (lang 'tlang)) …)
+(code (@ (lang 'javascript)) …)
+```
+
+We might want to have two separate treatments for each. The better option
+would be, of course, to use a template that includes the a guard on the 
+attribute, but we're going to try it with conditionals:
+
+```tlang
+(rewrite code
+  {(match @lang
+    (case 'tlang 
+      (emit 
+        ;; Put the nodes for 'tlang))
+    (case 'javascript
+      (emit
+        ;; Put the nodes for 'javascript)))})
+```
+
+but of course the pattern-based alternative is better:
+
+``` 
+(rewrite (code (@ (lang 'tlang)))
+  …)
+
+(rewrite (code (@ (lang 'javascript)))
+  …)
+```
+
+      
+
+
 
 
 

@@ -169,6 +169,10 @@ Descendants (`:NodeSet`)::
 	/2/                          ;; The children and grand children of the root
 	```
 
+# FIXME: I'm not sure it's the best way to do it. We need something like
+# /1/heading -- select all the headings you find anywhere in the document,
+# but stop the search one you found one.
+
 Siblings (`:NodeSet`)::
 
 	```

@@ -1,0 +1,30 @@
+== Traversal State Machine
+
+A core elements of TLang is a state machine that traverses a tree and
+triggers pattern matches and actions (like pattern expansions or tree rewrites).
+
+NOTE: At this moment, we're only focusing on the query/match aspect, but we'll
+need to expand to more than that.
+
+Context
+=======
+
+We have a set of queries (or patterns) guarded by predicates and associated
+with actions. The basic model is that we have sets of flags on a per-level basis
+(in a top-down traversal, level 0 is the current node, 1 the parent, 2 the grandparents, etc).
+
+Each pattern is like:
+
+- (CURRENT_NODE PREVIOUS_NODE FLAGS_PREDICATE NODE_PREDICATE ACTION)
+
+Whenever a transition happens (ie. the cursor moves from one node to another),
+we should get the set of patterns that can apply, ie. where the CURRENT_NODE
+and PREVIOUS_NODE match the cursor's current and previous node.
+
+Then, the FLAGS_PREDICATE should be executed, followed by the NODE_PREDICATE.
+The FLAGS_PREDICATE should be computationally simpler to execute than the 
+NODE_PREDICATE. If there is a match, then the ACTION is executed on the cursor.
+
+
+
+# EOF - vim: ts=2 sw=2 et syn=texto

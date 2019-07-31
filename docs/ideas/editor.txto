@@ -1,0 +1,148 @@
+== Structural/Projectional Editor
+
+We need to distinguish between two types of nodes in the structural editor's output 
+tree (rendered DOM):
+
+- Presentation nodes, which are here to display elements that make it easier
+  to read (eg. parens, delimiters, etc), or allow for styling.
+
+- Content nodes, which denote semantic elements
+
+There's also the special case of formatting that crosses over the boundaries of
+nodes, for instance marking other user cursors (for a collaborative editing),
+or multiple selections. This means that any presentation node that contains
+selectable content should have the ability to style (and combine styles) for
+the regions.
+
+In practice, the structural editor works with an enhanced program model (ie.
+a tree with graph-like links between the nodes stored as attributes) that is
+then bi-directionnally mapped to a presentation tree. The key is to preserve
+this mapping and translate operations from one into operations onto the other.
+
+This should be done using a *delta protocol* (ie. a way to exchange changes),
+which should rely on a *node adressing scheme*, so that given a delta each
+part of the system can quickly find where to apply it to -- even if the node has
+changed or was removed. 
+
+  Note ___
+  We should actually define an addressing scheme that is composed of three
+  main information: 1) a node unique id 2) a node content hash 3) a node
+  location hash. This extra information should be used to help resolve
+  conflicts when things have changed.
+
+So in terms of architecture, here's what I propose:
+
+- The "document" is the canoncial "document/program model", which should
+  allow for weaving different types together, like XML does with namespace. 
+  For instance, you might have documentation, code, tests, type annotations
+  with all different models and representations.
+
+- The document is mapped to a view model (which could be shared/synchronized
+  between concurrent users). The view model should be structurally similar to
+  the document model. Some operations work only at the view level
+  (selection, cursors, marks) while some others work only at the model level
+  (editing).
+
+So far it's a very basic Model-View pattern, with the main difference that
+given any node from the view, we should be able to instantly find the corresponding
+node (or subset of node) within the model. If we take into account selections,
+which can span one or more nodes (or even just a fraction of a node), we need 
+to introduce the notion of *node selection*:
+
+- A *node selection* a complete
+  or partial selection of one or more nodes (which should be defined in TLang's
+  API).
+
+- Like nodes, selections should be easily remapped from one projection of
+  the model to the other (model→view and view→model).
+
+Rendering the model
+===================
+
+The idea of [projectional editing](https://martinfowler.com/bliki/ProjectionalEditing.html)
+is a good synthesis of what I'd like to do here: a core/canonical representation
+of the program, and a set of UIs that interact with it.
+
+Projections from the model to the view should be defined using [templates](@docs/ideas/templates),
+and the application of these templates should allow for fast reverse mapping (view→model),
+either by using metadata or by using an addressing scheme.
+
+In fact, the model→view rendering is pretty much like what React-style
+rendering engines do, so we'd like TLang to provide enough infrastructure
+so that implementing such a rendering system is trivial (ie. expressing
+the templates), and also, *very importantly* support incremental 
+rendering.
+
+In other words, not only model nodes should be expandable to templates, but
+changes applied to nodes must be expandable to changes applicable to templates.
+
+Projectional Editing
+====================
+
+The main requirement for projectional editing is to map any selection in the
+view to a selection in the model. For a text-based representation, a selection
+is a set of ranges, for a visual representation, a selection might be a point,
+a rectangle or a freeform selection.
+
+There must be a bidirectional mapping between a model selection and a selection
+in the view. Selections can be local to a view, or may be shared by multiple
+users in a collaborative environment.
+
+Architecture
+============
+
+- Model schema, view schema model→view transform: define the data model
+  that is being worked on and how it is translated to the view. It might
+  be interesting to see what happens if the transform is bijective, maybe it's
+  possible to interpret a change to the view directly in the model, but it's
+  probably not enough.
+
+- Cursors: positions within the view and their underlying position within the
+  model.
+
+- Selections: cursors rely on selection to represent possibily discontinuous
+  subsets of the model's content. Note that selections can be hierarchical
+  (a sub node is fully selected, the parent is partially selected).
+
+Any change on the view should be done instead as a change to the model (ie,
+abstract semantic operations), operations should be reified so that interactive
+control elements can parameter them (for instance, if you're editing a 3D scene,
+you could have control points for rotation, translation, scaling, etc).
+
+Ideally, the model→view transform (and their schemas) is implemented in TLang,
+which generates the rendering code, and then the operations are implemented 
+using the host language, leveraging TLang's high-level API, which should also
+be generated based on the model schema.
+
+
+
+Collaboration
+=============
+
+Collaboration relies on the delta protocol, ie. the exchange of patches. 
+[Pijul](https://pijul.org/model) and [Pijul theory](https://github.com/bitemyapp/Pijul/blob/master/theory.md) are good examples of that.
+
+See [Bram Cohen's Patience Diff](https://bramcohen.livejournal.com/73318.html).
+https://bramcohen.livejournal.com/17319.html
+
+
+
+Text Editor Protocol
+====================
+
+The idea here is to define a protocol that allows for remote referencing and
+manipulation of a tree, allowing for a TLang-managed to be remotely manipulated
+and introspected by an editor, debugger, user-interface an so forth.
+
+The requirements are:
+
+- Ability to reference a node in a persistent, canonical way
+- Ability to introspect a node (name, attributes, contents)
+- Ability to subscribe/unsubscribe to updates to a node
+- Ability to run queries
+
+The protocol should then be a series of commands sent over the wire, with
+possibly out-of-order responses.
+
+
+# EOF: syn=texto ts=2 sw=2 et

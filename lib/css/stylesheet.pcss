@@ -1,0 +1,128 @@
+@import url(https://fonts.googleapis.com/css?family=Inconsolata|Anaheim|Cousine:400,400i,700,700i|Work+Sans:300,400,500,600,700,800,900&display=swap)
+//@import url(https://fonts.googleapis.com/css?family=Anaheim|Inconsolata|Work+Sans|Cousine&display=swap)
+//@import url(https://fonts.googleapis.com/css?family=Barlow+Semi+Condensed|Domine|Enriqueta|Gentium+Basic|Martel|Noto+Serif+JP|Nunito+Sans|Quattrocento|Rubik|Varela+Round|Vidaloka|Vollkorn&display=swap)
+
+@unit pad=16px
+@unit lh=1.55em
+
+// TODO: see https://www.framer.com/api/
+
+body
+	padding:0px
+	margin: 0px
+	font-size: 15px
+	line-height: 1lh
+	font-family: 'Work Sans', sans-serif
+	//font-family: 'Anaheim', sans-serif
+	text-rendering: optimizelegibility
+
+h1,h2,h3,h4,h5,h6,h7,h8
+	font-family: 'Work Sans', sans-serif
+	//font-family: 'Anaheim', sans-serif
+	margin-bottom: 0.75lh
+	margin-top: 0em
+	font-weight: 600
+
+h1
+	font-size: 34px
+	font-weight: 800
+
+h2
+	margin-top: 1lh
+	font-size: 28px
+	font-weight: 800
+
+h3
+	font-size: 26px
+	font-weight: 600
+
+h4
+	font-size: 24px
+
+h5
+	font-size: 18px
+
+dt
+	font-weight: bold
+
+p, dd, li
+	max-width: 40em
+
+dd, li
+	margin-top:    0.25lh
+	margin-bottom: 0.25lh
+
+dd > ul
+	margin-left: 0px
+	padding-left: 0px
+
+header
+	padding: 1pad
+	margin-top: 1pad
+	margin-bottom: 1pad
+	> h1
+		font-size: 38px
+	
+
+section
+	border-bottom: 1px solid #E0E0E0
+	padding: 1pad
+	margin-top: 1pad
+	margin-bottom: 1pad
+	&:last-child
+		border-bottom: 0px solid #E0E0E0
+	section
+		padding: 1pad
+		margin-left: -1pad
+		margin-right: -1pad
+
+a.link
+	color: #0366d6
+	text-decoration: none
+	white-space: nowrap
+	&:before
+		display: inline-block
+		content: "🌐"
+		padding-right: 2px
+		opacity: 0.5
+		font-size: 80%
+	&:hover
+		text-decoration: underline
+	
+.term
+	background-color: #EAF8FFFF
+	border-bottom: 1px solid #0366d610
+	color: #0366d6
+	padding-left: 4px
+	padding-right: 4px
+	border-radius: 4px
+	white-space: nowrap
+	cursor: pointer
+	&:hover
+		text-decoration: underline
+	&:before
+		display: inline-block
+		content: "★"
+		padding-right: 2px
+		opacity: 0.5
+		font-size: 80%
+
+code, pre
+	font-family: 'Cousine', monospace
+	font-size: 12px
+	line-height: 20px
+
+code
+	color: #404040
+	display: inline-block
+	background-color: #F6F8FA
+	padding-left: 6px
+	padding-right: 6px
+	padding-top: 1px
+	border-radius: 4px
+
+pre
+	background-color: #F6F8FA
+	padding: 1pad
+	border-radius: 4px
+

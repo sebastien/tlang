@@ -1,0 +1,235 @@
+== Tree Traversal Study
+
+We're going to explore the design of a state machine for traversing trees,
+and see how it works for executing a series of query selectors.
+
+We assume the machine is like this:
+
+- It has a *cursor* positioned on a given node
+- It has a set of *named condition registers* containing integer values, 
+  initialized at 0.
+- It has *UP*,*DOWN*,*LEFT*,*RIGHT* operations (parent,first child,previous and next sibling).
+- It has *INC* and *DEC* operations to increase and decrease the condition
+  registers.
+
+We use this machine to do tree traversals using the following axes:
+
+- `TD` for top-down
+- `BU` for bottom-up
+- `LR` for left-right
+- `RL` for right-left
+
+Each time we step on a traversal, we produce an event of the form
+
+```
+(DIRECTION NEXT_NODE CURRENT_NODE)
+```
+
+for instance if we're doing a `TD` traversal and the current node is a `dir`,
+and we're moving `DOWN` to a `file` node, we'll get:
+
+```
+(DOWN file dir) 
+```
+
+Now for each traversal there is a set of rules defined with the following
+properties:
+
+- a direction (`UP|DOWN|LEFT|RIGHT`)
+- a node type (like `dir`, `file`, etc)
+- an optional predicate to execute on the node
+- an effect, when the rule is being met
+- an effect, when the rule is being unmet (ie. was met, but is not met anymore)
+
+The underlying goal of setting up this formalization of a tree traversal is
+to end up with a state machine that can be executed very efficiently in a tight
+loop.
+
+Studies
+=======
+
+Files within a directory
+------------------------
+
+Taking the filesystem example, let's select all the files that
+are within a parent dir named `src`:
+
+```  
+//dir[@name='src']//{file}
+```
+
+The first part of the query is finding all the `dir` nodes in a top-down
+approach, then we find all the file nodes.
+
+Let's introduce a notation of the form:
+
+```
+(MOVEMENT CURRENT_NODE PREVIOUS_NODE CONTEXT_PREDICATE CONTEXT_ACTION)
+```
+
+and we introduce the `IN_DIR_SRC` condition as being set when the current
+node is a `dir[@name='src']` going DOWN and then decreased when we're leaving
+the node, whatever the direction:
+
+```
+(DOWN dir[@name='src']   *                * (incset! IN_DIR_SRC))
+(*    *                  dir[@name='src'] * (decset! IN_DIR_SRC))
+```
+
+Once this condition is met (ie. it transitions from 0 to 1), we can
+continue the traversal and match any `file` node.
+
+```
+(DOWN file * (has? IN_DIR_SRC) match)
+```
+
+Now, let's consider a more restrictive variant:
+
+```  
+;; Equivalent to **/src/* **/src/*/* **/src/*/*/*
+//dir[@name='src']/2/{file}
+```
+
+In that case, what we want to do is have `IN_DIR_SRC` start at `2`
+when `dir[@name='src']` and then decrease as we go DOWN. 
+
+```
+(DOWN dir[@name='src']   *                * (set IN_DIR_SRC_1))
+(*    *                  dir[@name='src'] * (unset IN_DIR_SRC_1))
+```
+
+and then
+
+```
+(DOWN *  *               (has? IN_DIR_SRC_1) (set   IN_DIR_SRC_2))
+(*    *  *               *                   (unset IN_DIR_SRC_2))
+```
+
+This is actually quite awkward if we have a large number instead of `2`, but if
+we're guaranteed that we have a top-down, traversal, then:
+
+```
+(DOWN dir[@name='src']   *                * (add! IN_DIR_SRC 2))
+(DOWN *                  *                * (dec! IN_DIR_SRC))
+```
+
+and then
+
+
+```
+(DOWN * * (eq? IN_DIR_SRC 0) (match! IN_DIR_SRC_2))
+```
+
+However, that would not work with:
+
+```
+dir[@name='src']/dir[@name='src']/{file,dir[@name='src']}/{file,dir[@name='src']}
+A                B                {C,D}                   {E,F}
+```
+
+because then:
+
+- At `A`, `IN_DIR_SRC = 2`
+- At `B`, `IN_DIR_SRC = 4`
+- At `C`, `IN_DIR_SRC = 3`, but if B had been a different node type, then `IN_DIR_SRC=0` and `IN_DIR_SRC_2` would match.
+
+Short of using a stack of ancestors and checking the predicates for each step,
+we could introduce the notion of condition levels, where some conditions are valid
+at a level relative to the current cursor. In this case, we would need three levels:
+0 (current), 1 (parent), (grand parents) and indicate a way for IN_DIR_SRC to be set at 
+the corresponding level.
+
+```
+(DOWN dir[@name='src']   *                * (set-level IN_DIR_SRC))
+```
+
+and then
+
+```
+(DOWN * * (has-level? IN_DIR_SRC -2) (match! IN_DIR_SRC_2))
+```
+
+Undefined references
+--------------------
+
+So this is a relatively complex query that finds all undefined references
+in a program:
+
+```
+.//ref/{NAME:@ref}[empty(.<<define/@ref[eq(@,$NAME)]]
+```
+
+The first part is easy, it looks for all the `ref` nodes in a `TD` traversal
+and emits their `@ref` attribute as part of the `NAME` result set.
+
+```
+.//ref/{NAME:@ref}
+```
+
+However, the next part is tricky as we need to know: have we encoutered before,
+(ie on a full depth-first traversal) a definition with the given name. So that
+means we actually have to look for `define/@ref` first:
+
+```
+* define[@ref] * * (set-flag DEF @ref)
+```
+
+and then for the `.//ref/@ref` part:
+
+```
+* ref[@ref] * (not (has-flag? DEF @ref)) (match UNDEFINED_REF)
+```
+
+This example illustrates how a query should be compiled into different passes
+with different traversal orders.
+
+State Machine
+=============
+
+We start with the hypothesis that a given state machine starts with a given
+traversal type: either depth first of breadth first and either top-down/left-right
+or bottom-up/right-left.
+
+The state machine has a number of flags (which we've named conditions) that
+can be SET or UNSET. Some flags can be parametric (ie. they can be associated with a value)
+and set/unset using PSET et PUNSET.
+
+The state machine has also a set of basic predicates to test the type of node: NODE?,
+ATTR?. Custom predicates can be executed using `HAS?`.
+
+The `ATTR` operation is used to retrieve the value of an attribute.
+
+Movement operations::
+
+- `UP`
+- `DOWN`
+- `LEFT`
+- `RIGHT`
+
+Predicate operations::
+
+- `NODE? NAME` true when the current node is of name `NAME`
+- `ATTR? NAME` true when the current node has an attribute of name `NAME`
+- `FLAG? NAME LEVEL`  true when there is a flag with the given `NAME` at the given `LEVEL` (integer)
+- `HAS? NAME` true when the custom predicate `NAME` is true on the current node
+
+Flag operations::
+
+- `SET NAME` sets the flag `FLAG`
+- `UNSET NAME` unsets the flag `FLAG`
+- `PSET NAME KEY` sets the key `KEY` of the flag `NAME`
+- `PUNSET NAME KEY` sets the key `KEY` of the flag `NAME`
+
+# EOF - vim: ts=2 sw=2 et syn=texto
+
+
+
+
+
+
+
+
+
+
+
+

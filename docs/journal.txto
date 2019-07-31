@@ -1,4 +1,5 @@
-== 2019-03-09
+2019-03-09
+==========
 
 I'm thinking about templates, queries and traversals, trying to find a 
 unifying paradigm. So far it seems like queries and templates are dual
@@ -28,7 +29,7 @@ this equivalence also works when the template has many branches:
 with the compact query syntax below:
 
 ```tlang
-list[./#0/symbol/@attr][./#1/list[./symbol/@name]][./query/{ATTRIBUTE_QUERY}[/#2:{VALUE}]]
+list[./#0/symbol/@name[= _ "attr"][./#1/list[./symbol/@name[= _ "name"]][./query/{ATTRIBUTE_QUERY}[/#2:{VALUE}]]
 ```
 
 if we expand the query to multi-line, we arrive to a similar structure as the
@@ -36,9 +37,9 @@ template:
 
 ```tlang
 list
-  [./#0:symbol/@attr]
+  [./#0:symbol/@attr[= _ "attr"]]
   [./#1:list
-    [./symbol/@name]
+    [./symbol/@name[= _ "name"]]
     [./:query/{ATTRIBUTE_QUERY}]]
   [/#2:{VALUE}]
 ```

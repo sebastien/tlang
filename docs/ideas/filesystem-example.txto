@@ -41,7 +41,7 @@ now let's define the synthetic attributes:
 		(count ./file)))
 
 (attr (dir @mean-size)
-	(div {//file}/@size (or (count A)))
+	(div {//file}/@size (or (count A) 1))
 
 (attr (file @relative-size)
 	(div ./@size (or ../dir/@size 1)))

@@ -13,21 +13,26 @@ See:
 
 It's important to take into consideration the fact that if a query/traversal
 traverses attributes (ie `node/@depends/@depends` we need to make sure not to
-traverse the same node twice or we'll loop)
+traverse the same node twice or we'll loop − in fact, we might want to have 
+a different notation like `node/@depends~./@depends`)
 
 ```
 ;; @attribute
-;; A nodes dependencies is the union of its direct dependencies and the
-;; dependendencies of 
+;; A node dependencies is the union of its direct dependencies and their
+;; dependendencies (it's recursive).
 (attr node/@depends
   ;; NOTE: This might trigger recursive traversals, so we need to 
   ;; make sure TLang is guarded against that.
   (union ./@depends-direct ./@depends-direct/@depends))
 ```
 
+
+References/ideas
+----------------
+
 From [Michael Vollmer - Compiling tree transforms to operate on packed representations](https://www.youtube.com/watch?v=YDa60NpXp6Q),
 there is the "cursor passing style", where the tree is a packed array ordered
 according to traversal. Overall, packed trees seem like 1/10th of the time (10x
-sped increase) vs pointer-based.
+speed increase) vs pointer-based.
 
 # EOF - vim: ts=2 sw=2 et syn=texto

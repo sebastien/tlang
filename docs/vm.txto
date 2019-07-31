@@ -1,0 +1,106 @@
+== TLang VM
+
+This document lists the primitives of the virtual machine use to execute
+traversals. TLang's compiler is reponsible for generating an optimal
+traversal based on queries and transforms.
+
+Each operation has an implicit context, surrounded by square 
+brackets, and a list of arguments. Each operation is denoted by an 
+UPPERCASE name, followed by `!` if it has side-effects and `?` if it is
+a predicate. Operation names are designed to be short and can
+therefore be less readable than the fully spelled out form
+(eg. `RMATTR → REMOVE_ATTRIBUTE`).
+
+Traversal
+=========
+
+Traversal opreations are not defined in terms of `parent`, `child`, `next`
+or `previous` but rather in `up` (parent), `down` (first child)`,
+`left` (previous sibling) and `right` (next sibling). The reason is that
+`next` and `previous` are more ambiguous, as they are dependent on an
+axis orientation.
+
+`UP [node:Node] count:NaturalInteger -> Node`::
+	Moves the cursor up `count` nodes.
+	If a node is not reachable, then `OutOfBoundsError` is returned.
+
+`DOWN [node:Node] count:NaturalInteger -> Node`::
+	Moves the cursor down `count` nodes
+	If a node is not reachable, then `OutOfBoundsError` is returned.
+
+`LEFT [node:Node] count:NaturalInteger -> Node`::
+	Moves the cursor left `count` nodes
+	If a node is not reachable, then `OutOfBoundsError` is returned.
+
+`RIGHT [node:Node] count:NaturalInteger -> Node`::
+	Moves the cursor right `count` nodes
+	If a node is not reachable, then `OutOfBoundsError` is returned.
+
+All these have predicate variants that will tell wether a node is
+reachable or not:
+
+- `UP?   count:NaturalInteger -> Bool`
+- `DOWN? count:NaturalInteger -> Bool`
+- `LEFT? count:NaturalInteger -> Bool`
+- `RIGHT? count:NaturalInteger -> Bool`
+
+Querying
+========
+
+`IS? [node:Node] name:Identifer -> Bool`::
+	Tells if the node under the current cursor has the given
+	identifier.
+
+`IS [node:Node] -> Identifier`::
+	Changes the identifier of the node under the cursor
+
+`ATTR? [node:Node] name:Identifer -> bool`::
+	Tells if the attribute with the given `name` is defined
+	for the current node.
+
+`ATTR  name:Identifer -> AttributeValue`
+
+
+Updating
+========
+
+`IS! [node:Node] name:Identifier -> Delta[SET]`
+	Updates the identifier of the node under the cursor
+
+`ATTR! name:Identifer value:AttributeValue -> Delta[SET]`
+
+`INSNODE! [parent:Node] child:Node position:NaturalInteger -> Delta[INSERT]`
+
+`ADDNODE! [parent:Node] child:Node -> Delta[APPEND]`
+
+`RMNODE! [parent:Node] child:Node -> Delta[REMOVE]`
+
+Removing
+========
+
+`RM! [node] -> Delta[REMOVE]`
+
+`RMATTR! name:Identifier -> Delta[REMOVE]`
+
+Delta
+=====
+
+`ADDR [node:Node] -> Address`::
+	Returns the address of the current node.
+
+`ATTRADDR [node:Node] name:Identifier -> Address`::
+	Returns the address of the given attribute in the current node
+
+`TRSTART -> Transaction`::
+	Starts a transaction
+
+`TREND [transaction:Transaction] -> Transaction`
+	Ends the current transaction.
+
+`TRADD! [transaction:Transaction] delta:Delta -> Transaction`
+
+`TRCANCEL [transaction:Transaction] -> Transaction`
+	Cancels the current transaction.
+
+`TRAPPLY [node:Node] transaction:Transaction -> Transaction`
+	Applies the given transaction in the given node

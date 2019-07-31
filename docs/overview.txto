@@ -1,0 +1,60 @@
+== TLang Overview
+
+
+A tree-based data model::
+
+  If your application works primarily with trees, or if your data model can
+  be mapped to a tree (compilers, databases, UIs), TLang will offer you a
+  primitive API that you can build upon. This primitive API will give you, for
+  free:
+
+  - Change propagation: any modification to the structure creates changesets
+    that can be communicated and applied incrementally. Think Git for your
+    data model.
+
+  - Incremental transformation: you can describe transformations of your data
+    model into another data structure, for instance from your data model to
+    a DOM tree, a text document or a custom data model. Whenever a change is
+    made, the change is translated to effects into the transformed data structure.
+
+  - Transformation-invariant node addressing: TLang offers a way to address
+    and select nodes within a tree and its transformations. This means that
+    you can always find the nodes from the original tree that produced the nodes
+    in the transformed tree, and vice-versa.
+  
+A DSL for working with trees::
+
+  TLang offers a Scheme-like DSL to work with trees:
+
+  - Schema: you can define constraints on the nodes an validate if a tree
+    matches the constraints described in the schema.
+
+  - Query language: TLang defines a compact language for expressing queries
+    on a tree, making it easy to select nodes and navigate the tree.
+
+  - Templates: you can define templates that match part of a tree and define
+    a corresponding transformation. This makes it possible to write complex
+    tree transformations in a declarative way.
+
+  The DSL can then be compiled to host-language code and be executed against
+  a TLang-compatible data model.
+
+An optimizing compiler::
+
+  TLang's goal is to make it easier, safer and more efficient to work with
+  tree structured data. As such, it provides a compiler that produces
+  optimized, language-agnostic code for the following cases:
+
+  - Querying: given a set of queries, TLang's compiler can generate an
+    optimized state machine to run the queries on a tree with a given schema and
+    extracts data from it.
+
+  - Transforms: the compiler can generate a state machine that translates
+    changes made to a source tree to changes made on a destination tree, scheduling
+    and aggregating updates appropriately.
+
+  - Synthetic attributes: some attributes of a tree can be expressed as functions
+    of parts of the trees. The compiler can automatically implement efficient synthetic 
+    attribute recalculation.
+
+# EOF - vim: ts=2 sw=2 et syn=texto

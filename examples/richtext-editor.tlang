@@ -10,6 +10,12 @@
 ;;
 ;; Here we define a subset of HTML as our schema for the model.
 
+(use tlang/schema    (schema attr))
+(use tlang/transform (transform))
+(use tlang/effects   (on do))
+(use std             (when match case else))
+(use std/errors      (fail))
+
 (schema
 
   (document

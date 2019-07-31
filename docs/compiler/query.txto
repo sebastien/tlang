@@ -93,7 +93,7 @@ both the file nodes and dir nodes in two implicit result sets:
 dir[//file[(gt? @size 100)]|{.}]|{.}
 ```
 
-# TODO: We might want to move this somwhere else
+# TODO: We might want to move this somewhere else
 
 The breakdown of the above query is as follows:
 
@@ -105,3 +105,5 @@ The breakdown of the above query is as follows:
 
 This process is still sequential, but contains nested queries that are
 run out of more than one node as a base.
+
+# EOF - vim: ts=2 sw=2 et syn=texto

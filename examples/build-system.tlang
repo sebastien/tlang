@@ -2,6 +2,10 @@
 ;; @created 2019-03-06
 ;; @updated 2019-03-06
 
+;; TODO: Node traversal in attributes might need to be denoted differently.
+;; TODO: Think about implementing a FUSE version of that, so that you have
+;;       live preview.
+
 ;; TODO: Awkward formulation
 ;; @texto
 ;; This example shows how to create a simple build system (or a cache system)

@@ -1,0 +1,84 @@
+== Node Adressing
+
+An important feature in TLang is the ability to address nodes within a tree so
+that:
+
+1) If the node moves or is changed, the adress is still valid
+2) If the node is the product of a transformation, it is possible to find
+   the origin node(s) used to create the transformation.
+3) Adresses should not be runtime or machine dependent: adresses should
+   be valid across formats, processes and devices.
+
+Core concepts
+=============
+
+Node index
+----------
+
+A _node index_ is the index of a node in a traversal. As there can be different
+types of traversals, the node index depends on which type of traversal is 
+considered, but also of the topology of the tree. Any change in a node with a
+lower index will impact the node's index.
+
+Node position
+--------------
+
+We're going to introduce the notion of _node position_ as way to unambiguously
+identify a node in a tree at a given time (ie. the position might change if
+the tree changes). We will consider the node position as a list.
+
+If a node has no parent, we can say that its position is nil, and can
+be represented by the empty list `[]`.
+
+If it has a parent, then its position is prefixed by the position of its
+parent, and the index of the node within it's parent's children. The first
+node of the root would have `[0]` as an address, the second `[1]`.
+
+The node position is resilient to *some* changes in the tree. A node's position
+will only change if the node is moved, or if any previous sibling or a previous
+sibling of its ancestor is changed.
+
+# TODO: What about relative position (ie. the path from a node to another?)
+
+# TODO: elaborat
+# In other words, if we have *W* the depth of the tree and *H* the breadth of
+# tree, then addresses can 
+
+Node identifier
+---------------
+
+We introduce the _node identifier_ as a unique identifier local to the document
+that is safe to use in a distributed/collaborative editing context. This means
+that two documents might have two nodes sharing the same identifier, but no two
+nodes can share the same identifier within the same document, even if there
+were created concurrently by two users.
+
+The node identifier does not change througout a node's lifecycle, but it does
+not make it possible to find the node in
+
+Node context
+------------
+
+A _node context_ captures information about its surrounding. A node's direct
+context is the triple `(parent,previous,next)` where each item is the
+node's indentifier, or `nil` if no parent/previous/next node exists.
+
+A node's context makes it possible to locate a node in a tree even after
+the tree has changed. It also offers opportunities to help resolve conflicts.
+
+Content addressing
+==================
+
+A node has attributes and children, which all might be adressed partially
+or in full. Attributes can all be uniquely addressed by using their name,
+while children can be uniquely addressed by using their child position.
+
+
+
+
+
+
+
+
+
+# EOF - vim: ts=2 sw=2 et syn=texto

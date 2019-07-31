@@ -1,0 +1,79 @@
+== TLang's architecture
+
+Overview
+========
+
+Layers
+------
+
+# NOTE: This does not really work, it's not really about layers but more
+# like perspectives. This needs to mature a bit.
+
+Low level::
+
+- *Tree API*: an abstraction over the physical, host-language dependent
+  implementation. It is the abstract interface common to all physical
+  implementations.
+
+- *Physical*: host-specific implementation of the tree API. The data structures
+  could be synthesized based on a schema and a transformation program in 
+  order to optimize performance.
+
+Internal
+--------
+
+- **Tree API**: all the domain elements manipulated by TLang are 
+  described and reified as an API that can be accessed by the host language.
+  This ensures transparency, extensibility and the ability to integrate
+  TLang tightly within an application. The model API defines a featureful, 
+  high-level and efficient interface to the tree data structures managed 
+  by TLang. Think of it as an equivalent of the [DOM](https://en.wikipedia.org/wiki/Document_Object_Model) for your host language.
+
+- **Operations API**: TLang defines a set of primitive operations that 
+   can be done on a tree-like structure, organized in the following levels:
+  |
+  - *L0* (CREATE)   for creating values:  create, append, remove, replace nodes, set and unset attributes.
+  - *L1* (ACCESS)   for accessing values: next,previous,parent,children for nodes, read and has for attributes.
+  - *L2* (EXECUTE)  for executing predicates, producing values and producing side-effects using the host language.
+  - *L3* (PATCH)    for applying deltas and transactions
+  - *L4* (CONTROL)  high level instructions to support conditional and loops
+  - *L5* (CORO)     high level instruction for suspending and resuming processes
+  |
+  Each operation is designed to be used in an interpreter, VM or an optimizing
+  compiler. These primitive operations are what a high-level TLang compiles
+  to, and can be translated to native code.
+
+- **Delta API**: an API for describing changes made to the tree and combining
+  them together.
+
+- **Interaction protocol**: in addition to the API, TLangs offers a simple
+  text-based protocol to remotely interact with the model, which makes it
+  possible to use a TLang core in an interactive or long running setting.
+
+
+Additional tools and services are built on top of that foundation:
+
+- **Tree importer/exporters**: trees can be exported (serialized) and imported
+  (deserialized) to and from a variety of formats, from TLang's S-Expr format
+  to XML, JSON and a fast-loading binary format. This provides a high-level
+  interface for exchanging data and interoperability at the data level.
+  
+- **Query compiler**: transforms a query on a tree into a sequence of
+  primitive operations. The query can be optimized using a _tree schema_.
+
+- **Transform compiler**: 
+
+- **State machine generator**: the state machine generator takes a transform
+  schema and produces a state machine that reacts to events on a tree (node added, removed,
+  attribute updated or cleared) and automatically updates/invalidates/transforms
+  the tree. The state machine uses primitive operations and should be directly
+  translatable to the host language and produce a highly efficient implementation
+  of the TLang program.
+
+Compiler passes
+---------------
+
+- **Traversal scheduler**: decomposes the transforms in phases, and decompose
+  each phase in traversals that can be suspended, resumed and broken down
+  in independent parts.
+

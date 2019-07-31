@@ -1,0 +1,152 @@
+```plantuml
+@startuml
+
+TLang - Architecture
+
+package ModelAPI <<Frame>> {
+  package tlang.model.tree {
+    class Node
+    class Attribute
+    class Subtree
+    class NodeSet
+    class Range
+  }
+  package tlang.model.delta  {
+    class Operation
+    class Delta
+  }
+  package tlang.model.query {
+    class Context
+    class Axis
+    class Pattern
+    class Selector
+    class Query
+    class Selection
+  }
+}
+@enduml
+```
+
+Tree API
+========
+
+Node
+
+Attribute::
+  An attribute is a pair `(name:String, value:AttributeValue)`
+  where an attribute value is a string, a number, a symbol or a node reference,
+  or any tuple/list/map combination of these without recursive references/cycles.
+
+  The attributes is the ordered map of attributes.
+
+Node set::
+  Zero or more nodes, not necessarily part of the same tree. Node set
+  contain an node and all its descendents, as opposed to subtrees that
+  represent a subset of a node.
+
+Disjoint node set::
+  A node set where no node is found twice. By opposition, a joint nodset
+  might contain a parent node and one of its children as well.
+
+Subtree::
+  Connected parts withing a tree, possibly excluding some children, ancestors
+  and descendants. In other words, any subset of a tree where ther exists 
+  a path between all the nodes within that subset.
+
+Subtree set::
+	One or more subtrees.
+
+Delta API
+=========
+
+Delta::
+
+Scope::
+
+Value::
+
+Key::
+
+
+Querying API
+============
+
+Context::
+	The context defines what a query operates on. This can an attribute, a node,
+	a subtree or a set of any combination of these three.
+
+Axis::
+	An axis represents the direction in which a query will traverse the context.
+	An axis can have modifiers to restrict its reach.
+
+Name pattern::
+	
+
+Predicate::
+
+Selector::
+
+Query::
+
+
+
+Template API
+============
+
+# NOTE: Templates are another form of rewriting
+
+Pattern::
+  A pattern represents a set of possible nodes, where _parts_ can be 
+  bound to _slots_. If a pattern *matches*, the *match* will contain the
+  binding between the slots and the corresponding nodes/attributes within the
+  input tree.
+
+Template::
+  A template is the symmetric of a pattern: it expands slots into one or more
+  nodes (ie. a nodeset)
+
+
+Schema API
+==========
+
+# NOTE: Schemas can actually be expressed as queries or transforms that fail.
+# TODO: We need to express type, cardinality
+# TODO: We probably need to express synthetic attributes, or maybe it belongs
+#       somewhere else?
+
+NameConstraint::
+
+NodeConstraint::
+
+AttributeConstraint::
+
+AttributeValueConstraint::
+
+ChildrenConstraint::
+
+Selection API
+==============
+
+Anchor::
+  A `(node:Node, offset:Int)` that identifies a position within a node. When
+  the node is a leaf, then the anchor is static, when the node is not a leaf
+  then the anchor is dynamic (ie. it will change if the conent change).
+
+Range:: 
+  A `(start:Anchor, end:Anchor, affinity:Number)` pair, where `affinity` is
+  the equivalent of rounding (-1 towards the previous element, +1 towards the
+  next element, and 0 depending on the context).
+
+Selection::
+  A list of ranges.
+
+Protocol
+========
+
+All these API should be available using C bindings (or host language bindings,
+through a minimal runtime), but they should also be available using a high-level
+protocol that is easy to use and fast enough.
+
+
+
+# EOF: syn=texto ts=2 sw=2 et

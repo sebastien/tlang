@@ -2,7 +2,7 @@
 Schemas and transforms
 ======================
 
-Schemas can be considered as a transform that returnd nothing (satified) or
+Schemas can be considered as a transform that returns nothing (satisfied) or
 a list of errors. While it's useful to just know if something is valid
 or not, it is even more useful to understand what is not valid and why.
 
@@ -32,3 +32,82 @@ the corresponding schema might be
 		(@amount (sum ACCOUNT/*/@amount))
 		(:many account-transaction account)))
 ```
+
+XSLT-like
+---------
+
+XSLT can be [quite verbose](http://github.com/sebastien/jsxml) but it still
+a pretty powerful document to transform trees. We need to do something similar.
+Like with XSLT, there are two main types of output:
+
+- A string
+- A tree
+
+But we could very well emit something else entirely. Actually, a text document
+could be a tree with just a root node and text nodes. We could also consider the 
+case of a tree that only has side-effects, which might do stuff like create
+bytecode.
+
+One of the main thing is to identify the shortcomings of XSLT:
+
+- Formatting text is awfully verbose
+- Template call syntax is very verbose
+- The lack of namespacing makes it hard to organize complex templates
+- It is not always clear what is the current scope on which a template
+  is applied.
+
+So let's say that a transform is a tlang program that imperatively transforms
+a tree. This is to be put in constrast with a schema that might have
+synthetic attributes that are declaratively described. There is potentially
+an equivalence between these two terms.
+
+We can introduce the folowing functions that operate as producers in a 
+stream.
+
+- `(emit-node NAME ATTRIBUTES CHILDREN) → Node`
+- `(emit-attribute NAME VALUE) → Attribute`
+- `(emit-text STRING) → String`
+- `(emit-eol) → EOL`
+
+and then:
+
+- `(emit-push NODE) → Node` to make the given node the current node
+- `(emit-pop) → Node` to switch to the current node
+- `(emit-scope NODE OPS…) → Node` like an `emit-push` before executing the `OP`s, followed by an `emit-pop`
+
+As a result, these stream-like operations can pilot a SAX-like interface
+that might implement additional features (like pretty printing, line wrapping,
+etc).
+
+The rest can pretty much piggy-back on TLang selection and control flow
+libraries.
+ 
+```tlang
+
+;; We can use `rewrite` to declaratively rewrite nodes
+(rewrite Document
+	…{(rewrite //Section)}
+)
+
+(rewrite Section[(count ./*)]
+	;; Here we dynamically generate an `h{1,2,…}` node using
+	;; formatting syntax.
+	({f"h{(inc NODE/@depth)}"}  (@ (anchor-name {(generate-id NODE)}))))
+
+
+```
+
+NOTE: We have to define the  notion of priority and guards as well as 
+named rewrites.
+
+
+Nanopass
+========
+
+Something that is not ideal with transform is that they don't necessarily
+have a schema. They have an implicit schema, based on what is actually
+output by transforms. Is there a way to automatically derive a schema from
+a template? If so, then we can veryify the schema-compatibility of 
+two passes.
+
+

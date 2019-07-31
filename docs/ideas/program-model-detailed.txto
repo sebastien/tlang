@@ -338,7 +338,7 @@ This is where having *explicit types* is a good way to denote semantic differenc
 for stucturally similar types.
 
 ## Explicit subtyping
-
+
 To express this, we define types and define relations between then. We
 introduce the `(type-def NAME TYPESPEC…)` directive to define a type,
 in a similar way to `(data-def …)`:
