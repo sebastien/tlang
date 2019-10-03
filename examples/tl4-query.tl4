@@ -1,0 +1,55 @@
+# Here's how the following query would be compiled
+# //dir[//file[(gt? @size 100)]|{.}]|{.}
+
+# The goal here is to write a program that does the minimum amount of steps
+# (ie traversals) to get the above result. 
+#
+# Here it's important to note that we want to have the matching elements (the
+# files and the dirs) emitted and interleaved in the same order as the traversal.
+
+STACK NODE   :DIRS
+
+# We have a single global depth traversal
+TRAVERSE      DEPTH
+
+@start
+  IS?       dir
+  IFJMP     @dir
+  IS?       file
+  IFJMP     @file
+  NEXT
+
+@dir
+  PUSH      :DIRS
+
+@file
+  # If we don't have an ancestor dir, we can skip this
+  EMPTY?   :DIRS
+  IFJMP     @start
+  
+  # We emit the node if the size is a number greater than 100
+  ATTR size NUMBER
+  GT? _ 100
+  IFJMP @file:emit
+  JMP   @file:end
+
+@file:emit
+  # That's the `|{.}` in the expression
+  EMIT     NODE
+
+@file:loop 
+  # Now we need to emit the `dirs` in order, that's why we're doing
+  # LPOP. 
+  EMPTY?   :DIRS
+  IFJMP    @file:end
+  LPOP     :DIRS
+  # That's the emission of the matching dir
+  # //dir[…]|{.}
+  EMIT     NODE
+  JMP      @file:loop
+
+@file:end
+  NEXT
+  JMP @start
+
+# EOF - vim: ts=2 sw=2 et

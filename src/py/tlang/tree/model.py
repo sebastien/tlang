@@ -12,7 +12,15 @@ __doc__ = """
 The core model representing trees and nodes.
 """
 
+# -----------------------------------------------------------------------------
+#
+# NODE
+#
+# -----------------------------------------------------------------------------
+
 class Node:
+	"""A node is an uniquely identified, named object with zero or one parent,
+	a set of attributes and a list of children."""
 
 	IDS = 0
 
@@ -114,10 +122,24 @@ class Node:
 	def __str__( self ):
 		return "".join(Repr.Apply(self))
 
+# -----------------------------------------------------------------------------
+#
+# NODE TEMPLATE
+#
+# -----------------------------------------------------------------------------
+
+# TODO: Shouldn't we wrap/compose nodes instead?
 class NodeTemplate(Node):
 	pass
 
+# -----------------------------------------------------------------------------
+#
+# REPR
+#
+# -----------------------------------------------------------------------------
+
 class Repr:
+	"""Generates a text-based representation of a given node."""
 
 	@classmethod
 	def Apply( cls, node, pretty=True, depth=0 ):
@@ -146,7 +168,24 @@ class Repr:
 			yield from cls.Apply(child, pretty, depth + 1)
 		yield ")"
 
+
+# -----------------------------------------------------------------------------
+#
+# ADAPTER
+#
+# -----------------------------------------------------------------------------
+
 class Adapter:
+	"""Adapters compose/wrap a TLang node and expose it following another
+	API, such as the DOM."""
+
+	@classmethod
+	def Wrap( cls, node:Union[Node,'Adapter'] ) -> 'Adapter':
+		return cls(node) if isinstance(node, Node) else node
+
+	@classmethod
+	def Unwrap( cls, adapter:Adapter ) -> Node:
+		return adapter.node if isinstance(node, Adapter) else adapter
 
 	def __init__( self, node:Node ):
 		self.node = node
@@ -155,19 +194,31 @@ class Adapter:
 		self.node = node
 		return self
 
+# -----------------------------------------------------------------------------
+#
+# DOM ADAPTER
+#
+# -----------------------------------------------------------------------------
+
 class DOMAdapter(Adapter):
 
-	def appendChild( self, node:Node ):
+	def appendChild( self, node:Node ) -> Node:
 		return self.node.add(node)
 
-	def removeChild( self, node:Node ):
+	def removeChild( self, node:Node ) -> Node:
 		return self.node.remove(node)
 
-	def insertBefore( self, node:Node ):
+	def insertBefore( self, node:Node ) -> Node:
 		i = self.node.index(node)
 		assert i >= 0, "Cannot find node {0} in {1}".format(node, self.node)
 		self.node.insert(i, node)
 		return node
+
+# -----------------------------------------------------------------------------
+#
+# TREE BUILDER
+#
+# -----------------------------------------------------------------------------
 
 class TreeBuilder:
 

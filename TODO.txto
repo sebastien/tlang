@@ -25,6 +25,10 @@ Design::
 [ ] Templates: define the priority of query/selectors so that we know
     which ones are going to be selected when matching a template.
 
+[ ] State machines: we'll need to implement state machines for traversal, but
+    it might also be interesting to see if how they could be implemented
+    using Tlang directly.
+
 Roadmap
 =======
 
@@ -122,5 +126,8 @@ Functional Programs that Explain their Work
 
 https://pldi16.sigplan.org/details/pldi-2016-papers/38/Programmatic-and-Direct-Manipulation-Together-at-Last
 
+- https://comby.dev/#basic-usage templates, etc
+
+https://awelonblue.wordpress.com/2018/11/10/hierarchical-transaction-machines/
 # EOF - vim: ts=2 sw=2 et syn=texto
 

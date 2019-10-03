@@ -1,0 +1,33 @@
+== TLang Low Level Language (TL4)
+
+TLang's low-level language is both a textual and binary format for defining
+TLang programs that operate on trees. TLang's high-level languages (query, 
+schema, tree representation, etc) are meant to describe applications
+and behaviours, while TLang's low-level language is meant to drive the
+engine, which builds, queries and modifies trees.
+
+The instruction set defined in TL4 is all that is required to run TLang
+programs. The language is designed based on the following principles:
+
+- Assembly-like: TL4 should feel like a specialized assembly for operating
+  on trees.
+
+- Cursor: like a line plotter or a 3D printer, TL4 is all about piloting
+  a virtual cursor that moves over the tree and queries/builds/removes parts
+  of it.
+
+- Readable: TL4 programs should be writable by hand and should be readable
+  when machine-generated.
+
+In particular, we want TL4 to fit the following use cases:
+
+- Compilers: make it easier to experiment with queries and transform 
+  optimization startegies, and make the compiled code easier to debug.
+
+- Protocol for remote tree interaction: a user interface might interact with
+  a tree data using TL4 as an way to operate on the tree.
+
+- A way to send patches on tree data: …
+
+
+ 

@@ -1,0 +1,39 @@
+;; @created 2019-06-21
+(import tlang/transform (transform template pass expand))
+(import tlang/tree      (id))
+(import tlang/text      (emit))
+
+(namespace x 'html)
+(namespace t 'text)
+
+(pass texto-to-html
+
+    (template Section 
+      (x:div (@ (class 'section))
+        (x: f"h{(inc @depth)}" (@ (class 'section-header) (name (id .))))
+        …{expand *}))
+
+    ;; Catchall rules to expand any other node to just text.
+    (template * …(expand *))
+
+    (template .[(text?)] {(text .})))
+
+(pass text-to-ascii
+  ;; Converts a title to
+  ;; == TITLE
+  (template Section/{title:T}
+    (t:line …{(* '=' (inc @depth)) ' ' (text T):S}))
+
+  (template List
+    (t:indent …(expand ListItem))+)
+
+  (template ListItem
+    (t:block "- " (t:indented (@ (first 0) (rest 2) …(rewrite *)))))
+  
+   (template * …(expand *))
+   (template .[(text?)] {(text .})))
+  
+)
+
+
+;; EOF - vim: ts=2 sw=2 et syn=scheme

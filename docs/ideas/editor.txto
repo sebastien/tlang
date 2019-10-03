@@ -8,19 +8,26 @@ tree (rendered DOM):
 
 - Content nodes, which denote semantic elements
 
+- Decorations, such as bookmarks, debugging toggles or even, cursors.
+
 There's also the special case of formatting that crosses over the boundaries of
 nodes, for instance marking other user cursors (for a collaborative editing),
 or multiple selections. This means that any presentation node that contains
 selectable content should have the ability to style (and combine styles) for
-the regions.
+subsets of its content.
 
-In practice, the structural editor works with an enhanced program model (ie.
+In practice, the structural editor should work with an augment program model (ie.
 a tree with graph-like links between the nodes stored as attributes) that is
 then bi-directionnally mapped to a presentation tree. The key is to preserve
 this mapping and translate operations from one into operations onto the other.
 
+    Inset ___
+    In other words, an update to the tree should be translated to an update
+    to the view, and a manipulation on the view should be translated to 
+    a subset of the tree.
+
 This should be done using a *delta protocol* (ie. a way to exchange changes),
-which should rely on a *node adressing scheme*, so that given a delta each
+which should rely on a [node adressing scheme][:addressing], so that given a delta each
 part of the system can quickly find where to apply it to -- even if the node has
 changed or was removed. 
 
@@ -145,4 +152,4 @@ The protocol should then be a series of commands sent over the wire, with
 possibly out-of-order responses.
 
 
-# EOF: syn=texto ts=2 sw=2 et
+# EOF ― vim: syn=texto ts=2 sw=2 et

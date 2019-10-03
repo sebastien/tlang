@@ -111,3 +111,17 @@ a template? If so, then we can veryify the schema-compatibility of
 two passes.
 
 
+Examples
+========
+
+```
+{objects:{<key>:<object>,values:{<key>:<value>}}}
+```
+
+into
+
+```
+{<key>:{object:<object>,value:<value>}}
+```
+
+

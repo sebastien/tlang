@@ -18,7 +18,7 @@ Here is an example schema definition:
   (slot
     (@ 
       (name              :string)
-      (value         (? (:like expr)))
+      (value         (?  (like _ t:expr)))
       (referenced-by (*  :node)))))
 ```
 
