@@ -28,7 +28,8 @@
       (pages        (list page) #synthetic)))
 
   (Page
-    (@url
+    (@
+      (url        :URL)
       (bookmarks (list bookmark) #synthetic)
       (Users     (list user)     #synthetic)
       (tags      (list bookmark) #synthetic)))
@@ -60,19 +61,19 @@
 ;; a list of elements and return a map of elements along with their
 ;; occurences.
 
-(attr user/@tag
+(attr User/@tags
   (map count ./bookmark/@tags))
 
-(attr user/@pages
+(attr User/@pages
   (map count ./bookmark/@page))
 
-(attr {tag}/@users
+(attr {Tag}/@users
   (map count Users/{user}[(in? ./bookmarks/@tags A)]))
 
-(attr {tag}/@pages
+(attr {Tag}/@pages
   (map count Users/user/bookmark[(in? ./@tags A)]/{@page} ))
 
-(attr {bookmark}/@page
+(attr {Bookmark}/@page
   (map count Pages/{page}[(is? A/@url  B/@url)]))
 
 ;; EOF - vim: ts=2 sw=2 et syn=scheme

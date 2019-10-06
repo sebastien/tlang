@@ -1,5 +1,7 @@
 == Transform
 
+# TODO: This should really be moved to ideas
+
 The [transform language] defines how to transform a set of changes made to a
 tree into a set of changes to be made on another three. The transform language
 helps specify _transducers_ that support incremental transformation of trees
@@ -16,16 +18,16 @@ Design Requirements
 ===================
 
 XSLT is good example of what not to do, syntactically. XSLT stylesheets become
-quickly unmanagable because of the verbosity of the XML encoding and the 
+quickly unmanagable because of the verbosity of the XML syntax and the 
 difficulty to create safe abstractions (the `template` mechanism is quite 
 error prone).
 
-We could use a S-Expr syntax for the transformation language, but because
+We could use an S-Expr syntax for the transformation language, but because
 the transformation language is where most of the complexity of a T-Lang program
-goes, it should be expressive, readable. and safe.
+goes, it should be expressive, readable. and safe ― and S-Expr might not fit the bill there.
 
 - Being _expressive_ means that complex tasks can be accomplished with relatively
-  little syntax.
+  little text/typing.
   
 - Being _readable_ means that the structure and gist of the what the transformation
   does is almost immdiately apparent. There is a balance to be found between
@@ -34,14 +36,13 @@ goes, it should be expressive, readable. and safe.
 
 - Being _safe_ means that as many errors are prevented at compile time. This
   means that operations are checked against a schema and that assertions/checks
-  should be definable within the program.
-  do need to make sure
+  should be definable within the program. 
 
 Declarative vs Imperative
 =========================
 
-It is possible to say what happens when something change (imperative) or
-to say how is something constructed (declarative). Let's take our bank account
+It is possible to describe how something works (imperative) or
+to describe how something should behave (declarative). Let's take our bank account
 example with `account[@amount]/transaction[@amount]`.
 
 Imperatively, we'd have:
@@ -72,4 +73,4 @@ the declarative implies that:
 - Or sum supports incremental transformations, in which case changes
   can be streamed.
 
-
+# EOF - vim: ts=2 sw=2 et syn=texto

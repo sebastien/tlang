@@ -106,4 +106,25 @@ The breakdown of the above query is as follows:
 This process is still sequential, but contains nested queries that are
 run out of more than one node as a base.
 
+Query optimization
+==================
+
+Query aggregation::
+
+  The following example computes the net sum of transactions made to and 
+  from a given account. We see that the `//Transaction` query occurs twice,
+  and as a result, both queries could be scheduled on the same traversal.
+
+  ```tlang
+  (minus
+    (sum //Transaction/[@to=ACCOUNT/@id]/@amount)
+    (sum //Transaction/[@from=ACCOUT/@id]/@amount))
+  ```
+
+  The idea here is that provided as long as ther e is no change made to tree that would
+  affect the traversal (no `Transaction` added/removed, no `@(to|from)` attribute
+  changed and no `@amount` changed, then we can do everything in one pass and
+  store the result.
+
+
 # EOF - vim: ts=2 sw=2 et syn=texto

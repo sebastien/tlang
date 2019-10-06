@@ -1,0 +1,49 @@
+
+# Ok, so here we have the following TLang code
+#
+#  ```tlang
+#  (minus
+#    (sum //Transaction[@to=ACCOUNT/@id]/@amount)
+#    (sum //Transaction[@from=ACCOUNT/@id]/@amount))
+#  ```
+#
+# Which gets optimized as a single traversal
+
+TRAVERSE DEPTH
+INPUT    NUMBER :ACCOUNT_ID
+# Here we use two output streams. One for the first query (@to) and
+# the other one for the second query (@from).
+OUTPUT*  NUMBER :A
+OUTPUT*  NUMBER :B
+
+@start
+  IS?     Transaction
+  IFJMP   @transaction
+  NEXT    @start
+  JMP     @end
+
+@transaction
+  ATTR    NUMBER to
+  EQ?     _  :ACCOUNT_ID
+  IFJMP   @transaction:to
+  ATTR    from NUMBER
+  EQ?     _  :ACCOUNT_ID
+  IFJMP   @transaction:from
+
+@transaction:next
+  NEXT    @start
+  JMP     @end
+   
+@transaction:to
+  ATTR    NUMBER amount
+  EMIT    NUMBER _ :A
+  JMP     @transaction:next
+
+@transaction:from
+  ATTR    NUMBER amount
+  EMIT    NUMBER _ :B
+  JMP     @transaction:next
+
+@end
+
+# EOF - vim: ts=2 sw=2 et

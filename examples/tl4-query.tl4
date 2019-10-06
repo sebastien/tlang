@@ -17,7 +17,7 @@ TRAVERSE      DEPTH
   IFJMP     @dir
   IS?       file
   IFJMP     @file
-  NEXT
+  NEXT      @start
 
 @dir
   PUSH      :DIRS
@@ -49,7 +49,9 @@ TRAVERSE      DEPTH
   JMP      @file:loop
 
 @file:end
-  NEXT
-  JMP @start
+  NEXT @start
+  JMP   @end
+
+@end
 
 # EOF - vim: ts=2 sw=2 et

@@ -1,0 +1,23 @@
+# This is a hand-written version of the following query
+# {//node}
+
+TRAVERSE DEPTH
+EMIT START
+
+@start
+  NODE? node
+  IFJMP @node
+
+@next
+  NEXT
+  ELSEJMP  @end
+  JMP      @start
+
+@node
+  EMIT  NODE
+  JMP   @next
+
+@end
+  EMIT END
+  
+# EOF

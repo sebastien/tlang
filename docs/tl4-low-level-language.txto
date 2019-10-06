@@ -31,3 +31,36 @@ In particular, we want TL4 to fit the following use cases:
 
 
  
+Operations
+
+
+TRAVERSE DEPTH|BREADTH
+
+
+STACK   <TYPE> <:VARNAME>
+INPUT   <TYPE> <:VARNAME>
+OUTPUT  <TYPE> <:VARNAME>
+
+JMP    <@LABEL>
+IFJMP  <@LABEL>
+
+NEXT    <@NEXTLABEL>? <@ENDLABEL>?
+IS?     <NODE NAME>
+EMPTY?  <STACK NAME>
+PUSH    <:VARNAME>
+
+ATTR    <TYPE> <NAME>
+
+EMIT <TYPE> <SLOT> <CHANNEL>
+
+
+
+:NAME
+@LABEL
+
+Types
+
+- NODE
+- NUMBER
+
+
