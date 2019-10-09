@@ -1,0 +1,56 @@
+;; @title Document Processing System Example
+
+(use tlang/schema (schema attr))
+
+;; @title Schema
+;; @texto
+;; We introduce a document schema that is like a 
+(schema
+
+  (Document
+    (?  header)
+    (?  body))
+
+  (header
+    (?  title)
+    (?  subtitle)
+    (?  (keywords (* (keyword #text)))))
+
+  ;; TODO: We should add table
+  (#structure
+    (1  p ul ol section figure image))
+
+  (#inline
+    (1  code pre link anchor term em strong icon))
+
+  (p
+    (*  #inline))
+
+  (ul
+    (+ (li #structure)))
+
+  (ol
+    (+ (li #structure)))
+
+  (section
+    (? (title #text))
+    (? (body  #structure))))
+
+
+(transform #root
+
+  (namespace o)
+
+  (o:toc
+    (apply-transform .//section[#depth 1]))
+
+  (transform section
+    (o:section
+      (cond {./title:TITLE}
+        (@ ('title TITLE)))
+      ;; NOTE: Here we want to apply the transform but only to the
+      ;; sections not to sections//sections (or further nested))
+      (apply-transform .///section[#depth 1]))))
+
+
+;; EOF - vim: ts=2 sw=2 et syn=scheme

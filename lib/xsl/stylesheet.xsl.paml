@@ -5,68 +5,73 @@
 
 	# This example shows how to deal with multiple namespaces
 	<xsl::output(method=html)
+
+# TODO: XSL Function to write the path of an object
+# TODO: Index
+
 # ------------------------------------------------------------------------------
 #
 # CATALOGUE
 #
 # ------------------------------------------------------------------------------
 
-	# TODO: Index
 	<xsl::template(match="catalogue")
 		<html
 			<head
 				<link(rel=stylesheet,href="lib/css/stylesheet.css")
-			<body.catalogue
-				<ul
-					<xsl::apply-templates(select="./block/*",mode=catalogue)
-				<ul
-					<xsl::apply-templates(select="./block/*",mode=index)
+			<body.catalogue-
+				<h1:Catalogue
+				<ul.-items-
+					<xsl::apply-templates(select="./block/block",mode=catalogue)
+				# <h1:Index
+				# <ul
+				# 	<xsl::apply-templates(select="./block/*",mode=index)
 				
 
 	<xsl::template(match="block",mode=catalogue)
 		<li.catalogue-block-
-			<a.link
-				<xsl::attribute(name=href)
-					<xsl::value-of(select=@path)
-				<xsl::attribute(name=type)
-					<xsl::value-of(select=@ext)
-				<xsl::attribute(name=path)
-					<xsl::value-of(select=@path)
-				<span.-name
-					<xsl::value-of(select=@title|@name)
+			<xsl::attribute(name=data-type)
+				<xsl::choose
+					<xsl::when(test=@type)
+						<xsl::value-of(select="@type")
+					<xsl::otherwise
+						<xsl::text:folder>
+			<div.-header-
+
+				<label.-wrapper
+					<xsl::attribute(name=for)
+						<xsl::value-of(select="generate-id(.)")
+					<span.-link-
+						<xsl::choose
+							<xsl::when(test="@type='section'")
+								<xsl::attribute(name=data-type)
+									<xsl::text:section>
+								<xsl::attribute(name=href)
+									<xsl::value-of(select=../@path)
+									<xsl::text:#>
+									<xsl::value-of(select=@id)
+							<xsl::otherwise
+								<xsl::attribute(name=href)
+									<xsl::value-of(select=@path)
+						# <xsl::attribute(name=data-ext)
+						# 	<xsl::value-of(select=@ext)
+						# <xsl::attribute(name=data-path)
+						# 	<xsl::value-of(select=@path)
+						<xsl::choose
+							<xsl::when(test=@label)
+								<span.-label
+									<xsl::value-of(select=@label)
+							<xsl::otherwise
+								<span.-filename
+									<xsl::value-of(select=@id)
 			<xsl::if(test=./*)
-				<ul
+				<input.-checkbox(type=checkbox)
+					<xsl::attribute(name=id)
+						<xsl::value-of(select="generate-id(.)")
+				<ul.-items-
 					<xsl::apply-templates(mode=catalogue)
 
-	<xsl::template(match="definitions",mode=catalogue)
-		<li.catalogue-definitions-
-			<span.-name
-				Definitions:
-				<xsl::value-of(select=@name|@id)
-			<xsl::if(test=./*)
-				<ul
-					<xsl::apply-templates(mode=catalogue)
 
-	<xsl::template(match="references",mode=catalogue)
-		<li.catalogue-references-
-			<span.-name
-				References:
-				<xsl::value-of(select=@name|@id)
-			<xsl::if(test=./*)
-				<ul
-					<xsl::apply-templates(mode=catalogue)
-
-	<xsl::template(match="symbol",mode=catalogue)
-		<code.catalogue-symbol-
-			<span.-name
-				<xsl::value-of(select=@name|@id)
-
-	<xsl::template(match="definition",mode=catalogue)
-		<code.catalogue-definition-
-			<span.-name
-				<xsl::value-of(select=@name|@id)
-
-	<xsl::template(match=reference,mode="index")
 
 # ------------------------------------------------------------------------------
 #

@@ -4,6 +4,7 @@
 Priorities
 ==========
 
+
 Rework::
 
 [ ] Naming: I find the AST very verbose (`expr-value-number`), and I primarily
@@ -28,6 +29,10 @@ Design::
 [ ] State machines: we'll need to implement state machines for traversal, but
     it might also be interesting to see if how they could be implemented
     using Tlang directly.
+
+Docs::
+
+[ ] Inko is a nice example: https://inko-lang.org/news/inko-progress-report-september-2019/
 
 Roadmap
 =======

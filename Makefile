@@ -60,7 +60,14 @@ uniq           =$(if $1,$(firstword $1) $(call uniq,$(filter-out $(firstword $1)
 log_message    =$(info $(BLUE) ▷  $(1)$(RESET))
 log_product    =$(info $(GREEN) ◀  $(BOLD)$@$(RESET) $(BLUE)[$(1)]$(RESET))
 
-.FORCE:
+# -----------------------------------------------------------------------------
+#
+# MAIN
+#
+# -----------------------------------------------------------------------------
+
+all: $(BUILD_ALL)
+	
 
 # -----------------------------------------------------------------------------
 #
@@ -85,5 +92,7 @@ build/lib/xsl/%.xsl: src/paml/%.paml.xsl
 print-%:
 	@echo "$*="
 	@echo "$($*)" | xargs -n1 echo | sort -dr
+
+.FORCE:
 
 # EOF - vim: ts=4 sw=4 noet

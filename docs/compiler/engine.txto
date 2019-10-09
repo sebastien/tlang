@@ -1,0 +1,48 @@
+== Compiler Engine
+
+
+The compiler should create a TL4 program that does the
+traversals in the best possible way given a set of queries.
+
+We have three main use cases:
+
+- A full-pass transform: we have a set of rules that transform one tree
+  fragment into another, and we apply it all at once, generating a new
+  tree.
+
+- In-place updates: synthetic attributes are computed when an attribute
+  changes.
+
+- Incremental transforms: a tree was derived from another one, and the
+  original tree changed, so we need to update the other one.
+
+
+Full-Pass Transform
+===================
+
+This is what most people are doing (XSLT, compiler passes), and means
+that the tree traversed and transformed into another, separate tree.
+
+The transform rules are generally defined as:
+
+- A guarding pattern, determining which nodes do match the transform.
+- A priority, in case more than one rule matches a node
+- A name (optional), so that the pattern can be directly applied
+
+Some things to keep in mind:
+
+- Not all transforms might match: some of them might not be reachable
+  from the input. This could be adressed by pruning the transforms
+  that are not reachable given a set of entry points.
+
+- Some transforms might create loops: we need to detect these cases,
+  ideally at the compiler level so that we prevent them from
+  happening.
+
+- Some transforms might have exponential behaviour. If you
+  do `apply-transform .//section` and that within that transform
+  there is another `apply-transform .//section`, then the deeper
+  the section, the more it's going to appear. This is a situation
+  that should be avoided most of the time.
+
+# EOF - vim: ts=2 sw=2 et syn=texto
