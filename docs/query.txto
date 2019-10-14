@@ -1,5 +1,11 @@
 == Query Language
 
+# TODO: Recursion selectors. For instance a way to say that
+# section//section would only match a section descendant, but not 
+# the descendants of the matched section. In othe words, we should
+# break the recursion upon match.
+# TODO: Conditions on the axes to limit the depth/range
+
 The _query language_ defines a compact language to select nodes and node
 sets (lists of nodes) in a tree. The first part of the language is focused
 on denoting selections made on a tree, while the second part of the language is
@@ -211,7 +217,7 @@ Subtrees (`:SubTree`)::
 	<-=<                         ;; All previously traversed nodes of lower or equal level
 	<+<                          ;; All previously traversed nodes of deeper level
 	<=+<                         ;; All previously traversed nodes of equal or deeper level
-	<<.                          ;; The current node and all previously traversed nos
+	<<.                          ;; The current node and all previously traversed nodes
 	```
 
 

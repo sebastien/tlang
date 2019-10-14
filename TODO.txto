@@ -65,7 +65,7 @@ Rules::
 
 Tools::
 
-[ ] format: ASCII representation of the tree
+[ ] format: ASCII representation of the tree. See https://github.com/dotnet/coreclr/blob/master/Documentation/botr/ryujit-tutorial.md
 [ ] format: dot output
 [ ] tlang: options and -vp --verbose-parsing  (with verbose grammar)
 

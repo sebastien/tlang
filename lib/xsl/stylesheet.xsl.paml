@@ -40,7 +40,7 @@
 
 				<label.-wrapper
 					<xsl::attribute(name=for)
-						<xsl::value-of(select="generate-id(.)")
+						<xsl::value-of(select="@path")
 					<span.-link-
 						<xsl::choose
 							<xsl::when(test="@type='section'")
@@ -67,7 +67,7 @@
 			<xsl::if(test=./*)
 				<input.-checkbox(type=checkbox)
 					<xsl::attribute(name=id)
-						<xsl::value-of(select="generate-id(.)")
+						<xsl::value-of(select="@path")
 				<ul.-items-
 					<xsl::apply-templates(mode=catalogue)
 

@@ -1,5 +1,6 @@
 == Compiler Engine
 
+# TODO: Rename this to the query compiler
 
 The compiler should create a TL4 program that does the
 traversals in the best possible way given a set of queries.
@@ -15,7 +16,6 @@ We have three main use cases:
 
 - Incremental transforms: a tree was derived from another one, and the
   original tree changed, so we need to update the other one.
-
 
 Full-Pass Transform
 ===================
@@ -44,5 +44,227 @@ Some things to keep in mind:
   there is another `apply-transform .//section`, then the deeper
   the section, the more it's going to appear. This is a situation
   that should be avoided most of the time.
+
+Here's how things could go:
+
+1) Every query in the transform is registered, and dependency links are created
+   between them. For instance if a transform of `section/p` (Q1)
+   then selects `ul|ol` (Q2) then we'd have `Q1→Q2`.
+
+2) We transform each query into a set of preconditions that must be met when
+   we arrive at the node (see [preconditions](#))
+
+
+Query processing
+================
+
+Queries are decomposed into conditions, which are then met/unmet during
+traversal.
+
+-- Query conditions
+
+For instance, the `section/p` query has a condition `section` and a trigger `p`. 
+While walking the tree, the engine will keep a list of depths at which
+the conditions were met and will check that the preconditions are valid on
+a trigger.
+
+```tlang
+;;TREE                    | DEPTH  section  p
+(document               ;;| 0      N/A      
+  (section              ;;| 1      1        
+    p                   ;;| 2      1        X
+    p                   ;;| 2      1        X
+    (section            ;;| 3      1,3      
+      p)))              ;;| 4      1,3      X
+```
+
+When walking into a `p` node, the engine will take the depth distance to the
+last `section` condition, which needs to be exactly one.
+
+Likewise, if we had `section/*/p`, then the trigger is `p` and the precondition
+`section` with a relative depth of `-1`.  In the same line of thought, the
+`section//p` query means a relative depth < 0.
+
+Depending on the type of queries (and their axes), the engine might store 
+the following attributes per condition:
+
+- _depth_ for the distance to the root
+- _breadth_ for the distance to the first sibling
+- _index_ for the index/position in the traversal
+
+-- Axis decomposition
+
+Queries can have different/multiple traversal axes:
+
+- descendants (`/`, `//`)
+- ancestors   (`\`, `\\`)
+- siblings    (`<`, `>`)
+
+in addition to these there are the traversal axes:
+
+- before `<<`
+- after `>>`
+
+The _descendants axis_ and the ancesotrs axis are dual: `section/p` is
+the same as `p\section`, as a result, one can be rewritten as the others.
+
+The _siblings axis_ on the other hand makes use a of breadth counter,
+instead of a depth counter.
+
+```tlang 
+;;TREE                     | BREADTH  ul
+(document                ;;| 0        N/A
+  (section               ;;| 0        N/A
+    ul                   ;;| 1        1
+    ul                   ;;| 2        1,2
+```
+
+In the above example, `ul > ul` would then be decomposed into
+an `ul` condition where the relative breadth is `+1` for the query
+to match. The `<` axis being a dual of `>`, one can be rewritten
+as the other.
+
+The _traversal_ axis on the other hand needs to evaluate the 
+distance based on traversal index/position, where `<<` implies
+a negative relative distance and `>>` a positive one.
+
+-- Predicates
+
+Complex queries will often have a _predicate_ that further
+guards the query. 
+
+
+```tlang
+//transaction[(gt? @amount 10_000)]
+```
+
+Here we have `transaction` as a trigger, with no precondition
+(because `//` selects everything from the root), and a guard
+on the `amount` attribute.
+
+The guard is translated to a condition (let's call it `G1`),
+
+```tlang 
+;;TREE                                  | G1
+(document                             ;;| 
+  (transaction (@ (amount 100)))      ;;| F
+  (transaction (@ (amount 1_000)))    ;;| F
+  (transaction (@ (amount 10_000)))   ;;| T
+  (transaction (@ (amount 100_000)))) ;;| T
+```
+
+In this example, the condition is directly attached to the
+trigger, but conditions might be nested.
+
+```
+   //account[.//transaction[(gt? @amount 10_000)]]
+;; .. Q1 .........................................
+;;          -- G1 --------------------------------
+;;           .. Q2 ..............................
+;;                         -- G2 -----------------
+```
+
+In this case the trigger for the whole query `Q1` is `account`,
+but the guard `G1` contains a sub-query `Q2` which is itself guarded
+by the guard `G2`.
+
+This means that for `Q1` depends on `G1`, which depends on
+`Q2`, which depends on `G2`, which we denote `Q1←G1←Q2←G2`.
+
+The engine should then do the following during the first top-down
+traversal:
+
+- On a `transaction` node, evaluate `G1` (if not already known)
+- If `G1` matches, then `G2` becomes true
+
+and then:
+
+- On bottom-up, when on the `account` trigger, check for
+  the existence of `Q2` condition 
+
+Now, this bottom-up traversal is theoretical, as there are many options
+for optimizations:
+
+- During the top-down, `account` nodes are pushed into a queue, and when
+  `G1` becomes true, the `account` nodes are triggered with `Q1`.
+- The traversals are pre-computed and only contain the nodes that are relavant
+  (ie. `transaction` and `account`, skipping the uninteresting nodes).
+
+-- Algorithm
+
+The basic element of the query is matching a node type and optionally guarding
+the node with a predicate:
+
+```
+(NODE-SELECTOR) PREDICATE?
+```
+
+Each unique _node type_ or _node selector_ is mapped to a corresponding
+_condition_. For instance in the following queries, both the `transaction` and
+node types would be mapped to the same condition. 
+
+```tlang
+transaction[(gte? @amount 1000)]]
+transaction[(lt?  @amount 1000)]]
+```
+
+However, each predicate would be mapped to a unique guard (`G1` and `G2`). In
+case predicates are combined, like `[(lt? @amount 1000)][(gt? @amount 100)]`
+(a slightly contrived example)`, then each predicate would be mapped to a
+unique condiction (`G1` and `G2`) and third condition (`G3`) 
+corresponding to `G1 AND G2` would be created, with an explicit depedency on both.
+
+Now, when selectors are combined together with path separators, such as
+
+```
+section/header/title
+ul > ul
+section >> section
+```
+
+Then the compiler will know which extra attributes need to be store for which
+type.  In the first selector, `DEPTH` would need to be stored for `section`,
+and `header`, while the condition for the whole query would be triggered 
+by `title`. 
+
+In the second selector, `ul` would keep track of `BREADTH`, and 
+for the third `section` would keep track of the traversal `INDEX`.
+
+This leads to a mapping of node types to condition names, where some
+of the conditions are standard (DEPTH, BREADTH, INDEX) and some others
+are linked to the evaluation of some code in relation to the node (predicates).
+
+After analysing the queries, the compiler should have:
+
+- A list of all the conditions to be used (the conditions that guard a rule)
+- A list of all the node types to be used
+- A list of all the triggers (the rules that emit a result)
+- A mapping between the node types and the conditions
+- A mapping between the node types and the triggers
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # EOF - vim: ts=2 sw=2 et syn=texto
