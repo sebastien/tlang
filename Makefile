@@ -2,7 +2,7 @@
 
 # === BUILD ASSETS AND ARTIFACTS ==============================================
 
-SOURCES_TXTO   =$(wildcard *.txto docs/*/.txto docs/*/*.txto docs/*/*/*.txto)
+SOURCES_TXTO   =$(wildcard *.txto docs/*.txto docs/*/.txto docs/*/*.txto docs/*/*/*.txto)
 SOURCES_TLANG  =$(wildcard examples/*.tlang)
 SOURCES_PY     =$(wildcard src/py/*.py src/py/*/*.py src/py/*/*/*.py research/*.py)
 SOURCES_PAML   =$(wildcard src/paml/*.paml)
@@ -68,6 +68,8 @@ log_product    =$(info $(GREEN) ◀  $(BOLD)$@$(RESET) $(BLUE)[$(1)]$(RESET))
 
 all: $(BUILD_ALL)
 	
+info:
+	$(info $(BUILD_ALL))
 
 # -----------------------------------------------------------------------------
 #
@@ -76,15 +78,17 @@ all: $(BUILD_ALL)
 # -----------------------------------------------------------------------------
 
 build/%.xml: %.txto
-	@$(log_product TXTO→XML)
-	@$(TEXTO) -Oxml "$<" > "@"
+	$(call log_product,TXTO→XML)
+	@mkdir -p `dirname "$@"`
+	@$(TEXTO) -Oxml "$<" > "$@"
 
 build/%.xml: %.tlang
-	@$(log_product TLANG→XML)
-	@$(POLYBLOCKS) -Oxml "$<" > "@"
+	$(call log_product,TLANG→XML)
+	@mkdir -p `dirname "$@"`
+	@$(POLYBLOCKS) -Oxml "$<" > "$@"
 
 build/lib/xsl/%.xsl: src/paml/%.paml.xsl
-	@$(log_product XSL/PAML→XSL)
+	$(call log_product,XSL/PAML→XSL)
 	@$(PAML) "$<" > "@"
 
 # === HELPERS =================================================================
