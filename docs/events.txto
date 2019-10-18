@@ -1,0 +1,139 @@
+== Events
+
+A fundamental part of [incremental programming](:incremental) is the support
+for communicating changes. Changes happen in time, and thus can be qualified
+as events. We're going to see here how TLang deals with changing values and 
+what kind of primitives and infrastructure allow for incremental and 
+asynchronous programming.
+
+Observable values, listening to changes
+---------------------------------------
+
+The observer/observable pattern allows for one entity to be notified of 
+changes happening to another. 
+
+Most languages don't support first-class syntax to observe/unobserve
+changes made to values/objects. Different techniques exist to do so:
+
+- The Listener pattern: addEventListener/removeEventListener, as used
+  in Java and JavaScript.
+
+- The Handler pattern: an interface specifies all the hooks (onClick, onMouseHover, etc)
+  and handlers are composed into the value that may emit changes.
+
+- The Observer pattern: an object (observer) can listen to different changes
+  on many objects at one (see [DOM MutationObserver](https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver)).
+
+- The Observable pattern: an object/value is completely wrapped in an observable
+  object that will trigger callbacks with a corresponding event object when
+  a change happens.
+
+And there's many more options. It all depends how many observers you want to
+allow for 1 value, how many possible values per observer, if you want preset
+or dyanmic events.
+
+Interestingly, concurrent and asynchronous programming constructs like 
+_futures_ (also called _promises_) are another type of obversable values (they
+are empty, have a value or have an error). _Streams_ and _iterators_ can
+also be considered as observable values (start of stream, new item available, end of stream).
+
+Events
+------
+
+TLang offers the concept of _event_ as a first class construct to denote changes.
+Events are separated in two different main categories:
+
+- _Static events_: they are predefined at the schema level and should benefit
+  from optimized pathways in the compiled output.
+
+- _Dynamic events_: they can be generated dynamically at runtime, but may not
+  be as fast as their static counterpart.
+
+Events then have the following traits:
+
+- _Stoppable event_: the propagation of the event can be stopped by any
+   observer.
+
+Nodes and events
+----------------
+
+Some nodes and attributes can be marked as _observable_, which denotes that the node
+will emit events when there is a change. The observable denotation must include
+the list of events that are observable at that stage using either the complete
+string or a string glob.
+
+Symetrically, synthetic attribute can be marked as _observers_, which denotes
+that the attribute's value will be recomputed upon event arrival.
+
+Event dispatching strategy
+--------------------------
+
+There are different strategies when it comes to event dispatching. At the
+core of the model we have:
+
+- An observable, with a registered set of interested observers
+- An observer, which might be registered in many observables
+
+A naïve implementation might propagate an event up from its trigger site,
+getting the list of observable and notifying them in sequence. This has a few
+downsides though:
+
+- If an observer is also an observable, this might create a cascade of events
+  that would delay the initial processing/dispatching of the main event.
+
+- An observer with many observables might be updated more than once due
+  to cascading changes.
+
+There are few things that we can do to mitigate the above problems:
+
+- Defer the triggering of indirect events (ie. an event that results from
+  the triggering of another)
+
+- Defer the updating of an observable until all/most of the observables have
+  been updated.
+
+
+We can introduce the notion of an _update cycle_ as the set of all observables
+that will be directly or indirectly updated after an event (including the origin
+of the event) and the corresponding set of observers to be triggered.
+
+Now, some configurations might create more than one cycle, for instance
+if an indirect event is observed by an observer that is used directly, or
+indirectly by the origin of this event, in other words, a loop (or cycle) in
+the dependency graph.
+
+# TODO: Elaborate
+
+Temporisation
+-------------
+
+In case the full recomputation of synthetic attributes after a change is
+too expensive, it is possible to introduce temporisation mechanisms so that 
+multiple changes are absorbed. Think for instance of a user typing really quickly
+on in an input field, where the input is used to query a database and suggest
+possible completions. You don't want to have a new query for each character, but
+you'd rather wait for the user to have finished typing, or at leased paused a 
+few ms before doing the query.
+
+You can use two mechanisms for that:
+
+- _throttling_: this means limiting the rate of update. Instead of directly
+  reacting to an update, the frequency of reactions would be arbitrarily 
+  set to a given frequency.
+
+- _delaying_: this means delaying/deferring the update up until a later point.
+  For instance, very new letter would delay the processing further by 150ms from
+  the moment the event happens. If no event happens during that timeframe, then
+  the processing happens.
+
+- _phasing_: phasing will wait for a phase event to happen. This is typically
+  the case when you're running a transaction: you want to stop all event processing
+  up until the moment the transaction has stopped, at which point you can compute
+  the resulting values.
+
+These temporisation traits make it possible to fine-tune and improve
+overall performance in interactive and non-interactive settings, allowing fine-grain
+control over how events are processed by the system.
+
+
+# EOF - vim: ts=2 sw=2 syn=texto et

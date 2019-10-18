@@ -30,8 +30,21 @@ Design::
     it might also be interesting to see if how they could be implemented
     using Tlang directly.
 
+[ ] Notifications/event propagation: this really has to be a core language
+    feature. Just looking at JavaScript and how it's easy to leak event reactors,
+    this really needs to be adressed at the core, along with the bubbling up
+    and dispatch mechanism (there could be compile time -- static, and
+    dynamic -- at runtime)
+
+[ ] Immutability: at least as a flag, that would ensure some properties about
+    the values.
+
 Docs::
 
+[ ] Should be the same font size and "information bandwith" as GitHub. Right
+    now it looks smaller and makes pages longer.
+[ ] How to denote links (terms, pages) ?
+[ ] Some terms are subsets _static(event)_
 [ ] Inko is a nice example: https://inko-lang.org/news/inko-progress-report-september-2019/
 
 Roadmap
