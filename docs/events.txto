@@ -54,16 +54,42 @@ Events then have the following traits:
 - _Stoppable event_: the propagation of the event can be stopped by any
    observer.
 
-Nodes and events
-----------------
+Observers, observable and events
+--------------------------------
 
 Some nodes and attributes can be marked as _observable_, which denotes that the node
 will emit events when there is a change. The observable denotation must include
 the list of events that are observable at that stage using either the complete
 string or a string glob.
 
+```tlang
+;; This would be in the schema
+(node-name
+  ;; This says that the node `node-name` is observable for any event which
+  ;; name starts with  `node/`, like `node/add`, `node/remove`, `node/update`.
+  (tlang:observable node/*)
+  (@  
+    ;; Now, the `attribute-name`'s changes can be observed
+    (attribute-name  tlang:observable value/change)))
+```
+
 Symetrically, synthetic attribute can be marked as _observers_, which denotes
 that the attribute's value will be recomputed upon event arrival.
+
+```tlang
+(node-name/@synattr
+  ;; This means that the synthetic attribute `synattr` will be re-evaluated
+  ;; whener a descendant of the current node is added or removed.
+  (tlang:observes .//* node/add node/remove))
+```
+
+_Events_ all have the follow properties:
+
+- A _type_ (eg. `node/remove`, using to connect observable to events)
+- An _origin_, which is the value/attribute that it comes from
+- A _value_, which is the value describing the event
+- A _previousValue_, which holds the previous value, in case th event replaced
+  an existing value.
 
 Event dispatching strategy
 --------------------------

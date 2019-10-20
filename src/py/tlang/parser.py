@@ -16,6 +16,6 @@ def parseString( text:str ):
 if __name__ == "__main__":
 	path = sys.argv[1]
 	text = open(path).read() if os.path.exists(path) else path
-	print (parseString(path))
+	print (parseString(text))
 
 # EOF - vim: ts=4 sw=4 noet
