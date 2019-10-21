@@ -1,0 +1,21 @@
+#!/bin/env tdoc --run=test
+#run
+#	tdoc -Oxml --no-comment
+#doc
+#	Ensures that the empty lines in the custom parser
+#	section are properly interepreted by the parser.
+#expect
+#	<section>This is a section where I'm free do embed some markdown
+#	
+#	- You can make lists
+#	- With many items
+#	
+#	You can use *inline* **markup** and [links](http://markdown.org)</section>
+section|markdown
+	This is a section where I'm free do embed some markdown
+
+	- You can make lists
+	- With many items
+
+	You can use *inline* **markup** and [links](http://markdown.org)
+# EOF

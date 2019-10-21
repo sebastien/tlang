@@ -7,6 +7,33 @@ from collections import OrderedDict,namedtuple
 # TODO: The parser should yield its position (line, column) and a value
 # being either Skip, string, Warning, or Error
 
+# TODO: Options
+
+class ParseOptions:
+	OPTIONS = {
+		"comments"
+	}
+
+	def __init__( self ):
+		self.data = {}
+
+	def __getattr__( self, name ):
+		return False
+
+	def __setattr__( self, name, value ):
+		pass
+
+class ParseError:
+
+	def __init__( self, line:int, char:int, message:str, length:int=0 ):
+		self.line = line
+		self.char = char
+		self.message = message
+		self.length = length
+
+	def __str__( self ):
+		return f"Syntax error at {self.line}:{self.char}: {self.message}"
+
 class Parser:
 	"""The TDoc parser is implemented as a straightforward line-by-line
 	parser with an event-based (SAX-like) interface."""
@@ -28,7 +55,8 @@ class Parser:
 	def __init__( self, driver=None ):
 		self.customParser:Optional[str] = None
 		self.customParserLevel:Optional[int] = None
-		self.driver = driver or XMLDriver()
+		self.options = ParseOptions()
+		self.driver = driver or XMLDriver(self.options)
 		self.depth = 0
 		self.nodeCount = 0
 
@@ -54,11 +82,13 @@ class Parser:
 		# NOTE: We use stopped as a way to exit the loop early, as we're
 		# using an iterator.
 		stopped = False
-		print ("LINE", self.customParser,":",repr(line))
 		if self.customParser:
 			if i > self.customParserLevel:
 				yield from self.driver.onRawContent(line[self.customParserLevel + 1:] + "\n")
 				stopped = True
+			elif not l:
+				# This is an empty line, so we log it as an EOL
+				yield from self.driver.onRawContent("\n")
 			else:
 				self.customParser = None
 				self.customParserLevel = None
@@ -181,6 +211,9 @@ class Parser:
 
 class Driver:
 
+	def __init__( self, options:ParseOptions ):
+		self.options = options
+
 	def onDocumentStart( self ):
 		yield None
 
@@ -216,7 +249,8 @@ class XMLDriver(Driver):
 
 	StackItem = namedtuple("StackItem", ("node"))
 
-	def __init__( self ):
+	def __init__( self, options ):
+		super().__init__(options)
 		self.node = None
 		self.stack:List[XMLDriver.StackItem] = []
 		self.hasContent:Optional[bool] = None
@@ -263,7 +297,47 @@ class XMLDriver(Driver):
 		yield from self.onContent(text)
 
 	def onComment( self, text:str ):
-		yield (f"<!-- {text} -->\n")
+		if self.options.comments:
+			yield (f"<!-- {text} -->\n")
+
+
+# -----------------------------------------------------------------------------
+#
+# WRITER 
+#
+# -----------------------------------------------------------------------------
+
+class Writer:
+
+	def __init__( self, stream=sys.stdout, parser:Parser=Parser() ):
+		self.out = stream
+		self.parser = parser
+
+	def write( self, stream ):
+		"""Reads the input `stream`, feeding each element to the parser
+		and writing the output."""
+		parser = self.parser
+		self._write(parser.start())
+		for line in stream:
+			self._write(parser.feed(line))
+		self._write(parser.end())
+
+	def _write( self, iterable ):
+		"""Writes the iterable elements to the output stream."""
+		for _ in iterable:
+			if _ is None:
+				pass
+			elif isinstance(_, str):
+				self.out.write(_)
+			elif isinstance(_, ParseError):
+				logging.error(str(_))
+
+class NullWriter(Writer):
+	"""A writer useful for debugging."""
+
+	def _write( self, iterable ):
+		for _ in iterable:
+			pass
 
 # -----------------------------------------------------------------------------
 #
@@ -273,29 +347,15 @@ class XMLDriver(Driver):
 
 # TODO: parseString and parsePath should have the same body
 def parseString( text:str, out=sys.stdout ):
-	p = Parser()
-	for _ in p.start():
-		out.write(_)
-	for line in text.split("\n"):
-		for _ in p.feed(line):
-			out.write(_)
-	for _ in p.end():
-		out.write(_)
+	with open(path) as f:
+		Writer(out).write(_[:-1] for _ in text.split("\n"))
 
 def parsePath( path:str, out=sys.stdout ):
-	p = Parser()
-	for _ in p.start():
-		out.write(_)
 	with open(path) as f:
-		for line in f.readlines():
-			for _ in p.feed(line[:-1]):
-				out.write(_)
-	for _ in p.end():
-		out.write(_)
+		Writer(out).write(_[:-1] for _ in f.readlines())
 
 if __name__ == "__main__":
 	path = sys.argv[1]
 	text = open(path).read() if os.path.exists(path) else path
-	print (parseString(text))
 
 # EOF - vim: ts=4 sw=4 noet
