@@ -175,8 +175,26 @@ White space
 -----------
 
 It's good to note that whitespace is entirely preserved by tdoc, once 
-the indentation and separators have been removed. There are some specific
-cases to think about, though, especially when it comes to empty line:
+the indentation, separators and end of line have been removed. This means 
+that the following TDoc document:
+
+```tdoc
+p
+	lorem ipsum
+	dolor sit amet
+```
+
+would, converted to a Lisp-like structure yield:
+
+```scheme
+(p "lorem ipsum" "dolor sit amet")
+```
+
+Meaning that you'll need to join the two lines with a space or newline if
+you want to have `lorem ipsum dolor sit amet`  instead of `lorem ipsumdolor sit amet`.
+
+There are some specific cases to think about, though, especially when it comes
+to empty line:
 
 If a line has only tabs and spaces, it is not empty: the spaces count as 
 content (which is what is expected, because TDoc preserves whitespace)
@@ -186,37 +204,105 @@ p
 	This is not an empty line
 	# The line below is empty ie. (\t\n) ― it contains only indentation
 	
-	# The line below is NOT empty (\t \n) ― it contains a space
+	# The line below is NOT empty (\t \n) ― it contains a space right after the indent
 	 
 ```
 
-If a line has only indentation, but has an indentation greater than
-a parent block with a custom parser defined (such as in `section|markdown`),
-then it is not an empty line, and any character after the parent's indent
+If a line has only indentation, but has an indentation greater than a parent
+block then it is not an empty line, and any character after the parent's indent
 level + 1 is taken as content:
 
 ```tdoc
-code|python
+code
 	def foo():
 		print("spam")
 ```
 
-- If a line has only indentation, it is an empty line.
+will yield
+
+```sexpr
+(p "def foo():" "\tprint(\"spam\")")
+```
+
+If a line has only indentation, which is lower or equal to the current parent's,
+then it is taken as an empty line and skipped, unless it is within a block 
+with a custom parser.
 
 Empty lines are usually ignored except in the case where a parser is used
 (like in `section|markdown`), in which case an empty line is interpreted
 as an `\n` in the reconstructed code.
+
+```tdoc
+code|js
+	function hello(){
+		console.log("Hello,world")
+	}
+
+	hello();
+```
+
+will result in 
+
+```sexpr
+(code "function hello(){\n\tconsole.log(\"Hello,world\")\n}\nhello();\n")
+```
 
 Another special treatment is that in that case the indentation of the line is 
 irrelevant if lesser or equal than the current block indentation.
 
 
 Embedded mode
--------------
+=============
 
-The TDoc syntax can also be used embedded in another language. For instance,
+TDoc can also be used as embedded in another language. For instance,
 if you're writing a program in a programming language and would like to 
 add structured data or have a literate programming approach.
+
+```c
+/**
+title: An example of embedded TDoc
+p|markdow
+	You'd invoke this using
+	```shell
+	tdoc -Iembed --embed-start='/**' --embed=end='*/'
+	```
+*/
+#include <stdio.h>
+void main(void){
+	print("Hello, world!\n");
+}
+```
+
+or if you're using single-line comments,
+
+```shell
+## title: An example of embedded TDoc
+## p|markdown
+## 	You'd invoke this using
+## 	```shell
+## 	tdoc -Iembed='## '
+## 	```
+echo "Hello, world"
+```
+
+Ouput formats
+-------------
+
+--- Text output
+
+XML
+
+JSON
+
+SExpr
+
+TLang
+
+--- Data output
+
+DOM
+
+Python
 
 Related work
 ============

@@ -5,7 +5,7 @@
 SOURCES_TXTO   =$(wildcard *.txto docs/*.txto docs/*/.txto docs/*/*.txto docs/*/*/*.txto)
 SOURCES_TLANG  =$(wildcard examples/*.tlang)
 SOURCES_PY     =$(wildcard src/py/*.py src/py/*/*.py src/py/*/*/*.py research/*.py)
-SOURCES_PAML   =$(wildcard src/paml/*.paml)
+SOURCES_PAML   =$(wildcard src/paml/*.paml) $(wildcard lib/xsl/*.paml)
 SOURCES_PCSS   =$(wildcard src/pcss/*.pcss)
 
 BUILD_XML      =\
@@ -16,7 +16,7 @@ BUILD_XSL      =\
 	$(patsubst %.xsl.paml,build/%.xsl,$(filter %.xsl.paml,$(SOURCES_PAML)))
 
 BUILD_ALL      =\
-	$(BUILD_XML) $(BUID_XSL)
+	$(BUILD_XML) $(BUILD_XSL) 
 
 # === SETUP ===================================================================
 
@@ -77,19 +77,28 @@ info:
 #
 # -----------------------------------------------------------------------------
 
-build/%.xml: %.txto
+build/%.xml: %.txto build/lib/xsl/stylesheet.xsl
 	$(call log_product,TXTO→XML)
 	@mkdir -p `dirname "$@"`
-	@$(TEXTO) -Oxml "$<" > "$@"
+	@echo '<?xml version="1.0"?>' > "$@"
+	@echo -n '<?xml-stylesheet type="text/xsl" media="screen" href="' >> "$@"
+	@realpath --relative-to "$@" "build/lib/xsl/stylesheet.xsl" | head -c -1 >> "$@"
+	@echo '"?>' >> "$@"
+	@$(TEXTO) -Oxml "$<" | tail -n +2 >> "$@"
 
-build/%.xml: %.tlang
+build/%.xml: %.tlang build/lib/xsl/stylesheet.xsl
 	$(call log_product,TLANG→XML)
 	@mkdir -p `dirname "$@"`
-	@$(POLYBLOCKS) -Oxml "$<" > "$@"
+	@echo '<?xml version="1.0"?>' > $@
+	@echo -n '<?xml-stylesheet type="text/xsl" media="screen" href="' >> "$@"
+	@realpath --relative-to "$@" "build/lib/xsl/stylesheet.xsl" | head -c -1 >> "$@"
+	@echo '"?>' >> "$@"
+	@$(POLYBLOCKS) -Oxml "$<" | tail -n +2 >> "$@"
 
-build/lib/xsl/%.xsl: src/paml/%.paml.xsl
+build/lib/xsl/%.xsl: lib/xsl/%.xsl.paml
 	$(call log_product,XSL/PAML→XSL)
-	@$(PAML) "$<" > "@"
+	@mkdir -p `dirname "$@"`
+	@$(PAML) "$<" > "$@"
 
 # === HELPERS =================================================================
 

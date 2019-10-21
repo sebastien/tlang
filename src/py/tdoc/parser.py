@@ -9,6 +9,10 @@ from collections import OrderedDict,namedtuple
 
 # TODO: Options
 
+# TODO: Whitespace:
+# - preserve: as-is (EOL between tags)
+# - normalize: all become spaces
+
 class ParseOptions:
 	OPTIONS = {
 		"comments"
@@ -65,7 +69,7 @@ class Parser:
 		self.nodeCount    = 0
 		self.customParser = None
 		self.customParserLevel = None
-		self.depth = 0
+		self.depth = -1
 		yield from self.driver.onDocumentStart()
 
 	def end( self ):
@@ -129,7 +133,7 @@ class Parser:
 		elif self.isExplicitContent(l):
 			yield from self.driver.onContent(l[1:])
 		else:
-			yield from self.driver.onContent(l)
+			yield from self.driver.onContent(line[self.depth + 1:])
 
 	# =========================================================================
 	# PREDICATES
@@ -256,7 +260,7 @@ class XMLDriver(Driver):
 		self.hasContent:Optional[bool] = None
 
 	def onDocumentStart( self ):
-		yield '<?xml version="1.0" ?>\n'
+		yield '<?xml version="1.0"?>\n'
 
 	def onDocumentEnd( self ):
 		while self.stack:
@@ -289,12 +293,19 @@ class XMLDriver(Driver):
 
 	def onContent( self, text:str ):
 		if self.hasContent is False:
+			# We emit a tag closing one the first lie
 			yield ">"
 			self.hasContent = True
+		else:
+			# Otherwise we emit a space (or a new line)
+			yield "\n"
 		yield text
 
 	def onRawContent( self, text:str ):
-		yield from self.onContent(text)
+		if self.hasContent is False:
+			yield ">"
+			self.hasContent = True
+		yield text
 
 	def onComment( self, text:str ):
 		if self.options.comments:
@@ -341,6 +352,34 @@ class NullWriter(Writer):
 
 # -----------------------------------------------------------------------------
 #
+# READER
+#
+# -----------------------------------------------------------------------------
+
+class EmbeddedReader:
+
+	def __init__( self, comment="#", line="code|tdoc"):
+		self.comment = comment
+		self.line = line
+		self.shebang = "#!"
+
+	def read( self, iterable ):
+		in_content = False
+		for i,line in enumerate(iterable):
+			if i == 0 and line.startswith(self.shebang):
+				pass
+			elif line.startswith(self.comment):
+				in_content = False
+				yield line[len(self.comment):]
+			elif not in_content:
+				yield self.line
+				yield f"\t{line}"
+				in_content = True
+			else:
+				yield f"\t{line}"
+
+# -----------------------------------------------------------------------------
+#
 # HIGH-LEVEL API
 #
 # -----------------------------------------------------------------------------
@@ -348,11 +387,13 @@ class NullWriter(Writer):
 # TODO: parseString and parsePath should have the same body
 def parseString( text:str, out=sys.stdout ):
 	with open(path) as f:
-		Writer(out).write(_[:-1] for _ in text.split("\n"))
+		Writer(out).write(EmbeddedReader().read(_[:-1] for _ in text.split("\n")))
 
 def parsePath( path:str, out=sys.stdout ):
 	with open(path) as f:
-		Writer(out).write(_[:-1] for _ in f.readlines())
+		lines = (_[:-1] for _ in f.readlines())
+		#lines = (EmbeddedReader().read(_[:-1] for _ in f.readlines()))
+		Writer(out).write(lines)
 
 if __name__ == "__main__":
 	path = sys.argv[1]
