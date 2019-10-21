@@ -1,8 +1,11 @@
 #!/usr/bin/env python3.8
 from tlang import tree
-import re, sys, os
-from typing import Optional,Any
-from collections import OrderedDict
+import re, sys, os, logging
+from typing import Optional,Any,List
+from collections import OrderedDict,namedtuple
+
+# TODO: The parser should yield its position (line, column) and a value
+# being either Skip, string, Warning, or Error
 
 class Parser:
 	"""The TDoc parser is implemented as a straightforward line-by-line
@@ -21,21 +24,24 @@ class Parser:
 	RE_ATTR = re.compile(f" (?P<name>{NAME})=(?P<value>{VALUE})?")
 	RE_NODE = re.compile(f"^((?P<ns>{NAME}):)?(?P<name>{NAME})(\|(?P<parser>{NAME}))?(?P<attrs>( {ATTR})*)?(: (?P<content>.*))?$")
 
+
 	def __init__( self, driver=None ):
 		self.customParser:Optional[str] = None
 		self.customParserLevel:Optional[int] = None
-		self.driver = driver or ADriver()
-		self.level = 0
+		self.driver = driver or XMLDriver()
+		self.depth = 0
+		self.nodeCount = 0
 
 	def start( self ):
 		"""The parser is stateful, and `start` initializes its state."""
+		self.nodeCount    = 0
 		self.customParser = None
 		self.customParserLevel = None
-		self.level = 0
-		self.driver.onDocumentStart()
+		self.depth = 0
+		yield from self.driver.onDocumentStart()
 
 	def end( self ):
-		self.driver.onDocumentEnd()
+		yield from self.driver.onDocumentEnd()
 
 	def feed( self, line:str ):
 		"""Freeds a line into the parser, which produces a directive for
@@ -45,44 +51,65 @@ class Parser:
 		while i < n and line[i] == '\t':
 			i += 1
 		l = line[i:] if i>0 else line
+		# NOTE: We use stopped as a way to exit the loop early, as we're
+		# using an iterator.
+		stopped = False
+		print ("LINE", self.customParser,":",repr(line))
 		if self.customParser:
 			if i > self.customParserLevel:
-				return self.driver.onRaw(line[self.customParserLevel + 1:])
+				yield from self.driver.onRawContent(line[self.customParserLevel + 1:] + "\n")
+				stopped = True
 			else:
 				self.customParser = None
 				self.customParserLevel = None
-		if self.isComment(l):
-			return self.driver.onComment(l[1:])
+		if stopped:
+			pass
+		elif self.isComment(l):
+			yield from self.driver.onComment(l[1:])
 		elif self.isAttribute(l):
 			ns, name, value = self.parseAttributeLine(l)
-			return self.driver.onAttribute(ns, name, value)
+			yield from self.driver.onAttribute(ns, name, value)
 		elif m := self.isNode(l):
-			print ("LEVEL", self.level, "/", i)
-			if i <= self.level:
-				while self.level > i:
-					self.driver.onNodeEnd()
-					self.level -= 1
-			elif i > self.level + 1:
-				return self.onContent(line[self.level:])
+			if i > self.depth + 1:
+				yield from self.onContent(line[self.depth:])
 			else:
-				assert i == self.level
-				self.driver.onNodeEnd()
-			ns, name, parser, attr, content = self.parseNodeLine(l, m)
-			self.level = i
-			if parser:
-				self.customParser = r["parser"]
-				self.customParserLevel = i
-			res = self.driver.onNodeStart(ns, name, parser)
-			for ns, name, value in attr:
-				self.driver.onAttribute(ns, name, value)
-			if content is not None:
-				self.driver.onContent(content)
-			return res
+				if i < self.depth:
+					while self.depth > i:
+						yield from self.driver.onNodeEnd()
+						self.depth -= 1
+				if i == self.depth:
+					# The first node has self.depth == 0 == i, but there
+					# is no previous node.
+					if self.nodeCount > 0:
+						yield from self.driver.onNodeEnd()
+				else:
+					assert i == self.depth + 1
+				if not stopped:
+					ns, name, parser, attr, content = self.parseNodeLine(l, m)
+					self.depth = i
+					if parser:
+						self.customParser = m["parser"]
+						self.customParserLevel = i
+					self.nodeCount += 1
+					yield from self.driver.onNodeStart(ns, name, parser)
+					for ns, name, value in attr:
+						yield from self.driver.onAttribute(ns, name, value)
+					if content is not None:
+						yield from self.driver.onContent(content)
+		elif self.isExplicitContent(l):
+			yield from self.driver.onContent(l[1:])
 		else:
-			return self.driver.onContent(l)
+			yield from self.driver.onContent(l)
+
+	# =========================================================================
+	# PREDICATES
+	# =========================================================================
 
 	def isComment( self, line:str ) -> bool:
 		return line and line[0] == "#"
+
+	def isExplicitContent( self, line:str ) -> bool:
+		return line and line[0] == ":"
 
 	def isNode( self, line:str ) -> bool:
 		"""Tells if this line is node line"""
@@ -91,6 +118,10 @@ class Parser:
 	def isAttribute( self, line:str ) -> bool:
 		"""Tells if this line is attribute line"""
 		return line and line[0] == '@'
+
+	# =========================================================================
+	# SPECIFIC PARSERS
+	# =========================================================================
 
 	def parseNodeLine( self, line, match):
 		return (
@@ -142,42 +173,125 @@ class Parser:
 		content = name_value[1] if len(name_value) == 2 else None
 		return (ns, name, name)
 
-class ADriver:
+# -----------------------------------------------------------------------------
+#
+# DRIVER
+#
+# -----------------------------------------------------------------------------
+
+class Driver:
 
 	def onDocumentStart( self ):
-		pass
+		yield None
 
 	def onDocumentEnd( self ):
-		pass
+		yield None
 
 	def onNodeStart( self, ns:Optional[str], name:str, process:Optional[str] ):
-		print (f"<{ns or '*'}:{name} ")
+		yield None
 
 	def onNodeEnd( self ):
-		print (f"/>")
+		yield None
 
 	def onAttribute( self, ns:Optional[str], name:str, value:Optional[str] ):
-		print (f"@{ns or '*'}:{name} {value}")
+		yield None
 
 	def onContent( self, text:str ):
-		print (f"→{text}")
+		yield None
 
-	def onRaw( self, text:str ):
-		print (f"R{text}")
+	def onRawContent( self, text:str ):
+		yield None
 
 	def onComment( self, text:str ):
-		print (f"#{text}")
+		yield None
 
-class TLangDriver(ADriver):
-	pass
+# -----------------------------------------------------------------------------
+#
+# XML DRIVER
+#
+# -----------------------------------------------------------------------------
 
+class XMLDriver(Driver):
+	"""A driver that emits an XML-serialized document (as a text string)."""
 
-def parseString( text:str ):
+	StackItem = namedtuple("StackItem", ("node"))
+
+	def __init__( self ):
+		self.node = None
+		self.stack:List[XMLDriver.StackItem] = []
+		self.hasContent:Optional[bool] = None
+
+	def onDocumentStart( self ):
+		yield '<?xml version="1.0" ?>\n'
+
+	def onDocumentEnd( self ):
+		while self.stack:
+			yield f"</{self.stack.pop().node}>"
+
+	def onNodeStart( self, ns:Optional[str], name:str, process:Optional[str] ):
+		# We need to handle child nodes
+		if self.hasContent is False:
+			yield ">"
+		self.node = f"{ns}:{name}" if ns else f"{name}"
+		self.hasContent = False
+		self.stack.append(XMLDriver.StackItem(self.node))
+		yield f"<{self.node}"
+
+	def onNodeEnd( self ):
+		yield (f"</{self.node}>")
+		self.stack.pop()
+
+	def onAttribute( self, ns:Optional[str], name:str, value:Optional[str] ):
+		svalue = '"' + value.replace('"', '\\"') + '"'
+		attr   =  f" {ns}:{name}={svalue}" if ns else f" {name}={svalue}"
+		if not self.hasContent:
+			yield attr
+		else:
+			# TODO: Should yield an error
+			logging.warn(f"XMLDriver: Can't output attribute after content: {attr}")
+
+	def onAttributesEnd( self ):
+		yield '>'
+
+	def onContent( self, text:str ):
+		if self.hasContent is False:
+			yield ">"
+			self.hasContent = True
+		yield text
+
+	def onRawContent( self, text:str ):
+		yield from self.onContent(text)
+
+	def onComment( self, text:str ):
+		yield (f"<!-- {text} -->\n")
+
+# -----------------------------------------------------------------------------
+#
+# HIGH-LEVEL API
+#
+# -----------------------------------------------------------------------------
+
+# TODO: parseString and parsePath should have the same body
+def parseString( text:str, out=sys.stdout ):
 	p = Parser()
-	p.start()
+	for _ in p.start():
+		out.write(_)
 	for line in text.split("\n"):
-		p.feed(line)
-	p.end()
+		for _ in p.feed(line):
+			out.write(_)
+	for _ in p.end():
+		out.write(_)
+
+def parsePath( path:str, out=sys.stdout ):
+	p = Parser()
+	for _ in p.start():
+		out.write(_)
+	with open(path) as f:
+		for line in f.readlines():
+			for _ in p.feed(line[:-1]):
+				out.write(_)
+	for _ in p.end():
+		out.write(_)
 
 if __name__ == "__main__":
 	path = sys.argv[1]
