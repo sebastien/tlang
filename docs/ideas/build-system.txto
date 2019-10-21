@@ -1,4 +1,4 @@
-== T-Lang for a build system
+== TLang for a build system
 
 There's a lot of overlap between build system, web servers with transpilations
 (like Webpack's Dev Server) and compilers.
@@ -21,7 +21,7 @@ having the list of paths, but sometimes it needs to process the paths themselves
 for instance if the output paths are parametered by the contents of some of the 
 nodes/files.
 
-Expressing this in T-Lang, we would first define a schema that would accomodate
+Expressing this in TLang, we would first define a schema that would accomodate
 all the different types of node that we'd like to process, here corresponding
 to file types.
 

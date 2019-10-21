@@ -1,9 +1,12 @@
 == TLang VM
 
-This document lists the primitives of the virtual machine use to execute
+# TODO: Deprecated, should be about TL4
+
+This document lists the primitives of the virtual machine used to execute
 traversals. TLang's compiler is reponsible for generating an optimal
 traversal based on queries and transforms.
 
+# FIXME: What does that mean?
 Each operation has an implicit context, surrounded by square 
 brackets, and a list of arguments. Each operation is denoted by an 
 UPPERCASE name, followed by `!` if it has side-effects and `?` if it is

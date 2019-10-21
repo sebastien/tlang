@@ -23,7 +23,7 @@ difficulty to create safe abstractions (the `template` mechanism is quite
 error prone).
 
 We could use an S-Expr syntax for the transformation language, but because
-the transformation language is where most of the complexity of a T-Lang program
+the transformation language is where most of the complexity of a TLang program
 goes, it should be expressive, readable. and safe ― and S-Expr might not fit the bill there.
 
 - Being _expressive_ means that complex tasks can be accomplished with relatively

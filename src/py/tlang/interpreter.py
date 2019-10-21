@@ -11,7 +11,7 @@ def run( args:Optional[List[str]]=None, name="tlang" ):
 	if type(args) not in (type([]), type(())): args = [args]
 	oparser = argparse.ArgumentParser(
 		prog        = name or os.path.basename(__file__.split(".")[0]),
-		description = "Compiler for T-Lang"
+		description = "Compiler for TLang"
 	)
 	oparser.add_argument("files", metavar="FILE", type=str, nargs='*',
 		help='The .tlang source files to process')

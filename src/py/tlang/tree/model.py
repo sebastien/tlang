@@ -12,6 +12,9 @@ __doc__ = """
 The core model representing trees and nodes.
 """
 
+# TODO: The operations should probably be made by a manipulator, and the
+# core data structure should be kept as minimal as possible.
+
 # -----------------------------------------------------------------------------
 #
 # NODE

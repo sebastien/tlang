@@ -2,7 +2,7 @@
 
 TLang's low-level language is both a textual and binary format for defining
 TLang programs that operate on trees. TLang's high-level languages (query, 
-schema, tree representation, etc) are meant to describe applications
+schema, tree representation, etc) are meant to help define applications
 and behaviours, while TLang's low-level language is meant to drive the
 engine, which builds, queries and modifies trees.
 
@@ -32,27 +32,52 @@ In particular, we want TL4 to fit the following use cases:
 
  
 Operations
+==========
 
 
-TRAVERSE DEPTH|BREADTH
+Traversal
+---------
+
+|TRAVERSE#operation|`TRAVERSE DEPTH|BREADTH`::
 
 
-STACK   <TYPE> <:VARNAME>
-INPUT   <TYPE> <:VARNAME>
-OUTPUT  <TYPE> <:VARNAME>
+Context
+-------
+
+|STACK#operation|`STACK   <TYPE> <:VARNAME>`::
+
+|INPUT#operation|`INPUT   <TYPE> <:VARNAME>`::
+
+|OUTPUT#operation|`OUTPUT  <TYPE> <:VARNAME>`::
+
+PUSH    <:VARNAME>
+
+Control flow
+------------
 
 JMP    <@LABEL>
 IFJMP  <@LABEL>
-
 NEXT    <@NEXTLABEL>? <@ENDLABEL>?
-IS?     <NODE NAME>
+
+Predicates
+----------
+
+NODE?     <NODE NAME>
 EMPTY?  <STACK NAME>
-PUSH    <:VARNAME>
+
+Attributes
+----------
 
 ATTR    <TYPE> <NAME>
 
-EMIT <TYPE> <SLOT> <CHANNEL>
+Nodes
+-----
 
+
+Streams
+-------
+
+EMIT <TYPE> <SLOT> <CHANNEL>
 
 
 :NAME

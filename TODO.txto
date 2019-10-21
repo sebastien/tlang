@@ -20,7 +20,7 @@ Rework::
 
 Design::
 
-[ ] Architecture: define the architecture document so that we have
+[ ] Architecture: define the architecture document so that we have
     a clearer roadmap, implementation-wise.
 
 [ ] Templates: define the priority of query/selectors so that we know
@@ -39,12 +39,17 @@ Design::
 [ ] Immutability: at least as a flag, that would ensure some properties about
     the values.
 
+[ ] Errors: it's going to be important to communicate errors properly, and 
+    logging is part of it. Maybe logging could be done through a tree through
+    which we emit events? That would be nice.
+
 Docs::
 
 [ ] Should be the same font size and "information bandwith" as GitHub. Right
     now it looks smaller and makes pages longer.
 [ ] How to denote links (terms, pages) ?
 [ ] Some terms are subsets _static(event)_
+[ ] Make sure we can create anchors for terms and stuff
 [ ] Inko is a nice example: https://inko-lang.org/news/inko-progress-report-september-2019/
 
 Roadmap
