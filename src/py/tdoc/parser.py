@@ -13,21 +13,61 @@ from collections import OrderedDict,namedtuple
 # - preserve: as-is (EOL between tags)
 # - normalize: all become spaces
 
+# -----------------------------------------------------------------------------
+#
+# PARSER
+#
+# -----------------------------------------------------------------------------
+
+ParseOption = namedtuple("ParseOption", ("type", "default", "help"))
 class ParseOptions:
+	"""Define options for parsers, readers and writers."""
+
 	OPTIONS = {
-		"comments"
+		"comments"   : ParseOption(bool         , True , "Includes comments in the output"),
+		"embed"      : ParseOption(bool         , False, "Turns on embedded mode"),
+		"embedLine"  : ParseOption(Optional[str], None , "Line prefix for embedded TDoc data (eg. '#')"),
+		"embedStart" : ParseOption(Optional[str], None , "Start of embedded TDoc data (eg. '/*')"),
+		"embedEnd"   : ParseOption(Optional[str], None , "End of embedded TDoc data (eg. '*/')"),
 	}
 
-	def __init__( self ):
-		self.data = {}
+	def __init__( self, options=None ):
+		self.options = {}
+		self.merge(options)
+
+	def merge( self, options ):
+		if options:
+			for k,v in options.items():
+				if k in self.OPTIONS:
+					setattr(self, k, v)
+		return self
 
 	def __getattr__( self, name ):
-		return False
+		if name in ("options", "OPTIONS"):
+			return object.__getattribute__(self, name)
+		elif name not in self.OPTIONS:
+			raise ValueError(f"No option {name}, pick any of {tuple(self.OPTIONS.keys())}")
+		else:
+			return self.options[name] if name in self.options else self.OPTIONS[name]
 
 	def __setattr__( self, name, value ):
-		pass
+		if name in ("options", "OPTIONS"):
+			object.__setattr__(self, name, value)
+		elif name not in self.OPTIONS:
+			raise ValueError(f"No option {name}, pick any of {tuple(self.OPTIONS.keys())}")
+		else:
+			expected_type = self.OPTIONS[name][0]
+			# FIXME: We should test using generics
+			if False and not isinstance(value, expected_type):
+				raise ValueError(f"Option {name} should be {expected_type}, got {type(value)}: {value}")
+			else:
+				self.options[name] = value
+
+	def __repr__( self ):
+		return repr(self.options)
 
 class ParseError:
+	"""Define a parse error, that can be relayed by the writer."""
 
 	def __init__( self, line:int, char:int, message:str, length:int=0 ):
 		self.line = line
@@ -40,7 +80,11 @@ class ParseError:
 
 class Parser:
 	"""The TDoc parser is implemented as a straightforward line-by-line
-	parser with an event-based (SAX-like) interface."""
+	parser with an event-based (SAX-like) interface.
+
+	The parser uses iterable consistently as an abstraction over multiple
+	sources and makes it possible to pause/resume parsing.
+	"""
 
 	DATA_NODE    = 1
 	DATA_ATTR    = 2
@@ -56,26 +100,31 @@ class Parser:
 	RE_NODE = re.compile(f"^((?P<ns>{NAME}):)?(?P<name>{NAME})(\|(?P<parser>{NAME}))?(?P<attrs>( {ATTR})*)?(: (?P<content>.*))?$")
 
 
-	def __init__( self, driver=None ):
+	def __init__( self, options:ParseOptions ):
 		self.customParser:Optional[str] = None
 		self.customParserLevel:Optional[int] = None
-		self.options = ParseOptions()
-		self.driver = driver or XMLDriver(self.options)
+		self.options = options
 		self.depth = 0
 		self.nodeCount = 0
 
-	def start( self ):
+	def parse( self, iterable, driver:"Driver" ):
+		yield from self.start(driver)
+		for line in iterable:
+			yield from self.feed(line, driver)
+		yield from self.end(driver)
+
+	def start( self, driver:"Driver" ):
 		"""The parser is stateful, and `start` initializes its state."""
 		self.nodeCount    = 0
 		self.customParser = None
 		self.customParserLevel = None
 		self.depth = -1
-		yield from self.driver.onDocumentStart()
+		yield from driver.onDocumentStart(self.options)
 
-	def end( self ):
-		yield from self.driver.onDocumentEnd()
+	def end( self, driver:"Driver"  ):
+		yield from driver.onDocumentEnd()
 
-	def feed( self, line:str ):
+	def feed( self, line:str, driver:"Driver"  ):
 		"""Freeds a line into the parser, which produces a directive for
 		the driver and may affect the state of the parser."""
 		i = 0
@@ -88,34 +137,34 @@ class Parser:
 		stopped = False
 		if self.customParser:
 			if i > self.customParserLevel:
-				yield from self.driver.onRawContent(line[self.customParserLevel + 1:] + "\n")
+				yield from driver.onRawContent(line[self.customParserLevel + 1:] + "\n")
 				stopped = True
 			elif not l:
 				# This is an empty line, so we log it as an EOL
-				yield from self.driver.onRawContent("\n")
+				yield from driver.onRawContent("\n")
 			else:
 				self.customParser = None
 				self.customParserLevel = None
 		if stopped:
 			pass
 		elif self.isComment(l):
-			yield from self.driver.onComment(l[1:])
+			yield from driver.onComment(l[1:])
 		elif self.isAttribute(l):
 			ns, name, value = self.parseAttributeLine(l)
-			yield from self.driver.onAttribute(ns, name, value)
+			yield from driver.onAttribute(ns, name, value)
 		elif m := self.isNode(l):
 			if i > self.depth + 1:
 				yield from self.onContent(line[self.depth:])
 			else:
 				if i < self.depth:
 					while self.depth > i:
-						yield from self.driver.onNodeEnd()
+						yield from driver.onNodeEnd()
 						self.depth -= 1
 				if i == self.depth:
 					# The first node has self.depth == 0 == i, but there
 					# is no previous node.
 					if self.nodeCount > 0:
-						yield from self.driver.onNodeEnd()
+						yield from driver.onNodeEnd()
 				else:
 					assert i == self.depth + 1
 				if not stopped:
@@ -125,15 +174,15 @@ class Parser:
 						self.customParser = m["parser"]
 						self.customParserLevel = i
 					self.nodeCount += 1
-					yield from self.driver.onNodeStart(ns, name, parser)
+					yield from driver.onNodeStart(ns, name, parser)
 					for ns, name, value in attr:
-						yield from self.driver.onAttribute(ns, name, value)
+						yield from driver.onAttribute(ns, name, value)
 					if content is not None:
-						yield from self.driver.onContent(content)
+						yield from driver.onContent(content)
 		elif self.isExplicitContent(l):
-			yield from self.driver.onContent(l[1:])
+			yield from driver.onContent(l[1:])
 		else:
-			yield from self.driver.onContent(line[self.depth + 1:])
+			yield from driver.onContent(line[self.depth + 1:])
 
 	# =========================================================================
 	# PREDICATES
@@ -214,11 +263,20 @@ class Parser:
 # -----------------------------------------------------------------------------
 
 class Driver:
+	"""An abstract interface for the parser driver. The driver yields
+	values that are then handled by a writer. In other words, it transforms
+	the stream of events produced by the parser in a stream of values to
+	be written."""
 
-	def __init__( self, options:ParseOptions ):
+	@classmethod
+	def GetDefault( cls ):
+		return XMLDriver()
+
+	def __init__( self ):
+		self.options = None
+
+	def onDocumentStart( self, options:ParseOptions ):
 		self.options = options
-
-	def onDocumentStart( self ):
 		yield None
 
 	def onDocumentEnd( self ):
@@ -251,38 +309,53 @@ class Driver:
 class XMLDriver(Driver):
 	"""A driver that emits an XML-serialized document (as a text string)."""
 
+	RE_CDATA  = re.compile("\<|\>")
 	StackItem = namedtuple("StackItem", ("node"))
 
-	def __init__( self, options ):
-		super().__init__(options)
-		self.node = None
-		self.stack:List[XMLDriver.StackItem] = []
-		self.hasContent:Optional[bool] = None
+	def __init__( self ):
+		super().__init__()
+		self.reset()
 
-	def onDocumentStart( self ):
+	def reset( self ):
+		# Stores the current node, if any
+		self.node:Optional[str] = None
+		# We use a list of content strings that we need to flush
+		# as soon
+		self.content:List[str] = []
+		self.isContentCDATA = False
+		# The stack is used to do the closing tags on document end.
+		self.stack:List[XMLDriver.StackItem] = []
+
+	# =========================================================================
+	# HANDLERS
+	# =========================================================================
+
+	def onDocumentStart( self, options:ParseOptions ):
+		yield from super().onDocumentStart(options)
+		self.reset()
 		yield '<?xml version="1.0"?>\n'
 
 	def onDocumentEnd( self ):
+		yield from self.flushContent()
 		while self.stack:
 			yield f"</{self.stack.pop().node}>"
 
 	def onNodeStart( self, ns:Optional[str], name:str, process:Optional[str] ):
+		yield from self.flushContent()
 		# We need to handle child nodes
-		if self.hasContent is False:
-			yield ">"
 		self.node = f"{ns}:{name}" if ns else f"{name}"
-		self.hasContent = False
 		self.stack.append(XMLDriver.StackItem(self.node))
 		yield f"<{self.node}"
 
 	def onNodeEnd( self ):
+		yield from self.flushContent()
 		yield (f"</{self.node}>")
 		self.stack.pop()
 
 	def onAttribute( self, ns:Optional[str], name:str, value:Optional[str] ):
 		svalue = '"' + value.replace('"', '\\"') + '"'
 		attr   =  f" {ns}:{name}={svalue}" if ns else f" {name}={svalue}"
-		if not self.hasContent:
+		if not self.content:
 			yield attr
 		else:
 			# TODO: Should yield an error
@@ -291,26 +364,38 @@ class XMLDriver(Driver):
 	def onAttributesEnd( self ):
 		yield '>'
 
-	def onContent( self, text:str ):
-		if self.hasContent is False:
-			# We emit a tag closing one the first lie
-			yield ">"
-			self.hasContent = True
-		else:
-			# Otherwise we emit a space (or a new line)
-			yield "\n"
-		yield text
+	def onContent( self, text:str, type:int=0 ):
+		if not self.isContentCDATA and self.RE_CDATA.search(text):
+			self.isContentCDATA = True
+		self.content.append((type,text))
+		yield None
 
 	def onRawContent( self, text:str ):
-		if self.hasContent is False:
-			yield ">"
-			self.hasContent = True
-		yield text
+		yield from self.onContent(text, 1)
 
 	def onComment( self, text:str ):
+		yield from self.flushContent()
 		if self.options.comments:
 			yield (f"<!-- {text} -->\n")
 
+	# =========================================================================
+	# HELPERS
+	# =========================================================================
+
+	def flushContent( self ):
+		"""We need to defer the processingof text content to properly
+		do escapes and CDATA detection."""
+		if self.content:
+			is_cdata = self.isContentCDATA
+			if is_cdata:
+				yield "<[CDATA[["
+			for i,(t, line) in enumerate(self.content):
+				yield ">" if i == 0 else ("" if t == 1 else "\n")
+				yield line
+			if is_cdata:
+				yield "]]>"
+			self.content = []
+			self.isContentCDATA = None
 
 # -----------------------------------------------------------------------------
 #
@@ -319,21 +404,13 @@ class XMLDriver(Driver):
 # -----------------------------------------------------------------------------
 
 class Writer:
+	"""A default writer that writes content to an output stream (stdout by
+	default)."""
 
-	def __init__( self, stream=sys.stdout, parser:Parser=Parser() ):
+	def __init__( self, stream=sys.stdout ):
 		self.out = stream
-		self.parser = parser
 
-	def write( self, stream ):
-		"""Reads the input `stream`, feeding each element to the parser
-		and writing the output."""
-		parser = self.parser
-		self._write(parser.start())
-		for line in stream:
-			self._write(parser.feed(line))
-		self._write(parser.end())
-
-	def _write( self, iterable ):
+	def write( self, iterable ):
 		"""Writes the iterable elements to the output stream."""
 		for _ in iterable:
 			if _ is None:
@@ -357,7 +434,10 @@ class NullWriter(Writer):
 # -----------------------------------------------------------------------------
 
 class EmbeddedReader:
+	"""Extracts TDoc content from a text file, wrapping the primary
+	content in TDoc preformatted nodes."""
 
+	# TODO: Start, Line and end (from options)
 	def __init__( self, comment="#", line="code|tdoc"):
 		self.comment = comment
 		self.line = line
@@ -384,16 +464,18 @@ class EmbeddedReader:
 #
 # -----------------------------------------------------------------------------
 
-# TODO: parseString and parsePath should have the same body
-def parseString( text:str, out=sys.stdout ):
-	with open(path) as f:
-		Writer(out).write(EmbeddedReader().read(_[:-1] for _ in text.split("\n")))
+def parseIterable( iterable, out=sys.stdout, options=ParseOptions(), driver=Driver.GetDefault() ):
+	if options.embed:
+		iterable = (EmbeddedReader().read(_ for _ in iterable))
+	return Writer(out).write(Parser(options).parse(iterable, driver))
 
-def parsePath( path:str, out=sys.stdout ):
+def parseString( text:str, out=sys.stdout, options=ParseOptions(), driver=Driver.GetDefault() ):
 	with open(path) as f:
-		lines = (_[:-1] for _ in f.readlines())
-		#lines = (EmbeddedReader().read(_[:-1] for _ in f.readlines()))
-		Writer(out).write(lines)
+		return parseIterable( (_[:-1] for _ in text.split("\n")), out=out, options=options, driver=driver)
+
+def parsePath( path:str, out=sys.stdout, options=ParseOptions(), driver=Driver.GetDefault() ):
+	with open(path) as f:
+		return parseIterable( f.readlines(), out=out, options=options, driver=driver)
 
 if __name__ == "__main__":
 	path = sys.argv[1]

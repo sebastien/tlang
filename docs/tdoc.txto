@@ -2,7 +2,7 @@
 
 The tree documentation format (or _tdoc_ for short) is a way to easily write
 tree-structured data using a regular text editor. This format makes it possible
-to embed other languages within the document (markdown, javacscript, CSV, etc),
+to embed other languages within the document (markdown, javascript, CSV, etc),
 which are either left unparsed, as raw strings, or parsed as a tree structure.
 
 As such, it provides an easy way to wrap existing code in tree structure, 
@@ -285,24 +285,32 @@ or if you're using single-line comments,
 echo "Hello, world"
 ```
 
-Ouput formats
--------------
+Output formats
+=============
 
---- Text output
+Text output
+-----------
 
-XML
+XML::
+    Lorem ipsum
 
-JSON
+JSON:: 
+    Lorem ipsum
 
-SExpr
+SExpr::
+    Lorem ipsum
 
-TLang
+TLang::
+    Lorem ipsum
 
---- Data output
+Data output
+-----------
 
-DOM
+DOM::
+    Lorem ipsum
 
-Python
+Python::
+    Lorem ipsum
 
 Related work
 ============
