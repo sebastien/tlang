@@ -1,26 +1,25 @@
-;; @title A simple build system expressed in TLang
+;; title: A simple build system expressed in TLang
 ;; @created 2019-03-06
 ;; @updated 2019-03-06
 
 ;; TODO: Node traversal in attributes might need to be denoted differently.
-;; TODO: Think about implementing a FUSE version of that, so that you have
-;;       live preview.
+;; TODO: Think about implementing a FUSE version of that, so that you have live preview.
 
 ;; TODO: Awkward formulation
-;; @texto
-;; This example shows how to create a simple build system (or a cache system)
-;; using TLang's primitives. We'll see how all the dependency tracking
-;; and optimial update/rebuilding can be expressively defined
-;; using TLang's primitives, which then acts as a glue for
-;; native functions of the host language.
+;; section|texto
+;;    This example shows how to create a simple build system (or a cache system)
+;;    using TLang's primitives. We'll see how all the dependency tracking
+;;    and optimial update/rebuilding can be expressively defined
+;;    using TLang's primitives, which then acts as a glue for
+;;    native functions of the host language.
 
-;; @h1 Dependency Graph
+;; h1: Dependency Graph
 
-;; @texto
-;; We want to define a graph made of nodes identified by a path, where
-;; a node has direct dependencies and indirect (transitive) dependencies.
-;; We differentiate between `modified` (the node itself was modified) and `changed`
-;; (the node itself, or one of its dependency has changed).
+;; section|texto
+;;    We want to define a graph made of nodes identified by a path, where
+;;    a node has direct dependencies and indirect (transitive) dependencies.
+;;    We differentiate between `modified` (the node itself was modified) and `changed`
+;;    (the node itself, or one of its dependency has changed).
 
 (schema 
   (node
@@ -33,19 +32,21 @@
       (depends          (:list node) #synthetic)
       (dependencies     (:list node) #synthetic))))
 
-;; @symbol attribute node/@change
-;; A node's changed attribute is the maximum value of it's `modified` attribute
-;; and all its dependencies `@modified` attribute. We could alternatively express
-;; it recursively as `(max node/@modified … ./@depends-direct/@changed)`.
+;; symbol type=attribute id=node/@change
+;;   doc|texto
+;;      A node's changed attribute is the maximum value of it's `modified` attribute
+;;      and all its dependencies `@modified` attribute. We could alternatively express
+;;      it recursively as `(max node/@modified … ./@depends-direct/@changed)`.
 (attr node/@changed
   (max node/@modified … ./@depends/@modified))
 
-;; @symbol attribute node/@dependencies
-;; A nodes dependencies is the union of its direct dependencies and the
-;; dependendencies of 
+;; symbol type=attribute id=node/@dependencies
+;;    doc|texto
+;;        A nodes dependencies is the union of its direct dependencies and the
+;;        dependendencies of 
 (attr node/@dependencies
   ;; NOTE: This might trigger recursive traversals, so we need to 
-  ;; make sure TLang is guarded against that.
+  ;;    make sure TLang is guarded against that.
   (union ./@depends ./@depends/@dependencies))
   
 
@@ -65,36 +66,40 @@
     (objects    (:list node-o))
     (executable :Opaque #synthetic))))
 
+;; @anchor CINTER
+(interface
+  (make-node-c-depends  (PATH :String) )
+  (make-node-h-depends  (PATH :String) )
+  (make-node-o-object   (PATH :String) SOURCES)
+  (make-node-o-exec     (PATH :String) OBJECT))
+
 ;; @texto
 ;; C source (`.c`) and header (`.h`) files need to have their
 ;; dependencies computed, we use custom primitives that we'll define
 ;; in the [interface](#CINTER) later on.
 
-(attr node-c/@depends
-  (depends ./@modified)
-  (make-node-c-depends ./@path))
+(synthetic node-c @depends
+  (depends @modified)
+  (make-node-c-depends @path))
 
-(attr node-h/@depends
-  (depends ./@modified)
-  (make-node-h-depends ./@path))
+(synthetic node-h @depends
+  (depends @modified)
+  (make-node-h-depends @path))
 
-(attr node-o/@depends
-  (union ./@sources/@depends))
+(synthetic node-o @depends
+  ;; (unique (query (deref @sources) @depends)))
+  ;; is better rewritten as:
+  (deref @sources | query @depends | unique))
 
-(attr node-o/@object
-  (depends ./@dependencies)
-  (make-node-o-object ./@path ./@sources))
+(synthetic node-o @object
+  (depends @dependencies)
+  (make-node-o-object @path @sources))
 
-(attr node-executable-c/@executable
-  (depends ./@dependencies)
-  (make-node-o-object ./@path ./@sources))
+(syntethic node-executable-c @executable
+  (depends @dependencies)
+  (make-node-o-object @path @sources))
 
-;; @anchor CINTER
-(interface
-  (make-node-c-depends  PATH)
-  (make-node-h-depends  PATH)
-  (make-node-o-object   PATH SOURCES)
-  (make-node-o-exec     PATH OBJECT))
+)
 
 ;; @h2 PCSS Transpiler
 
@@ -128,8 +133,5 @@
 
 (attr node-pcss/@css
   (node-pcss-css-compute ./@model))
-
-
-
 
 ;; EOF - vim: ts=2 sw=2 et syn=scheme

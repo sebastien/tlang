@@ -34,3 +34,15 @@ VM
 - Each operation should have a theoeretical cost, and then an actual cost
   using profiling data. The compiler should have an optimizer that constructs
   a program that minimizes the total cost.
+
+UI Rendering
+------------
+
+Here's an interesting use case: you have a list of users and a current user,
+and you display in the interface `[{userName,isFriend}]` meaning that:
+
+```tlang
+(synthetic results/{result} @isFriend
+    (has? /state/user/friends/user[@id=RESULT/@id]))
+```
+

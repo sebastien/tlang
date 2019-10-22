@@ -1,24 +1,21 @@
-@import url(https://fonts.googleapis.com/css?family=Inconsolata|Anaheim|Cousine:400,400i,700,700i|Work+Sans:300,400,500,600,700,800,900&display=swap)
-//@import url(https://fonts.googleapis.com/css?family=Anaheim|Inconsolata|Work+Sans|Cousine&display=swap)
-@import url(https://fonts.googleapis.com/css?family=Barlow+Semi+Condensed|Domine|Enriqueta|Gentium+Basic|Martel|Noto+Serif+JP|Nunito+Sans|Quattrocento|Rubik|Varela+Round|Vidaloka|Share+Tech+Mono|Assistant|Istok+Web|Capriola|Vollkorn&display=swap)
+@import url(https://fonts.googleapis.com/css?family=Cousine:400,400i,700,700i|Varela&display=swap)
 @import url(../css/fonts.css)
 
 
 @unit pad=16px
-@unit lh=1.55em
+@unit lh=1.50em
 
 // TODO: see https://www.framer.com/api/
 
 body
 	padding:0px
 	margin: 0px
-	font-size: 14px
+	font-size: 15px
 	line-height: 1lh
 	text-rendering: optimizelegibility
 	--font-icons: "FontAwesome"
 	--font-heading: "Varela Round", sans-serif
-	// NOTE: Assistant is good, but too light and crisp compared to
-	// Varela
+	// NOTE: Rubik is quite close to Inter, but inter has more weights
 	--font-body:    "Inter", sans-serif
 	--font-list:    "Inter", sans-serif
 	--font-caption: "Inter", sans-serif
@@ -28,34 +25,34 @@ body
 	--color-icon: #E7D610
 	--color-text: #404040
 	--color-bd: #A0A0A0
+	--color-section-bd: #E0E3E2
 	--color-bg: #FFFFFF
 
 
 h1,h2,h3,h4,h5,h6,h7,h8
 	font-family: var(--font-heading)
-	margin-bottom: 1pad
-	margin-top:    2pad
+	margin-bottom: 0em
+	margin-top:    1lh
 	font-weight: 600
 	line-height: 1.45em
 
 h1
-	margin-top: 4pad
-	font-size: 24px
+	font-size: 34px
 	font-weight: 800
 
 h2
-	font-size: 20px
+	font-size: 28px
 	font-weight: 500
 
 h3
-	font-size: 18px
+	font-size: 24px
 	font-weight: 500
 
 h4
-	font-size: 22px
+	font-size: 24px
 
 h5
-	font-size: 16px
+	font-size: 18px
 
 dt
 	font-weight: bold
@@ -70,9 +67,12 @@ dd
 		margin-bottom: 0pad
 
 p, dd, li
-	max-width: 40em
+	max-width: 60em
 	font-family: --var(font-body)
 
+p
+	margin-top: 1lh
+	margin-bottom: 0em
 ul
 	margin: 0px
 	padding: 0px
@@ -120,22 +120,12 @@ header
 	
 
 section
-	border-bottom: 1px solid (--color-bd)
 	margin-bottom: 1pad
 	position: relative
-	&:last-child
-		border-bottom: 0px solid (--color-bd)
 
 section > h1
-	&:before
-		content: "#"
-		position: absolute
-		display: block
-		margin-left: -1.5em
-		margin-top: -1px
-		font-style: italic
-		font-weight: 100
-		opacity: 0.25
+	border-bottom: 1px solid var(--color-section-bd)
+	margin-bottom: 1pad
 
 a.link
 	extend(.link)
@@ -161,6 +151,9 @@ pre
 	border-radius: 4px
 	position: relative
 	overflow: auto
+	margin: 0em
+	margin-top: 0.5lh
+	margin-bottom: 0.5lh
 	&:before
 		merge(.t-caption__small)
 		text-transform: uppercase

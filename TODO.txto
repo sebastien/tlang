@@ -16,7 +16,10 @@ Rework::
     define groups easily.
 
 [ ] Expr: expr-value-invocation should actually be expr-list
+
 [ ] Selector: Selector language should be split in selector/processing language
+
+[ ] Capture: should be the name in upper-case {result} → {RESULT}
 
 Design::
 
@@ -25,6 +28,9 @@ Design::
 
 [ ] Templates: define the priority of query/selectors so that we know
     which ones are going to be selected when matching a template.
+
+[ ] Compiler: the notion of pass (mutates), transform (one way mapping) and projection
+    (two way mapping).
 
 [ ] State machines: we'll need to implement state machines for traversal, but
     it might also be interesting to see if how they could be implemented
