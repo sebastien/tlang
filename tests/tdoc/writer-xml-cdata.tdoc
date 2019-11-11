@@ -1,6 +1,6 @@
 #!/bin/env tdoc --run=test
 #run
-#	tdoc -Oxml --no-comment
+#	tdoc -Oxml
 #doc
 #	Ensures that the CDATA sections are properly detected and respected
 #expect

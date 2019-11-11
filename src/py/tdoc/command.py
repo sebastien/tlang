@@ -1,6 +1,12 @@
 import sys, argparse
 from typing import Optional, List
-from tdoc.parser import ParseOptions, parseString, parsePath
+from tdoc.parser import XMLDriver, EventDriver, TDocDriver, ParseOptions, parseString, parsePath
+
+DRIVERS = {
+	"xml"   : XMLDriver,
+	"event" : EventDriver,
+	"tdoc"  : TDocDriver,
+}
 
 def run( args:Optional[List[str]]=None, name="tdoc" ):
 	if args is None: args = sys.argv[1:]
@@ -11,7 +17,10 @@ def run( args:Optional[List[str]]=None, name="tdoc" ):
 	)
 	oparser.add_argument("files", metavar="FILE", type=str, nargs='*',
 		help='The .tdoc source files to process')
-	oparser.add_argument("-c", "--comments", type=bool, default=True,
+	oparser.add_argument("-O", "--output-format", action="store", dest="outputFormat",
+		choices=list(DRIVERS.keys()), default=next(_ for _ in DRIVERS),
+		help=ParseOptions.OPTIONS["comments"].help)
+	oparser.add_argument("-c", "--with-comments", action="store_true", dest="comments",
 		help=ParseOptions.OPTIONS["comments"].help)
 	oparser.add_argument("-e", "--embed", action="store_true",
 		help="""TDoc is embedded in another language. Will try to autodetect
@@ -27,8 +36,9 @@ def run( args:Optional[List[str]]=None, name="tdoc" ):
 	opts = oparser.parse_args(args=args)
 	# We extract parser optios
 	parse_options = ParseOptions(vars(opts))
+	driver = DRIVERS[opts.outputFormat]()
 	for path in opts.files:
-		res       = parsePath(path)
+		res  = parsePath(path, options=parse_options, driver=driver)
 
 if __name__ == '__main__':
 	res = run()

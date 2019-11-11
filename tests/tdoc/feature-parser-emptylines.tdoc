@@ -5,17 +5,46 @@
 #	Ensures that the empty lines in the custom parser
 #	section are properly interepreted by the parser.
 #expect
-#	<section>This is a section where I'm free do embed some markdown
+#	<?xml version="1.0"?>
+#	<section>Some line
 #	
-#	- You can make lists
-#	- With many items
-#	
-#	You can use *inline* **markup** and [links](http://markdown.org)</section>
+#	- One
+#	- Two
+#
+#	Other line
+#		indented line
+#
+#	<node><here /></node><section>Some line
+#
+#	- One
+#	- Two
+#
+#	Other line
+#		indented line
+
+<notnode<here</here></notnode></section>
+
+<notnode<here</here></notnode></section>
+section
+	Some line
+
+	- One
+	- Two
+
+	Other line
+		indented line
+	
+	node
+		here
 section|markdown
-	This is a section where I'm free do embed some markdown
+	Some line
 
-	- You can make lists
-	- With many items
+	- One
+	- Two
 
-	You can use *inline* **markup** and [links](http://markdown.org)
+	Other line
+		indented line
+	
+	notnode
+		here
 # EOF
