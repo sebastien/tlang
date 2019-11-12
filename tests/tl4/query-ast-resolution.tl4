@@ -1,0 +1,51 @@
+# This implements the following query:
+#
+# .//ref/{NAME:@ref}[(empty? .<<define/@id[eq(@,$NAME)])]
+#
+# This one is a bit tricky as it implies keeping track of all the definitions
+# and matching them with all the references.
+
+STACK    :defs  NODE
+SLOT     :temp  NODE
+SLOT     :name  STR
+CHANNEL  :eq    STR STR -> BOOL 
+CHANNEL  :empty NODESET -> BOOL 
+
+@loop
+  TRAVERSE DEPTH
+  NEXT?          |-> @end
+  NODE?    ref   |-> @loop:notref
+
+@loop:ref
+  ATTR  ref   STR
+  SET   :name _
+  SET   :temp _NODE
+
+  # We move to the stack of nodes we need to look up
+  TO STACK  :defs
+  TRAVERSE  BOTTOM_UP
+
+@loop:ref:loop
+  SEND      :eq :name
+  ATTR      id STR
+  SEND      :eq _
+  RECV      :eq |-> @loop:ref:next
+  # FIXME: Here we need to send a stream
+  SEND      :empty NODE |-> @loop:ref:next
+  EMIT      _NODE
+  # Now we have a match
+
+@loop:ref:next
+  NEXT?     -> @loop:ref:loop | @loop:ref:def
+
+@loop:ref:def
+  NEXT?     |-> @loop:notref
+
+@loop:notref
+  NODE?   define |-> @loop:notdefine
+  ATTR    id STR
+
+@loop:notdefine
+
+# EOF - vim: ts=2 sw=2 et
+

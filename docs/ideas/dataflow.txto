@@ -1,0 +1,7 @@
+== Dataflow programming
+
+So TLang is build around the idea of incremental programming, which means
+that if a value has not changed, it does not need to be recalculated. This
+principle applies during a program lifetime, but at
+
+# EOF - vim: ts=2 sw=2 et syn=texto

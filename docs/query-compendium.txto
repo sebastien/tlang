@@ -48,6 +48,8 @@ dir[(> (count ./file/[(> size 100) 10))]/{@path}
 //{account}[transaction/{@amount:V}[(gt? V 10_000)]]
 ```
 
+|query-ast-resolution|
+
 ```tlang
-.//ref/{NAME:@ref}[empty(.<<define/@ref[eq(@,$NAME)]]
+.//ref/{NAME:@ref}[(empty? .<<define/@id[eq(@,$NAME)])]
 ```

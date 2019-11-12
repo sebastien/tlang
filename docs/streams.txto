@@ -1,0 +1,11 @@
+== Streams
+
+Streams are a fundamental building block of cooperation between TLang and
+host languages as well as a fundamental block for parallelization.
+
+There are two levels to a stream:
+
+- The data level, where you can `read` the next atom
+- The meta-data level, where you can see if there is a next element available
+
+# EOF - vim: ts=2 sw=2 et

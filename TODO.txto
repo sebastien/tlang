@@ -15,6 +15,8 @@ Rework::
     as it acts pretty much like namespaces and also makes it possible to
     define groups easily.
 
+[ ] TDoc: input (read) and output (write)
+[ ] TLang: run queries on the command line.
 [ ] Expr: expr-value-invocation should actually be expr-list
 
 [ ] Selector: Selector language should be split in selector/processing language
@@ -57,6 +59,7 @@ Docs::
 [ ] Some terms are subsets _static(event)_
 [ ] Make sure we can create anchors for terms and stuff
 [ ] Inko is a nice example: https://inko-lang.org/news/inko-progress-report-september-2019/
+[ ] Craftin interpreters is very good: http://craftinginterpreters.com/chunks-of-bytecode.html
 
 Roadmap
 =======

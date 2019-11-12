@@ -1,14 +1,9 @@
 import sys, argparse
 from typing import Optional, List
-from tdoc.parser import XMLDriver, EventDriver, TDocDriver, ParseOptions, parseString, parsePath
-
-DRIVERS = {
-	"xml"   : XMLDriver,
-	"event" : EventDriver,
-	"tdoc"  : TDocDriver,
-}
+from tdoc.parser import DRIVERS, XMLDriver, EventDriver, TDocDriver, ParseOptions, parseString, parsePath
 
 def run( args:Optional[List[str]]=None, name="tdoc" ):
+	"""Command-line interface to the TDoc parser."""
 	if args is None: args = sys.argv[1:]
 	if type(args) not in (type([]), type(())): args = [args]
 	oparser = argparse.ArgumentParser(

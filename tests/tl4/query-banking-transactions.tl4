@@ -1,0 +1,34 @@
+# The query to implement is the following  query:
+#
+# //{account}[transaction/{@amount:V}[(gt? V 10_000)]]
+#
+# This query is quite simple as it's direct, but it does show
+# predicates and using an external channel to execute a function
+# (ie. the `(gt? …)` code).
+
+OUTPUT :account NODE
+INPUT  :gt      NUMBER BOOL
+
+@start
+	TRAVERSE DEPTH
+	NODE? account ? @account
+	NEXT -> @start | @end
+
+@account
+	SET      :account
+	TRAVERSE CHILDREN
+
+@account:loop
+	NEXT              |-> @account:end
+	NODE? transaction |-> @account:loop
+	ATTR? amount      |-> @account:loop
+	ATTR  amount
+	SEND  :gt _
+	RECV  :gt -> @account:transaction | @account:loop
+
+@account:transaction
+	PARENT
+	SEND :account NODE
+	NEXT -> @start | @end
+
+# EOF

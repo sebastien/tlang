@@ -1,6 +1,6 @@
 #!/usr/bin/env python3.8
 from tlang import tree
-import re, sys, os, logging, json
+import re, sys, os, logging, json, xml.sax.saxutils
 from typing import Optional,Any,List,Union,Iterable,Iterator,Tuple
 from collections import OrderedDict,namedtuple
 
@@ -102,7 +102,7 @@ class Parser:
 	# A value is either a quoted string or a sequence without spaces
 	VALUE   = f"([^ ]+|{STR_SQ}|{STR_DQ})"
 	# Attributes are like NAME=VALUE
-	RE_ATTR = re.compile(f" (?P<name>{NAME})=(?P<value>{VALUE})?")
+	RE_ATTR = re.compile(f" ((?P<ns>{NAME}):)?(?P<name>{NAME})=(?P<value>{VALUE})?")
 	# Nods are like NS:NAME|PARSER ATTR=VALUE: CONTENT
 	RE_NODE = re.compile(f"^((?P<ns>{NAME}):)?(?P<name>{NAME})(\|(?P<parser>{NAME}))?(?P<attrs>( {ATTR})*)?(: (?P<content>.*))?$")
 
@@ -137,6 +137,9 @@ class Parser:
 
 	def end( self, driver:"Driver"  ):
 		"""Denotes the end of the parsing."""
+		while self.stack:
+			d = self.stack.pop()
+			yield from driver.onNodeEnd(d.ns, d.name, None)
 		yield from driver.onDocumentEnd()
 
 	def feed( self, line:str, driver:"Driver"  ):
@@ -154,12 +157,12 @@ class Parser:
 				# BRANCH: RAW_CONTENT
 				# That's a nested line, with an indentation greater than
 				# the indentation of the custom parser
-				yield from driver.onRawContent(line[self.customParserDepth + 1:])
+				yield from driver.onRawContentLine(line[self.customParserDepth + 1:-1])
 				stopped = True
 			elif not l:
 				# BRANCH: RAW_CONTENT_EMPTY
 				# This is an empty line, so we log it as an EOL
-				yield from driver.onRawContent("")
+				yield from driver.onRawContentLine("")
 			else:
 				# Otherwise, we're OUT of the custom parser
 				self.customParser = None
@@ -170,7 +173,7 @@ class Parser:
 		elif self.isComment(l):
 			# BRANCH: COMMENT
 			# It's a COMMENT
-			yield from driver.onComment(l[1:], i)
+			yield from driver.onCommentLine(l[1:-1], i)
 		elif self.isAttribute(l):
 			# BRANCH: ATTRIBUTE
 			# It's an ATTRIBUTE
@@ -183,17 +186,17 @@ class Parser:
 				# BRANCH: TEXT CONTENT
 				# The current line is TOO INDENTED (more than expected), so we consider
 				# it to be TEXT CONTENT
-				yield from self.onContent(self.stripLineIndentation(line,self.depth))
+				yield from self.onContentLine(self.stripLineIndentation(line,self.depth)[:-1])
 			else:
 				# BRANCH: TEXT NODE
 				# Here we're sure it's a NODE
 				if i <= self.depth:
 					# If it's DEDENTED, we need to pop the stack up until we
 					# reach a depth that's lower than i.
-					while self.depth > i:
+					while self.stack and self.depth >= i:
 						d = self.stack.pop()
 						# STEP: END PREVIOUS NODE
-						yield from driver.onNodeEnd(d.ns, d.name)
+						yield from driver.onNodeEnd(d.ns, d.name, None)
 				else:
 					# Here, the indentation must be stricly one more level
 					# up.
@@ -207,17 +210,18 @@ class Parser:
 				# Now we have the node start
 				yield from driver.onNodeStart(ns, name, parser)
 				# Followed by the attributes, if any
+				attr = list(attr)
 				for ns, name, value in attr:
 					yield from driver.onAttribute(ns, name, value)
 				yield from driver.onNodeContentStart(ns, name, parser)
 				# And then the first line of content, if any
 				if content is not None:
-					yield from driver.onContent(content)
+					yield from driver.onContentLine(content[:-1])
 		elif self.isExplicitContent(l):
-			yield from driver.onContent(l[1:])
+			yield from driver.onContentLine(l[1:-1])
 		else:
-			# FIXME: Make sure this is correct
-			yield from driver.onContent(line[self.depth + 1:])
+			# FIXME: See feature-whitespace, there's a problem there
+			yield from driver.onContentLine(self.stripLineIndentation(line,self.depth)[:-1])
 
 	# =========================================================================
 	# PREDICATES
@@ -254,7 +258,8 @@ class Parser:
 
 	def parseAttributes( self, line:str ) -> Iterator[Tuple[str,str]]:
 		"""Parses the attributes and returns a stream of `(key,value)` pairs."""
-
+		# We remove the trailing spaces.
+		while line and line[-1] in '\n \t': line = line[:-1]
 		# Inline attributes are like
 		#   ATTR=VALUE ATTR=VALUE…
 		# Where value can be unquoted, single quoted or double quoted,
@@ -263,8 +268,10 @@ class Parser:
 		o = 0
 		while m := self.RE_ATTR.match(line, o):
 			v = m.group("value")
+			if not v:
+				w = v
 			# This little dance corrects the string escaping
-			if len(v) < 2:
+			elif len(v) < 2:
 				w = v
 			else:
 				s = v[0]
@@ -277,7 +284,7 @@ class Parser:
 					w = v[1:-1].replace("\\'", "'")
 				else:
 					w = v
-			yield (m.group("name"), w)
+			yield (m.group("ns"), m.group("name"), w or "")
 			o = m.end()
 
 	def parseAttributeLine( self, line ):
@@ -316,8 +323,6 @@ class Parser:
 		"""Strips the indentation from the given line."""
 		return line[indent:]
 
-
-
 # -----------------------------------------------------------------------------
 #
 # DRIVER
@@ -350,19 +355,19 @@ class Driver:
 	def onNodeContentStart( self, ns:Optional[str], name:str, process:Optional[str] ):
 		yield None
 
-	def onNodeEnd( self ):
+	def onNodeEnd( self, ns:Optional[str], name:str, process:Optional[str] ):
 		yield None
 
 	def onAttribute( self, ns:Optional[str], name:str, value:Optional[str] ):
 		yield None
 
-	def onContent( self, text:str ):
+	def onContentLine( self, text:str ):
 		yield None
 
-	def onRawContent( self, text:str ):
+	def onRawContentLine( self, text:str ):
 		yield None
 
-	def onComment( self, text:str, indent:int ):
+	def onCommentLine( self, text:str, indent:int ):
 		yield None
 
 # -----------------------------------------------------------------------------
@@ -371,7 +376,7 @@ class Driver:
 #
 # -----------------------------------------------------------------------------
 
-class EventDriver:
+class EventDriver(Driver):
 	"""A driver that outputs an event stream."""
 
 	def __init__( self ):
@@ -387,19 +392,19 @@ class EventDriver:
 	def onNodeStart( self, ns:Optional[str], name:str, process:Optional[str] ):
 		yield ('NodeStart', ns, name, process)
 
-	def onNodeEnd( self ):
-		yield ('NodeEnd',)
+	def onNodeEnd( self, ns:Optional[str], name:str, process:Optional[str] ):
+		yield ('NodeEnd', ns, name, process)
 
 	def onAttribute( self, ns:Optional[str], name:str, value:Optional[str] ):
 		yield ('Attribute',ns,name,value)
 
-	def onContent( self, text:str ):
+	def onContentLine( self, text:str ):
 		yield ('Content',text)
 
-	def onRawContent( self, text:str ):
+	def onRawContentLine( self, text:str ):
 		yield ('RawContent',text)
 
-	def onComment( self, text:str, indent:int ):
+	def onCommentLine( self, text:str, indent:int ):
 		yield ('Comment',text)
 
 # -----------------------------------------------------------------------------
@@ -408,7 +413,7 @@ class EventDriver:
 #
 # -----------------------------------------------------------------------------
 
-class TDocDriver:
+class TDocDriver(Driver):
 	"""A driver that outputs a normalized TDoc document."""
 
 	def __init__( self ):
@@ -429,21 +434,21 @@ class TDocDriver:
 	def onNodeContentStart( self, ns:Optional[str], name:str, process:Optional[str] ):
 		yield '\n'
 
-	def onNodeEnd( self ):
+	def onNodeEnd( self, ns:Optional[str], name:str, process:Optional[str] ):
 		self.indent = self.indent[:-1]
 		yield None
 
 	def onAttribute( self, ns:Optional[str], name:str, value:Optional[str] ):
 		yield f" {ns+':' if ns else ''}{name}{'='+repr(value) if value else ''}"
 
-	def onContent( self, text:str ):
-		yield f"{self.indent}{text}"
+	def onContentLine( self, text:str ):
+		yield f"{self.indent}{text}\n"
 
-	def onRawContent( self, text:str ):
-		yield f"{self.indent}{text}"
+	def onRawContentLine( self, text:str ):
+		yield f"{self.indent}{text}\n"
 
-	def onComment( self, text:str, indent:int ):
-		yield f"{'	' * indent}#{text}"
+	def onCommentLine( self, text:str, indent:int ):
+		yield f"{'	' * indent}#{text}\n"
 
 # -----------------------------------------------------------------------------
 #
@@ -454,22 +459,9 @@ class TDocDriver:
 class XMLDriver(Driver):
 	"""A driver that emits an XML-serialized document (as a text string)."""
 
-	RE_CDATA  = re.compile("\<|\>")
-	StackItem = namedtuple("StackItem", ("node"))
-
 	def __init__( self ):
 		super().__init__()
-		self.reset()
-
-	def reset( self ):
-		# Stores the current node, if any
-		self.node:Optional[str] = None
-		# We use a list of content strings that we need to flush
-		# as soon
-		self.content:List[str] = []
-		self.isContentCDATA = False
-		# The stack is used to do the closing tags on document end.
-		self.stack:List[XMLDriver.StackItem] = []
+		self.lines:int = 0
 
 	# =========================================================================
 	# HANDLERS
@@ -477,49 +469,49 @@ class XMLDriver(Driver):
 
 	def onDocumentStart( self, options:ParseOptions ):
 		yield from super().onDocumentStart(options)
-		self.reset()
+		self.lines = -1
 		yield '<?xml version="1.0"?>\n'
 
 	def onDocumentEnd( self ):
-		yield from self.flushContent()
-		while self.stack:
-			yield f"</{self.stack.pop().node}>"
+		yield None
 
 	def onNodeStart( self, ns:Optional[str], name:str, process:Optional[str] ):
-		yield from self.flushContent()
-		# We need to handle child nodes
-		self.node = f"{ns}:{name}" if ns else f"{name}"
-		self.stack.append(XMLDriver.StackItem(self.node))
-		yield f"<{self.node}"
+		yield f"<{ns+':' if ns else ''}{name}"
+		self.lines = 0
 
-	def onNodeEnd( self ):
-		yield from self.flushContent()
-		yield (f"</{self.node}>")
-		self.stack.pop()
+	def onNodeContentStart( self, ns:Optional[str], name:str, process:Optional[str] ):
+		yield None
+
+	def onNodeEnd( self, ns:Optional[str], name:str, process:Optional[str] ):
+		if self.lines < 0:
+			pass
+		elif not self.lines:
+			yield " />"
+		else:
+			yield f"</{ns+':' if ns else ''}{name}>"
+		self.lines = 0
 
 	def onAttribute( self, ns:Optional[str], name:str, value:Optional[str] ):
 		svalue = '"' + value.replace('"', '\\"') + '"'
 		attr   =  f" {ns}:{name}={svalue}" if ns else f" {name}={svalue}"
-		if not self.content:
+		if not self.lines:
 			yield attr
 		else:
 			# TODO: Should yield an error
 			logging.warn(f"XMLDriver: Can't output attribute after content: {attr}")
 
-	def onAttributesEnd( self ):
-		yield '>'
+	def onContentLine( self, text:str ):
+		if self.lines == 0:
+			yield ">"
+		elif self.lines > 0:
+			yield "\n"
+		yield self.escape(text)
+		self.lines = max(self.lines,0) + 1
 
-	def onContent( self, text:str, type:int=0 ):
-		if not self.isContentCDATA and self.RE_CDATA.search(text):
-			self.isContentCDATA = True
-		self.content.append((type,text))
-		yield None
+	def onRawContentLine( self, text:str ):
+		yield from self.onContentLine(text)
 
-	def onRawContent( self, text:str ):
-		yield from self.onContent(text, 1)
-
-	def onComment( self, text:str ):
-		yield from self.flushContent()
+	def onCommentLine( self, text:str, indent:int ):
 		if self.options.comments:
 			yield (f"<!-- {text} -->\n")
 
@@ -527,20 +519,21 @@ class XMLDriver(Driver):
 	# HELPERS
 	# =========================================================================
 
-	def flushContent( self ):
-		"""We need to defer the processingof text content to properly
-		do escapes and CDATA detection."""
-		if self.content:
-			is_cdata = self.isContentCDATA
-			if is_cdata:
-				yield "<[CDATA[["
-			for i,(t, line) in enumerate(self.content):
+	def flush( self ):
+		"""We need to defer the processing of text content to properly
+		do escapes."""
+		content = self.content
+		if content is not None:
+			is_cdata = False
+			for i, line in enumerate(self.content):
 				yield ">" if i == 0 else None
-				yield line
+				yield line if is_cdata else self.escape(line)
 			if is_cdata:
 				yield "]]>"
-			self.content = []
-			self.isContentCDATA = None
+			self.content = None
+
+	def escape( self, line ):
+		return xml.sax.saxutils.escape(line)
 
 # -----------------------------------------------------------------------------
 #
@@ -624,6 +617,13 @@ def parseString( text:str, out=sys.stdout, options=ParseOptions(), driver=Driver
 def parsePath( path:str, out=sys.stdout, options=ParseOptions(), driver=Driver.GetDefault() ):
 	with open(path) as f:
 		return parseIterable( f.readlines(), out=out, options=options, driver=driver)
+
+
+DRIVERS = {
+	"xml"   : XMLDriver,
+	"event" : EventDriver,
+	"tdoc"  : TDocDriver,
+}
 
 if __name__ == "__main__":
 	path = sys.argv[1]

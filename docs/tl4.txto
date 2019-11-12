@@ -1,0 +1,271 @@
+== TLang Low Level Language (TL4)
+
+TLang's low-level language is both a textual and binary format for defining
+TLang programs that operate on trees. TLang's high-level languages (query, 
+schema, tree representation, etc) are meant to help define applications
+and behaviours, while TLang's low-level language is meant to drive the
+engine, which builds, queries and modifies trees.
+
+The instruction set defined in TL4 is all that is required to run TLang
+programs. The language is designed based on the following principles:
+
+- Assembly-like: TL4 should feel like a specialized assembly for operating
+  on trees.
+
+- Cursor: like a line plotter or a 3D printer, TL4 is all about piloting
+  a virtual cursor that moves over the tree and queries/builds/removes parts
+  of it.
+
+- Readable: TL4 programs should be writable by hand and should be readable
+  when machine-generated.
+
+In particular, we want TL4 to fit the following use cases:
+
+- Compilers: make it easier to experiment with queries and transform 
+  optimization startegies, and make the compiled code easier to debug.
+
+- Protocol for remote tree interaction: a user interface might interact with
+  a tree data using TL4 as an way to operate on the tree.
+
+- A way to send patches on tree data: …
+
+Syntax
+======
+
+TL4 has no functions or procedures, it is a sequence of operations and labels
+to which the interpreter can jump to and from.
+
+Numbers
+-------
+
+
+State
+-----
+
+Automatic values are prefixed with `_` and are spelled `UPPER_CASE`.
+
+`_`::
+  references the current value (implicit value) resulting from
+  the last operation.
+
+`_NODE`::
+  references the current node.
+
+Labels
+------
+
+Labels determine points to which the interpreter will jump in the program.
+A label starts with `@` and is spelled `@label-name` with optional
+suffixes separated by `:`, like `@dir:empty`. The suffix is used to denote
+a sub-case of general case.
+
+The implicit `@end` label refers to the end of the program, unless it is 
+explicitely defined.
+
+`@`::
+  references the next operation
+
+Names
+-----
+
+Operations::
+
+
+Variables::
+
+
+Types
+-----
+
+`INT`::
+  pass
+
+`NUM`::
+  pass
+
+`STR`::
+  pass
+
+`NODE`::
+  pass
+
+`NODESET`::
+  pass
+
+State
+=====
+
+TL4 is focused on writing tree traversal and tree manipulation. The interpreter
+works like a cursor moving on the tree, as result, the interpeter always has
+a _current node_.
+
+The interpreter also has a _traversal direction_, which can be used using
+the [`TRAVERSE`](#TRAVERSE) operation.
+
+Each TL4 program also has a global state in which the following _named elements_
+can be defined:
+
+- _inputs_: read-only, immutable values 
+- _slots_: read/write placeholder of values of a given type
+- _stacks_: can hold values of the same type
+_ _channels_: can send values of a given type and receive values of another
+
+Operations
+==========
+
+
+Traversal
+---------
+
+|TO|`TO <NODE|STACK> <:NAME>`::
+|TRAVERSE|`TRAVERSE DEPTH|BREADTH`::
+
+  DEPTH
+  BREADTH
+  CHILDREN
+  BOTTOM_UP
+  TOP_DOWN
+
+|NEXT|`NEXT ! END_REACHED`::
+
+  Moves to the next node according to the traversal
+  order. 
+
+Declarations
+------------
+
+|STACK|`STACK <TYPE> <:VARNAME>`::
+
+  Declares a stack with the given type and name.
+
+
+  ```
+  STACK NODE :DIRS
+  …
+  @start
+    IS?   dir -> @ | @end
+    IFJMP @dir
+    NEXT
+    IFJMP @next
+    JMP   @end
+
+  @dir
+  ```
+
+
+|INPUT|`INPUT <:VARNAME> <TYPE>`::
+
+  Declares an input value with the given type and name.
+
+|CHANNEL|`CHANNEL <:VARNAME> <INPUT_TYPE> <OUTPUT_TYPE>` ::
+
+  Declares an output value with the given type and name.
+
+
+State
+-----
+
+`PUSH <:STACK_NAME>`
+
+|POP|`POP <:STACK_NAME>`::
+
+  Pops the last value on the given stack, binding the 
+  result to the implicit argument and optionally to
+  the given `SLOT_NAME.
+
+|POP|`POP <:STACK_NAME> <:SLOT_NAME>`::
+
+  This special form gets normalized to:
+
+  ```
+  POP <:STACK_NAME>
+  SET <:SLOT>
+  ```
+
+`SET <:SLOT_NAME>`
+
+`EMIT <:CHANNEL_NAME>`
+
+Predicates
+----------
+
+`NODE? <NODE_NAME>`::
+  Succeeds if the current node matches the `NAME` expression.
+
+`ATTR? <ATTR_NAME>`::
+  Succeeds if there is a next node in the traversal.
+
+`NEXT?`::
+  Succeeds if there is a next node in the traversal.
+
+`EMPTY?  :STACK_NAME ! UNDEFINED_STACK`::
+  Succeeds if the named stack is empty.
+
+All predicates have a syntactic form that expands to a control flow
+operation:
+
+```
+<PREDICATE> -> <@IF_LABEL> 
+```
+
+exanding to
+
+```
+<PREDICATE>
+IFJMP <@IF_LABEL>
+```
+
+and the form with an else target
+
+```
+<PREDICATE> -> <@IF_LABEL> | <@ELSE_LABEL>
+```
+
+expanding to:
+
+```
+<PREDICATE>
+IFJMP <@IF_LABEL>
+JMP   <@ELSE_LABEL>
+```
+
+Control flow
+------------
+
+`JMP    <@LABEL>`::
+
+`IFJMP  <@LABEL>`::
+
+
+Attributes
+----------
+
+`ATTR   <NAME> <TYPE> ! WRONG_TYPE NO_ATTRIBUTE`::
+  Returns the attribute of the given `NAME` as as value of the
+  given `<TYPE>`
+
+Nodes
+-----
+
+
+Channels
+--------
+
+```
+SEND
+RECV
+```
+
+Syntactic sugar
+---------------
+
+These forms are used when writing TL4 by hand, and are always normalized
+by the interpreter/compiler.
+
+```
+NEXT -> IF | ELSE
+ATTR |-> ELSE
+CALL A…
+```
+
+# EOF - vim: ts=2 sw=2 et syn=texto
