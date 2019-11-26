@@ -2,14 +2,18 @@
 
 The tree documentation format (or _tdoc_ for short) is a way to easily write
 tree-structured data using a regular text editor. This format makes it possible
-to embed other languages within the document (markdown, javascript, CSV, etc),
-which are either left unparsed, as raw strings, or parsed as a tree structure.
+to embed other languages within the document (markdown, javascript, CSV, etc) and
+also embed TDoc within another language.
 
-As such, it provides an easy way to wrap existing code in tree structure, 
+Embedded languages are either left unparsed, as raw strings, or parsed as a tree structure,
+when a rich parser is available.
+
+As such, it provides an easy way to wrap existing code in a tree structure, 
 and create hybrid documents that contain more than one language.
 
 The tree block syntax is a tab-indented format, where the nesting of content
-is primarily determined by the indentation level.
+is primarily determined by the indentation level. This is not a hard rule, however,
+as the `tdoc` command also supports space-indentation.
 
 Syntax
 ======
@@ -19,9 +23,10 @@ Nodes
 
 Nodes have a _name_ (which can optionally be prefixed by a _namespace_),and
 optional _attributes_. 
-The node is then followed by an optional first line of content, separated by
-`: `. The rest of the content is then within one level of indentation relative
-to the node.
+
+The node is then followed by an optional first line of content, separated by `:
+` (note the space after the colon). The rest of the content is then within one
+level of indentation relative to the node.
 
 ```
 NODE: TEXT
@@ -38,7 +43,7 @@ html
 ```
 
 In case where your content might be accidentaly intepreted as a node declaration, you can 
-prefix it directly with `:` (no space needed), like so:
+prefix it directly with `:` (no extra space needed), like so:
 
 ```
 p
@@ -112,6 +117,15 @@ html xmlns:svg=http://www.w3.org/2000/svg
 				@svg:cx 100
 				@svg:cy 100
 				@svg:r 100
+```
+
+Node names
+----------
+
+There is a shorthand syntax for the `node id=myNodeName"` in the form:
+
+```
+NODE#NAME
 ```
 
 Parsers
@@ -194,10 +208,11 @@ Meaning that you'll need to join the two lines with a space or newline if
 you want to have `lorem ipsum dolor sit amet`  instead of `lorem ipsumdolor sit amet`.
 
 There are some specific cases to think about, though, especially when it comes
-to empty line:
+to empty lines:
 
-If a line has only tabs and spaces, it is not empty: the spaces count as 
-content (which is what is expected, because TDoc preserves whitespace)
+    --INDENT--
+    If a line has only tabs and spaces, it is not empty: the spaces count as 
+    content (which is what is expected, because TDoc preserves whitespace)
 
 ```tdoc
 p
@@ -250,18 +265,18 @@ will result in
 Another special treatment is that in that case the indentation of the line is 
 irrelevant if lesser or equal than the current block indentation.
 
-
 Embedded mode
 =============
 
 TDoc can also be used as embedded in another language. For instance,
-if you're writing a program in a programming language and would like to 
-add structured data or have a literate programming approach.
+if you're writing a program and would like to 
+add structured data, add embedded documentation or write your code
+in a litterate programming approach:
 
 ```c
 /**
 title: An example of embedded TDoc
-p|markdow
+p|markdown
 	You'd invoke this using
 	```shell
 	tdoc -Iembed --embed-start='/**' --embed=end='*/'
@@ -271,6 +286,11 @@ p|markdow
 void main(void){
 	print("Hello, world!\n");
 }
+```
+
+processing with `tdoc -e` would yield the following tree:
+
+```
 ```
 
 or if you're using single-line comments,
@@ -284,6 +304,41 @@ or if you're using single-line comments,
 ## 	```
 echo "Hello, world"
 ```
+
+Specifying indentation
+----------------------
+
+You can specify directives by using nodes and attributes in the `tdoc` namespace.
+For instance, you can have a top-level attribute defining how the parsing
+should happen:
+
+```tdoc
+@tdoc:indent spaces 2
+```
+
+will tell TDoc to consider two spaces as the default indentation. You could do
+`@tdoc:indent tabs` or `@tdoc:indent spaces 4`, etc.
+
+Specifying content nesting
+--------------------------
+
+Code will be wrapped in `code` nodes and inserted as a child of the current
+parent. In the following example, we want to make sure the function's code
+is not nested under the `param` node:
+
+```python
+## section#functions title="Function definition"
+##   function#hello_world
+##     param name=message type=str default="Hello, world"
+##        The message to be displayed
+##     :
+def hello_world(message='Hello, world!'):
+    """Prints 'Hello, world!'."""
+    print (message)
+```
+
+To do so, we add an empty line, denoted by `:`, that will set the
+`function` node as the current parent.
 
 Output formats
 =============

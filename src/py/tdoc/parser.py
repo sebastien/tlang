@@ -104,7 +104,7 @@ class Parser:
 	# Attributes are like NAME=VALUE
 	RE_ATTR = re.compile(f" ((?P<ns>{NAME}):)?(?P<name>{NAME})=(?P<value>{VALUE})?")
 	# Nods are like NS:NAME|PARSER ATTR=VALUE: CONTENT
-	RE_NODE = re.compile(f"^((?P<ns>{NAME}):)?(?P<name>{NAME})(\|(?P<parser>{NAME}))?(?P<attrs>( {ATTR})*)?(: (?P<content>.*))?$")
+	RE_NODE = re.compile(f"^((?P<ns>{NAME}):)?(?P<name>{NAME})(\#(?P<id>{NAME}))?(\|(?P<parser>{NAME}))?(?P<attrs>( {ATTR})*)?(: (?P<content>.*))?$")
 
 	def __init__( self, options:ParseOptions ):
 		# TODO: These should be moved into the stack
@@ -248,11 +248,22 @@ class Parser:
 	# =========================================================================
 
 	def parseNodeLine( self, line, match) -> Tuple[str,str,str,Iterator[Tuple[str,str]],str]:
+		attrs = (_ for _ in self.parseAttributes(match.group("attrs")))
+		nid   = match.group("id")
+		if nid:
+			l = [(None, "id", nid)]
+			for _ in list(attrs):
+				if _[1] == "id" and _[0] is None:
+					# TODO: We might want to issue a warning there
+					l[0] = _
+				else:
+					l.append(_)
+			attrs = l
 		return (
 			match.group("ns"),
 			match.group("name"),
 			match.group("parser"),
-			(_ for _ in self.parseAttributes(match.group("attrs"))),
+			attrs,
 			match.group("content"),
 		)
 
@@ -439,7 +450,13 @@ class TDocDriver(Driver):
 		yield None
 
 	def onAttribute( self, ns:Optional[str], name:str, value:Optional[str] ):
-		yield f" {ns+':' if ns else ''}{name}{'='+repr(value) if value else ''}"
+		if value is None:
+			value_text is None
+		elif '"' in value:
+			value_text = '"' + value.replace('"', '\\"') + '"'
+		else:
+			value_text = value
+		yield f" {ns+':' if ns else ''}{name}{'='+value_text if value else ''}"
 
 	def onContentLine( self, text:str ):
 		yield f"{self.indent}{text}\n"
@@ -618,6 +635,8 @@ def parsePath( path:str, out=sys.stdout, options=ParseOptions(), driver=Driver.G
 	with open(path) as f:
 		return parseIterable( f.readlines(), out=out, options=options, driver=driver)
 
+def parseStream( stream, out=sys.stdout, options=ParseOptions(), driver=Driver.GetDefault() ):
+	return parseIterable( stream.readlines(), out=out, options=options, driver=driver)
 
 DRIVERS = {
 	"xml"   : XMLDriver,

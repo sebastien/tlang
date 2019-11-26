@@ -1,5 +1,5 @@
 
-from typing import Optional, Any, List, Dict
+from typing import Optional, Any, List, Dict, Union
 from collections import OrderedDict
 from tlang.utils import NOTHING
 import json
@@ -66,6 +66,9 @@ class Node:
 	@property
 	def hasAttributes( self ) -> bool:
 		return len(self.attributes) > 0
+
+	def hasAttribute( self, name:str ) -> bool:
+		return name in self.attributes
 
 	def attr( self, name, value=NOTHING ):
 		if value is NOTHING:
@@ -187,7 +190,7 @@ class Adapter:
 		return cls(node) if isinstance(node, Node) else node
 
 	@classmethod
-	def Unwrap( cls, adapter:Adapter ) -> Node:
+	def Unwrap( cls, adapter:'Adapter' ) -> Node:
 		return adapter.node if isinstance(node, Adapter) else adapter
 
 	def __init__( self, node:Node ):

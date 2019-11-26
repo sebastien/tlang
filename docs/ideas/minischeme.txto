@@ -9,24 +9,30 @@ on a few conventions:
 - `UPPER_CASE` symbols denote placeholders/parameters
 
 
-s around the expression are not necessary when the contents is
+Parens around the expression are not necessary when the contents is
 indented:
 
-```
+```minischeme
 match (count input.files)
-	case (= 0)
-		none
-	case (= 1)
-		one
-	else
-		many
+  case (= 0)
+    none
+  case (= 1)
+    one
+  else
+    many
 ```
 
 is equivalent to
 
-```
-(match (count input.files) (case (= 0) none) (case (= 1) one) (else many))
-`
+```scheme
+(match (count input.files)
+  (case (= 0)
+    none)
+  (case (= 1)
+    one)
+  (else
+    many))
+````
 
 
 # EOF - vim: ts=2 sw=2 et syn=texto

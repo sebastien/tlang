@@ -1,0 +1,13 @@
+== Projections
+
+The idea of projections is that given a series of transformations T0→…→TN, it is
+possible to compute the transformation T0→TN in one shot (or as close to one shot
+as possible).
+
+
+Reversible projections
+======================
+
+Some transformations might be irreversible (ie, it's impossible to get T0 from T1),
+while some might be. In case a transformation is irreversible, there should be some
+extra data saved so that we can compute T0 from T1 and this extra data.

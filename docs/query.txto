@@ -113,7 +113,6 @@ The axes are denoted with the following symbols:
 - `\` for parent
 - `>` for next siblings
 - `<` for previous siblings
-- `|` for current node (self)
 
 The axes are shallow (single level) unless they are doubled `//`
 (descendants), `\\` (ancestors), etc. If the axis is doubled and contains a number, the
@@ -196,16 +195,6 @@ Siblings (`:NodeSet`)::
 	<>.                          ;; The current node, previous and next siblings
 	```
 
-
-Self (`:Node`)::
-
-  The `|` denotes that the rest of the pattern applies to the current node.
-  For instance `.|text` means that the current node is expected to be `text`.
-
-	```
-	|                            ;; The current node
-	```
-
 Subtrees (`:SubTree`)::
 
 	The following indicates all the nodes that come before the current
@@ -238,6 +227,35 @@ Subtrees (`:SubTree`)::
 	<-<>->
 	```
 
+Axes limits
+-----------
+
+It is possible to denote limits in the queries, for instance, if you want
+to query the predecessors with a depth that is equal or inferior to the current
+depth:
+
+```
+<[0:.]<
+```
+
+
+Slices
+------
+
+Only the parent and grandparent
+
+```
+\\[0,1]
+```
+
+Query the next 3 siblibgs
+
+```
+>[0:3]
+```
+
+
+
 Special values
 --------------
 
@@ -257,14 +275,21 @@ Variable binding
 ----------------
 
 Any expression can be bound to an implicit or explicit variable using
-curly braces `{…}`.
+curly braces `{…}`. See the [variables](#variables) section for details
+about the strategy.
 
+You can also explicitly bind to a variable using `{…:VAR}` where `VAR` is
+your variable name.
 
 Expression substitution
 -----------------------
 
-Expressions can have dynamic elements enclosed in `${…}`.
+Expressions can have dynamic elements enclosed in `${…}`, in which case
+they will be dynamically evaluated. However, be careful because dynamically
+evaluated queries cannot be optimized as well (if at all), as all the information
+is only known at runtime.
 
+# TODO: Give example
 
 Functions
 ---------
@@ -278,6 +303,7 @@ Position::
 - `count(t:Tree)`
 - `depth(n:Node)`
 - `depth(t:Tree)`
+- `index(t:Nod)`
 
 Predicates::
 
@@ -309,20 +335,20 @@ Extractors::
 
 Filtering and matching::
 
-- `filter()`
-- `match()`
+- `(filter :Expr)`
+- `(match :Expr)`
 
 Introspection
 
-- `type()`
-- `type?()`
+- `(type  :Node)`
+- `(type? :Node)`
 
 Debugging
 
-- `assert!()`
-- `print!()`
-- `warning!()`
-- `error!()`
+- `assert!`
+- `print!`
+- `warning!`
+- `error!`
 
 Subexpressions
 --------------

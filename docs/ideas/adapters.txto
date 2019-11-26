@@ -1,0 +1,18 @@
+== Adapters
+
+Adapters are a compile-time way to interact with a piece of data/object that
+has a different interface. In other words, an adapter is able to translate
+*at compile time* one obejct into a compatible one.
+
+While this might be similar to casting (ie. forcing the reference to a
+different type), adapters are actually closer to macros: they wrap an existing
+reference and define how the interactions with that reference work, without 
+having any extra added cost in the end compilation.
+
+
+
+
+classs#File
+	model#
+
+

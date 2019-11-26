@@ -233,7 +233,9 @@ class QueryProcessor(ExprProcessor):
 					# FIXME: This should be attr("name")
 					return self.tree.node("expr-value-symbol", {"name":n.attr("name")})
 				elif n.name == "query-attribute":
-					return self.tree.node("expr-value-symbol", {"name":"@"})
+					# FIXME: Why do we remove the query attribute?
+					#return self.tree.node("expr-value-symbol", {"name":n.attr("name")})
+					return n
 		return node
 
 # -----------------------------------------------------------------------------

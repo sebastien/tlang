@@ -22,7 +22,7 @@ def run( args:Optional[List[str]]=None, name="tlang" ):
 	if opts.verbose_parsing:
 		G.setVerbose()
 	for path in opts.files:
-		res       = G.parsePath(path)
+		res       = G.parseStream(sys.stdin) if path == "-" else G.parsePath(path)
 		processor = QueryProcessor(G)
 		if not res.isSuccess():
 			print (res.describe())

@@ -8,4 +8,7 @@ There are two levels to a stream:
 - The data level, where you can `read` the next atom
 - The meta-data level, where you can see if there is a next element available
 
+--> TODO, see how the LINDA concurrency model could apply here.
+--> https://github.com/pSpaces/Programming-with-Spaces
+
 # EOF - vim: ts=2 sw=2 et

@@ -1,0 +1,40 @@
+== Patterns
+
+The role of patterns is to define a set of subtrees an capture some part of them. When patterns are linked through a projection operation `→`, it should be possible to project and unproject at will (ie. compute ← from →).
+
+From the TTT paper (TTT: A tree transduction language for syntactic and semantic processing):
+
+Replaces the symbol X with the symbol Y.
+
+```
+(/ X Y)
+```
+Replaces any X, Y, or Z with A.
+
+```
+(/ (! X Y Z) (A))
+```
+
+```
+(rewrite
+	{X|Y|Z:A} 
+	A)
+```
+
+
+Duplicates an X.
+```
+(/ (! X) (! !))
+```
+
+Remove all subtrees between X and Y.
+
+```
+(/ (X * Y) (X Y))
+```
+
+Swaps the subtrees on the boundaries.
+
+```
+(/ ( ! * !1) ( !1 * !))
+```

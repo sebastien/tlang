@@ -1,0 +1,18 @@
+
+
+
+
+core
+
+errors
+
+collections
+	immutable
+	mutable
+
+io
+	# NOTE: We consider async as I/O
+	async
+	time
+	file
+	net

@@ -1,0 +1,19 @@
+# Finds all the `p` nodes in the tree
+
+TRAVERSE DEPTH
+
+@start
+
+	NODE? p
+	IFJMP @p
+
+@next
+	NEXT
+	JMP @start
+
+
+@p
+	EMIT NODE
+	JMP @next
+
+# EOF

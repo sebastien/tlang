@@ -63,6 +63,7 @@ AXES = """
 .|*
 """
 
+
 SUBSETS = """
 ./#0
 ./#0/#10
@@ -72,11 +73,21 @@ PREDICATES = """
 node[(has? {<<*/@name})]
 """
 
+BINDINGS = """
+{./*}
+{CHILDREN:./*}
+{CHILDREN:./*}{//[(in? CHILDREN .)}
+"""
+
 VARIABLES = """
 A
 AB
 AB/node
 AB/node/@attr
+"""
+
+QUERIES = """
+./*
 """
 
 def test_selectors():
@@ -91,14 +102,22 @@ def test_subsets():
 def test_predicates():
 	TestUtils.ParseLines(PREDICATES, parseString)
 
+def test_bindings():
+	TestUtils.ParseLines(BINDINGS, parseString)
+
 def test_variables():
 	TestUtils.ParseLines(VARIABLES, parseString)
+
+def test_queries():
+	TestUtils.ParseLines(QUERIES, parseString)
 
 if __name__ == "__main__":
 	test_selectors()
 	test_axes()
 	test_subsets()
+	test_bindings()
 	test_predicates()
 	test_variables()
+	test_queries()
 
 # EOF - vim: ts=4 sw=4 noet

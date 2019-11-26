@@ -1,4 +1,4 @@
-@import url(https://fonts.googleapis.com/css?family=Cousine:400,400i,700,700i|Varela&display=swap)
+@import url(https://fonts.googleapis.com/css?family=Cousine:400,400i,700,700i|Rubik|Raleway&display=swap)
 @import url(../css/fonts.css)
 
 
@@ -14,17 +14,20 @@ body
 	line-height: 1lh
 	text-rendering: optimizelegibility
 	--font-icons: "FontAwesome"
-	--font-heading: "Varela Round", sans-serif
+	// --font-heading: "Varela Round", sans-serif
+	--font-heading: "Raleway", sans-serif
 	// NOTE: Rubik is quite close to Inter, but inter has more weights
-	--font-body:    "Inter", sans-serif
-	--font-list:    "Inter", sans-serif
-	--font-caption: "Inter", sans-serif
+	--font-body:    "Rubik", sans-serif
+	--font-list:    "Rubik", sans-serif
+	--font-caption: "Rubik", sans-serif
 	--font-code: "Cousine", monospace
-	--color-contrast: #35a89b
-	--color-contrast-20p: #35a89b40
+	--color-contrast: #2233FA
+	--color-contrast-bg: #e0eeff
 	--color-icon: #E7D610
 	--color-text: #404040
+	--color-text-lt: #909090
 	--color-bd: #A0A0A0
+	--color-bd-lt: #A0A0A090
 	--color-section-bd: #E0E3E2
 	--color-bg: #FFFFFF
 
@@ -66,8 +69,8 @@ dd
 	&:last-child
 		margin-bottom: 0pad
 
-p, dd, li
-	max-width: 60em
+p, dd, li, aside
+	max-width: 50em
 	font-family: --var(font-body)
 
 p
@@ -79,8 +82,8 @@ ul
 	margin-left: 1pad
 
 dd, li
-	margin-top:    0.25lh
-	margin-bottom: 0.25lh
+	margin-top:    0.5lh
+	margin-bottom: 0.5lh
 
 dt code
 	font-weight: normal
@@ -116,16 +119,21 @@ header
 	margin-top: 1pad
 	margin-bottom: 4pad
 	> h1
-		font-size: 38px
+		font-size: 36px
 	
 
 section
 	margin-bottom: 1pad
 	position: relative
 
-section > h1
-	border-bottom: 1px solid var(--color-section-bd)
+aside
+	padding: 1pad
+	margin-top: 1pad
 	margin-bottom: 1pad
+	border: 1px solid var(--color-bd-lt)
+
+section > h1
+	margin-bottom: 0.5pad
 
 a.link
 	extend(.link)
@@ -168,18 +176,113 @@ pre
 		right: 0px
 		opacity: 0.2
 
-.document
-	padding: 4pad
-	max-width: 860px
+.toc-
+	border-left: 1px solid var(--color-bd)
+	padding-left: 1pad
+	.-title
+		font-family: var(--font-list)
+		font-size: 13px
+		line-height: 1lh
+		font-weight: bold
+		margin: 0px
+		padding: 0px
+		margin-bottom: 0.5lh
+	.-group-
+		.-title
+			font-family: var(--font-list)
+			font-size: 9px
+			text-transform: uppercase
+			line-height: 1lh
+			font-weight: bold
+			margin: 0px
+			padding: 0px
+			margin-top: 1lh
+			&[data-name]:before
+				font-family: var(--font-icons)
+				opacity: 0.5
+			&[data-name="terms"]:before
+				content: "  "
+			&[data-name="sections"]:before
+				content: " "
+
+	ul.-sections-, ul.-terms-
+		list-style-type: none
+		padding: 0px
+		margin: 0px
+	ul.-sections
+		padding-left: 12px
+		border-left: 1px solid var(--color-bd)
+	.-section-, .-term-
+		list-style-type: none
+		padding: 0px
+		margin: 0px
+		.-label, .-label
+			font-family: var(--font-list)
+			font-size: 13px
+			line-height: 1lh
+			padding-top: 4px
+			padding-bottom: 4px
+			text-decoration: none
+			color: var(--color-text-lt)
+			&:active, &:hover, &:target
+				color: var(--color-contrast)
+	.-term-
+		display: inline-block
+		margin-right: 6px
+		&:after
+			content: " ∘ "
+			opacity: 0.5
+		&:last-child:after
+			display: none
+		.-label
+			font-family: var(--font-list)
+			font-size: 11px
+.document-
 	font-family: var(--font-body)
+	.-page-
+		padding: 4pad
+		display: flex
+		.-catalogue
+			max-width: 320px
+			order: 0
+		.-content
+			flex-grow: 1
+			order: 1
+		.-toc-
+			max-width: 320px
+			position: relative
+			order: 2
+			padding-left: 16px
+			.-wrapper
+				position: sticky
+				right: 16px
+				top: 90px
+				bottom: 90px
+				overflow-y: auto
+				padding-left: 16px
 
 .term
 	cursor: pointer
 	transition-property: color
 	transition-duration: 0.25s
 	font-weight: 500
+	color: var(--color-contrast)
+	display: inline-block
+	padding-left: 4px
+	padding-right: 4px
+	border-radius: 4px
+	&:before
+		display: inline-block
+		content: " "
+		font-family: var(--font-icons)
+		font-size: 12px
+		text-align: left
+		opacity: 0.5
+		margin-right: 4px
 	&:hover
 		color: var(--color-contrast)
+	&:active, &:target
+		background-color: var(--color-contrast-bg)
 
 
 

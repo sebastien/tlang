@@ -41,6 +41,7 @@ BINDINGS = """
 {1:A}
 {(count A):A}
 {(count A):A} {(count B):B}
+{(count A | add 5):A} {(count B | add 10):B}
 """
 
 TEMPLATES = """

@@ -1,19 +1,18 @@
 ;; title: TDoc test runner 
 
-(use std    (equals? ))
-(use io     (emit!   ))
-(use format/tdoc ({parse:parse-tdoc} ))
+(use core   equals?)
+(use io     emit!)
+(use async  join)
 
-(join
+(let
 	;; We get the expected result and the code
-	{run/expect[0]:A}
+	(A run/expect[0])
 	;; We get the code node and process it as a TDoc
 	;; document. This returns a tree.
-	{run/code[0] | parse-tdoc) :B}
-) | (then 
+	(B run/code[0]))
+|(then 
 	;; We test equality of the tree and emit the result, which
 	;; is a boolean.
-	(equals? A B) | emit!
-)
+	(equals? A B) | emit!)
 
 ;; EOF

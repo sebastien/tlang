@@ -1,0 +1,67 @@
+== Concurrency
+
+So in a concurrent environment we're going to use Futures and other async
+based values quite a lot, which means they have to be super cheap to manage.
+
+A corollary is that the async objects hold reference to functions, and partially
+evaluated functions (with captured bindings).
+
+Because we want TLang to support eay concurrency, it's going to be important
+to do that properly.
+
+
+## Tree processing
+
+Parts of a tree should be concurrently processed, and when the output
+is a stream, should be streamed in order (ie. all previous nodes in
+traversal order have been translated/projected).
+
+## Dataflow
+
+In the following code we run two parallel queries and intercept success
+(`then`) and failure (`else`):
+
+```tlang
+(join
+	(A (async run/expect[0])
+	(B (async run/code[0]))
+|(then
+	(equals? A B) | emit!)
+|(else
+	(fail! A B))
+```
+
+but we could do the same with the `async` and `await` denotations:
+
+```tlang
+(let
+	(A (async run/expect[0]))
+	(B (async run/code[0]))
+	(equals?
+		(await A (fail! "Could not join A"))
+		(await B (fail! "Could not join B"))) | emit)
+```
+
+however, if we knew that the selecitons would yield async values, the
+await could be automatically inserted upon reference, hence simplifying
+the code a bit:
+
+```tlang
+(let
+	(A run/expect[0])
+	(B run/code[0])
+	(equals?  A B) | emit)
+```
+
+While the example above is more compact, it does not allow for the testing
+of failed values or errors:
+
+```tlang
+(let
+	(A run/expect[0])
+	(B run/code[0])
+	(when
+		(cond   (is? A :Failure) (fail! "Could not join A"))
+		(cond   (is? B :Failure) (fail! "Could not join B"))
+		(else   (equals?  A B) | emit)))
+```
