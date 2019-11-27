@@ -96,15 +96,16 @@ class Parser:
 	DATA_RAW     = 4
 
 	NAME    = "[A-Za-z0-9\-_]+"
-	ATTR    = f"{NAME}=[^ ]*"
 	STR_SQ  = "'(\\'|[^'])+'"
 	STR_DQ  = '"(\\"|[^"])+"'
 	# A value is either a quoted string or a sequence without spaces
-	VALUE   = f"([^ ]+|{STR_SQ}|{STR_DQ})"
+	VALUE   = f"({STR_SQ}|{STR_DQ}|[^ ]+)"
+	INLINE_ATTR  = f"{NAME}={VALUE}"
 	# Attributes are like NAME=VALUE
+	# FIXME: Not sure where this is used, might be a @attr name=value
 	RE_ATTR = re.compile(f" ((?P<ns>{NAME}):)?(?P<name>{NAME})=(?P<value>{VALUE})?")
 	# Nods are like NS:NAME|PARSER ATTR=VALUE: CONTENT
-	RE_NODE = re.compile(f"^((?P<ns>{NAME}):)?(?P<name>{NAME})(\#(?P<id>{NAME}))?(\|(?P<parser>{NAME}))?(?P<attrs>( {ATTR})*)?(: (?P<content>.*))?$")
+	RE_NODE = re.compile(f"^((?P<ns>{NAME}):)?(?P<name>{NAME})(\#(?P<id>{NAME}))?(\|(?P<parser>{NAME}))?(?P<attrs>( {INLINE_ATTR})*)?(: (?P<content>.*))?$")
 
 	def __init__( self, options:ParseOptions ):
 		# TODO: These should be moved into the stack
@@ -216,7 +217,7 @@ class Parser:
 				yield from driver.onNodeContentStart(ns, name, parser)
 				# And then the first line of content, if any
 				if content is not None:
-					yield from driver.onContentLine(content[:-1])
+					yield from driver.onContentLine(content)
 		elif self.isExplicitContent(l):
 			yield from driver.onContentLine(l[1:-1])
 		else:
@@ -478,7 +479,9 @@ class XMLDriver(Driver):
 
 	def __init__( self ):
 		super().__init__()
-		self.lines:int = 0
+		self.isCurrentNodeClosed = True
+		self.hasPreviousNode       = False
+		self.isCurrentNodeEmpty    = True
 
 	# =========================================================================
 	# HANDLERS
@@ -486,68 +489,58 @@ class XMLDriver(Driver):
 
 	def onDocumentStart( self, options:ParseOptions ):
 		yield from super().onDocumentStart(options)
-		self.lines = -1
 		yield '<?xml version="1.0"?>\n'
 
 	def onDocumentEnd( self ):
 		yield None
 
 	def onNodeStart( self, ns:Optional[str], name:str, process:Optional[str] ):
+		if not self.isCurrentNodeClosed:
+			yield ">"
 		yield f"<{ns+':' if ns else ''}{name}"
-		self.lines = 0
+		self.hasPreviousNode = True
+		self.isCurrentNodeEmpty = True
+		self.isCurrentNodeClosed = False
 
 	def onNodeContentStart( self, ns:Optional[str], name:str, process:Optional[str] ):
 		yield None
 
 	def onNodeEnd( self, ns:Optional[str], name:str, process:Optional[str] ):
-		if self.lines < 0:
-			pass
-		elif not self.lines:
+		if self.isCurrentNodeEmpty:
 			yield " />"
 		else:
 			yield f"</{ns+':' if ns else ''}{name}>"
-		self.lines = 0
+		self.isCurrentNodeEmpty  = False
+		self.isCurrentNodeClosed = True
 
 	def onAttribute( self, ns:Optional[str], name:str, value:Optional[str] ):
 		svalue = '"' + value.replace('"', '\\"') + '"'
 		attr   =  f" {ns}:{name}={svalue}" if ns else f" {name}={svalue}"
-		if not self.lines:
-			yield attr
-		else:
-			# TODO: Should yield an error
-			logging.warn(f"XMLDriver: Can't output attribute after content: {attr}")
+		yield attr
 
 	def onContentLine( self, text:str ):
-		if self.lines == 0:
+		if not self.isCurrentNodeClosed:
 			yield ">"
-		elif self.lines > 0:
+			self.isCurrentNodeClosed = True
+		else:
 			yield "\n"
+		self.isCurrentNodeEmpty = False
 		yield self.escape(text)
-		self.lines = max(self.lines,0) + 1
 
 	def onRawContentLine( self, text:str ):
 		yield from self.onContentLine(text)
 
 	def onCommentLine( self, text:str, indent:int ):
+		if not self.isCurrentNodeClosed:
+			yield ">"
+			self.isCurrentNodeClosed = True
+		self.isCurrentNodeEmpty = False
 		if self.options.comments:
 			yield (f"<!-- {text} -->\n")
 
 	# =========================================================================
 	# HELPERS
 	# =========================================================================
-
-	def flush( self ):
-		"""We need to defer the processing of text content to properly
-		do escapes."""
-		content = self.content
-		if content is not None:
-			is_cdata = False
-			for i, line in enumerate(self.content):
-				yield ">" if i == 0 else None
-				yield line if is_cdata else self.escape(line)
-			if is_cdata:
-				yield "]]>"
-			self.content = None
 
 	def escape( self, line ):
 		return xml.sax.saxutils.escape(line)
