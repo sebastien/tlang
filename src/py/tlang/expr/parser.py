@@ -19,7 +19,7 @@ def symbols( g:Grammar ) -> Symbols:
 		"EXPR_SINGLETON"          : ":[A-Za-z][\_a-zA-Z0-9]*",
 		"EXPR_TYPE"               : "[A-Z][\_a-zA-Z0-9]*",
 		"EXPR_SPECIAL"            : "@|\\*|\\+|\\-",
-		"EXPR_KEY"                : "#[a-z][\-a-z0-9]*[\!\?]?",
+		"EXPR_KEY"                : "#[A-Z][\-a-zA-Z0-9]*[\!\?]?",
 		"EXPR_COMMENT"            : ";;([^\n]*)",
 		"REST"                    : "(\\.\\.\\.)|…",
 	}
@@ -76,8 +76,8 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False) -> Grammar:
 		s.EXPR_SPECIAL,
 		# NOTE: Query is going to be inserted here #9
 		s.EXPR_SYMBOL,           # 10
-		s.EXPR_TYPE,             # 11
-		s.EXPR_VARIABLE,         # 12
+		s.EXPR_VARIABLE,         # 11
+		s.EXPR_TYPE,             # 12
 	)
 	g.group("ExprValueSuffix").set(
 		s.ExprPipe,
