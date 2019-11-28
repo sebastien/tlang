@@ -222,7 +222,9 @@ class Parser:
 			yield from driver.onContentLine(l[1:-1])
 		else:
 			# FIXME: See feature-whitespace, there's a problem there
-			yield from driver.onContentLine(self.stripLineIndentation(line,self.depth)[:-1])
+			text = self.stripLineIndentation(line,self.depth)[:-1]
+			if text:
+				yield from driver.onContentLine()
 
 	# =========================================================================
 	# PREDICATES
@@ -428,9 +430,12 @@ class EventDriver(Driver):
 class TDocDriver(Driver):
 	"""A driver that outputs a normalized TDoc document."""
 
+	RE_QUOTE = re.compile("[\" ]")
+
 	def __init__( self ):
 		self.options = None
 		self.indent  = ''
+		self.attrIndex = 0
 
 	def onDocumentStart( self, options:ParseOptions ):
 		self.options = options
@@ -442,6 +447,7 @@ class TDocDriver(Driver):
 	def onNodeStart( self, ns:Optional[str], name:str, process:Optional[str] ):
 		yield f"{self.indent}{ns+':' if ns else ''}{name}{'|'+process if process else ''}"
 		self.indent += '\t'
+		self.attrIndex = 0
 
 	def onNodeContentStart( self, ns:Optional[str], name:str, process:Optional[str] ):
 		yield '\n'
@@ -453,11 +459,16 @@ class TDocDriver(Driver):
 	def onAttribute( self, ns:Optional[str], name:str, value:Optional[str] ):
 		if value is None:
 			value_text is None
-		elif '"' in value:
+		elif self.RE_QUOTE.search(value):
 			value_text = '"' + value.replace('"', '\\"') + '"'
 		else:
 			value_text = value
-		yield f" {ns+':' if ns else ''}{name}{'='+value_text if value else ''}"
+		# NOTE: We should have a formatting option here
+		if self.attrIndex == 0 and not ns and name == "id" and value_text and value_text[0] != '"':
+			yield f"#{value_text}"
+		else:
+			yield f" {ns+':' if ns else ''}{name}{'='+value_text if value else ''}"
+		self.attrIndex += 1
 
 	def onContentLine( self, text:str ):
 		yield f"{self.indent}{text}\n"
