@@ -10,13 +10,15 @@ Because we want TLang to support eay concurrency, it's going to be important
 to do that properly.
 
 
-## Tree processing
+Tree processing
+===============
 
 Parts of a tree should be concurrently processed, and when the output
 is a stream, should be streamed in order (ie. all previous nodes in
 traversal order have been translated/projected).
 
-## Dataflow
+Dataflow
+========
 
 In the following code we run two parallel queries and intercept success
 (`then`) and failure (`else`):
@@ -65,3 +67,51 @@ of failed values or errors:
 		(cond   (is? B :Failure) (fail! "Could not join B"))
 		(else   (equals?  A B) | emit)))
 ```
+
+Async values
+============
+
+Async values come in many different flavors (futures, rendezvous, streams, etc), 
+which all have their specific states, but share the following key steps:
+
+- `blank`: the async is new, nothing has been done with it
+- `partial`: the async has a partial value
+- `terminated`: the async is terminated
+
+Now, the terminated state can have different sub-states:
+
+- `success` → the process that generated the value has successfully terminated
+- `failure` → the process has terminated with an error/failure, which is described
+- `cancelled` → the process has been cancelled, which is neither a success or a failure
+
+
+- Futures:: futures are values that are going to be set *once*, but may have 
+  partial states that might be obersved.
+
+- Streams:: streams produce values, continuously.
+
+- Rendez-vous:: take a set of async values, and generate partial values up until
+  the moment they are complete. The rendez-vous terminates when all the values
+  are terminated.
+
+
+Emit/Receive
+============
+
+We could think that TLang defines an implicit topic tree where you can subscribe
+to data sent to the nodes:
+
+# NOTE: There should be a protocol to just peek into a value and then receive
+# it.
+- `receive` returning an async value for the data to be received,
+- `emit!` emits a value to the node
+
+Now, we may want to support more advanced use cases:
+
+- Receive events since time T
+- Receive all the future events
+- Receive up to N events, or until time T
+
+#- `listen since:Optional[Time] until:Optional[Time] count:Count`
+
+# EOF - vim: ts=4 sw=4 et syn=texto

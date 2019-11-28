@@ -1,5 +1,7 @@
 == Events
 
+# TODO: Should we think of something using emit?
+
 A fundamental part of [incremental programming](:incremental) is the support
 for communicating changes. Changes happen in time, and thus can be qualified
 as events. We're going to see here how TLang deals with changing values and 
@@ -9,31 +11,32 @@ asynchronous programming.
 Observable values, listening to changes
 ---------------------------------------
 
-The observer/observable pattern allows for one entity to be notified of 
+The observer/observable pattern makes it possible for one entity to be notified of 
 changes happening to another. 
 
 Most languages don't support first-class syntax to observe/unobserve
-changes made to values/objects. Different techniques exist to do so:
+changes made to values/objects, but a few well-known techniques exist to do so:
 
-- The Listener pattern: addEventListener/removeEventListener, as used
+- The Listener pattern: `addEventListener`/`removeEventListener`, as used
   in Java and JavaScript.
 
-- The Handler pattern: an interface specifies all the hooks (onClick, onMouseHover, etc)
-  and handlers are composed into the value that may emit changes.
+- The Handler pattern: an interface specifies all the hooks (`onClick`, `onMouseHover`, etc)
+  and handlers are composed into the value that may emit changes. Handlers are generally
+  use when it is not possible to reference functions and pass callbacks.
 
 - The Observer pattern: an object (observer) can listen to different changes
-  on many objects at one (see [DOM MutationObserver](https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver)).
+  one or more objects at once (see [DOM MutationObserver](https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver)).
 
 - The Observable pattern: an object/value is completely wrapped in an observable
   object that will trigger callbacks with a corresponding event object when
   a change happens.
 
 And there's many more options. It all depends how many observers you want to
-allow for 1 value, how many possible values per observer, if you want preset
-or dyanmic events.
+allow for 1 value, how many possible values per observer, if you want to only support
+a predefined set of events or support dynamic types of events, etc.
 
 Interestingly, concurrent and asynchronous programming constructs like 
-_futures_ (also called _promises_) are another type of obversable values (they
+_futures_ (also called _promises_) are another type of observable values (they
 are empty, have a value or have an error). _Streams_ and _iterators_ can
 also be considered as observable values (start of stream, new item available, end of stream).
 
@@ -51,7 +54,7 @@ Events are separated in two different main categories:
 
 Events then have the following traits:
 
-- _Stoppable event_: the propagation of the event can be stopped by any
+- _Stoppable event_: the back propagation of the event can be stopped by any
    observer.
 
 Observers, observable and events
@@ -64,8 +67,8 @@ string or a string glob.
 
 ```tlang
 ;; This would be in the schema
-(node-name
-  ;; This says that the node `node-name` is observable for any event which
+(my-node
+  ;; This says that the node `my-node` is observable for any event which
   ;; name starts with  `node/`, like `node/add`, `node/remove`, `node/update`.
   (tlang:observable node/*)
   (@  
@@ -73,7 +76,7 @@ string or a string glob.
     (attribute-name  tlang:observable value/change)))
 ```
 
-Symetrically, synthetic attribute can be marked as _observers_, which denotes
+Symetrically, synthetic attributes can be marked as _observers_, which denotes
 that the attribute's value will be recomputed upon event arrival.
 
 ```tlang

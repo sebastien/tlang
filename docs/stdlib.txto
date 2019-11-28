@@ -3,16 +3,65 @@
 
 
 core
+	is?
+	eq?
+	has?
+	isa?
+	cmp
 
 errors
+	error
+	assert
+	should
+
+types
 
 collections
 	immutable
 	mutable
 
+data
+	set
+	list
+	map
+	tree
+	
 io
 	# NOTE: We consider async as I/O
 	async
+		Future
+		RendezVous
+		join
 	time
+		delay
+		repeat
 	file
 	net
+		http
+	log
+		fail!
+		warn!
+		log!
+		info!
+		hint!
+
+date
+
+math
+	hash
+
+db
+
+util
+
+pattern
+
+state
+	delta
+	journal
+
+formats
+	tdoc
+	xml
+	json
+

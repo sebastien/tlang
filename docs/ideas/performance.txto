@@ -46,3 +46,5 @@ and you display in the interface `[{userName,isFriend}]` meaning that:
     (has? /state/user/friends/user[@id=RESULT/@id]))
 ```
 
+- https://rcoh.me/posts/cache-oblivious-datastructures/
+

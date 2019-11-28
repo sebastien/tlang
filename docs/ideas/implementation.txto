@@ -104,6 +104,57 @@ dictionary of available constraints.
 The implementation of such a data-structure/algorithm would be a good thing
 to do to identify which language would be best.
 
+Events
+======
 
+Something to consider is that when a value A listens to changes made to another
+value B, it creates a dependency:
 
+```
+A --[listens(callback)]--> B
+```
+
+The challenge is that B needs to have a quick access to all the callbacks, as
+otherwise it's going to be slow to fetch the callbacks and execute upon change.
+
+At the same time if A is deleted, the callbacks should also be removed, so they
+should be registered in one place.
+
+The simplest way to do that would be to have two indexes: callbacks by
+`(value id, event)` and callbacks by `origin id`.
+
+The chain of callbacks could be stored along with the value, or could be
+stored in a centralised callbacks registry. It's not clear which avenue
+would be more efficient.
+
+We could have the following structure for an observable value:
+
+```
+- id:Id#observable
+- value:Any
+- callbacks:Map#unordered[Event,List[Callback]]
+```
+
+and then for any observer value:
+
+```
+- callbacks:Map#unordered[Id#observable,List[Tuple[Event,Callback]]]
+```
+or we could alternatively have:
+
+```
+Observable
+- id:Id#observable
+- value:Any
+
+Observer:
+- id:Id#observer
+
+Callbacks
+- observables:Map#unordered[Id#observable,Map#unordered[Event,List[Callback]]]
+- observers:Map#unordered[Id#observer,List[Tuple[Id#observable,Event,ListCallback]]]
+```
+
+The observers callback might have a Map by `Id` instead of a list for performance
+reason.
 
