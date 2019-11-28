@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from typing import Optional,Callable,Iterable,Any,List,Union,Iterator,Generator,Iterable
 from tlang.tree import Node
+from collections import OrderedDict
 # FIXME: This should be reworked
 from tlang.interpreter import parseFile
 from enum import Enum
@@ -31,6 +32,9 @@ class Symbol:
 
 	def __repr__( self ):
 		return self.name
+
+class Singleton(Symbol):
+	pass
 
 class Reference(Symbol):
 	pass
@@ -71,11 +75,14 @@ class Context:
 	def has( self, name:str ) -> bool:
 		return name in self.slots
 
+	def get( self, name:str ) -> Optional[Any]:
+		return self.slots.get(name)
+
 	def define( self, name:str, value:Any ):
 		# We don't allow to defined twice
 		assert name not in self.slots
 		self.slots[name] = value
-		return self
+		return value
 
 	def resolve( self, name:str )->Optional[Slot]:
 		if name in self.slots:
@@ -168,9 +175,10 @@ class Interpreter:
 			return f
 		return decorator
 
-	def __init__( self, context:Optional[Context]=None ):
+	def __init__( self, context:Optional[Context]=None, parent:'Interpreter'=None ):
 		self.matches:Dict[str,Callable[Intereter,Node,Iterable[Any]]] = {}
 		self.context = context or Context()
+		self.parent  = parent
 		for name,value in inspect.getmembers(self):
 			if hasattr(value, Interpreter.META_MATCH):
 				self.matches[getattr(value, Interpreter.META_MATCH)] = value
@@ -215,9 +223,8 @@ class BaseInterpreter(Interpreter):
 
 	def init( self ):
 		self.context.parent = Primitives()
-		self.symbols   = Context()
-		self.symbols   = Context()
-		self.data      = DataInterpreter()
+		self.symbols  = Context()
+		self.data     = DataInterpreter(parent=self)
 
 	@match("expr-comment")
 	def onComment( self, node:Node ) -> None:
@@ -226,6 +233,17 @@ class BaseInterpreter(Interpreter):
 	@match("expr-value-string")
 	def onString( self, node:Node ) -> str:
 		yield node.attr("value")
+
+	@match("expr-value-number")
+	def onNumber( self, node:Node ) -> float:
+		yield node.attr("value")
+
+	@match("expr-value-singleton")
+	def onSingleton( self, node:Node ) -> Singleton:
+		name = node.attr("name")
+		assert name
+		res = self.symbols.define(name, Singleton(name)) if not self.symbols.has(name) else self.symbols.get(name)
+		yield res
 
 	@match("expr-value-symbol")
 	def onSymbol( self, node:Node ) -> Union[Value,Exception]:
@@ -242,6 +260,10 @@ class BaseInterpreter(Interpreter):
 		for child in node.children:
 			yield from self.feed(child)
 
+	@match("expr-quote")
+	def onQuote( self, node:Node ) -> Iterable[Any]:
+		yield from self.data.feed(node)
+
 	@match("expr-list")
 	def onInvocation( self, node:Node ) -> Iterable[Any]:
 		args   = (self.feed(_) if i == 0 else _ for i,_ in enumerate(node.children))
@@ -249,7 +271,7 @@ class BaseInterpreter(Interpreter):
 		if isinstance(target, RuntimeError):
 			yield target
 		elif not hasattr(target, META_INVOCATION):
-			yield RuntimeError(f"Invocation target {target} has not invocation meta-information")
+			yield RuntimeError(f"Invocation target {target} has no invocation meta-information")
 		else:
 			meta = getattr(target, META_INVOCATION)
 			argv = []
@@ -282,6 +304,14 @@ class DataInterpreter(Interpreter):
 	def onComment( self, node:Node ) -> None:
 		yield None
 
+	@match("expr-value-number")
+	def onNumber( self, node:Node ) -> float:
+		yield from self.parent.onNumber(node)
+
+	@match("expr-value-singleton")
+	def onSingleton( self, node:Node ) -> Singleton:
+		yield from self.parent.onSingleton(node)
+
 	@match("expr-seq")
 	def onSeq( self, node ):
 		return [expand(self.feed(_)) for _ in node.children]
@@ -289,6 +319,10 @@ class DataInterpreter(Interpreter):
 	@match("expr-list")
 	def onList( self, node ):
 		return [expand(self.feed(_)) for _ in node.children]
+
+	@match("expr-quote")
+	def onQuote( self, node ):
+		yield from self.onList(node)
 
 	@match("expr-value-symbol")
 	def onSymbol( self, node ):
@@ -315,6 +349,7 @@ class Primitives(Context):
 		super().__init__()
 		self.define("out!",      self.do_out)
 		self.define("import",    self.do_import)
+		self.define("iter",      self.do_iter)
 		self.define("primitive", self.do_primitive)
 		self.define("let",       self.do_let)
 		self.define("lambda",    self.do_lambda)
@@ -329,6 +364,21 @@ class Primitives(Context):
 	def do_import( self, interpreter:Interpreter, args:Iterator[Value] ):
 		print ("import: ", args)
 		yield None
+
+	@invocation( iterable=VALUE|EAGER, functor=VALUE|EAGER )
+	def do_iter( self, interpreter:Interpreter, args:Iterator[Value] ):
+		value   = args[0]
+		functor = args[1]
+		if isinstance(functor, Symbol):
+			# We do iterate, even if there's a no-op
+			for _ in value:
+				print ("ITER", _, functor)
+				pass
+		else:
+			for _ in value:
+				print ("ITER", _, functor)
+		yield None
+
 
 	@invocation( __=DATA|EAGER )
 	def do_primitive( self, interpreter:Interpreter, args:Iterator[Value] ):
@@ -365,20 +415,33 @@ class Primitives(Context):
 
 	@invocation( args=NODE|EAGER, __=VALUE )
 	def do_lambda( self, interpreter:Interpreter, args:Iterator[Value] ):
-		func_args = args[0]
+		func_args = expand(interpreter.data.feed(args[0]))
+		# We might have the unnormalized form (LAMBDA A B)
+		if isinstance(func_args, Reference):
+			func_args = [func_args]
 		func_code = args[1:]
+		# This is the actual execution of the function
 		def functor(interpreter, args):
-			interp = interpreter.sub()
-			for i,name in enumerate(func_args):
+			interp = interpreter.derive()
+			for i,ref in enumerate(func_args):
 				# NOTE: Not sure what args are at this stage
-				value = next(args, None)
-				# We defined the slots of the arguments
-				interp.defined(name, value)
+				value = args[i]
+				if isinstance(value, RuntimeError):
+					yield RuntimeError(f"Cannot bind argument {i} '{ref.name}', because: {value}")
+				else:
+					# We define the slots of the arguments
+					interp.context.define(ref.name, value)
 			for _ in func_code:
-				yield from interp.feed(_)
-		# TODO: We need to set the functor's invocation protocol
-		yield functor
-
+				if isinstance(_, RuntimeError):
+					yield _
+				else:
+					yield from interp.feed(_)
+		# We define the invocation protocol, which is always eager, for now.
+		kwargs = OrderedDict()
+		for ref in func_args:
+			kwargs[ref.name] = EAGER|VALUE
+		# We yield the decorated functor
+		yield invocation( **kwargs )(functor)
 
 # -----------------------------------------------------------------------------
 #
@@ -386,21 +449,21 @@ class Primitives(Context):
 #
 # -----------------------------------------------------------------------------
 
-def expand( iterable:Iterator ):
+def expand( iterable:Iterator, asList=False ):
 	"""Unwraps the given itearble. If there's only one value, it returns the
 	first value, otherwise it returns a list with all the elements.
 
 	Note that it is not recursive."""
 	first = next(iterable, End)
 	if first is End:
-		return None
+		return [] if asList else None
 	v   = True
 	res = None
 	while v:
 		v = next(iterable, End)
 		if v is End:
 			if res is None:
-				return first
+				return [first] if asList else first
 			else:
 				return res
 		else:
