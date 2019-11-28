@@ -1,0 +1,16 @@
+(primitive lambda map resolve import-module)
+
+(lambda (MODULE … SYMBOLS)
+	'(meta
+		(import type Module Symbol Tuple List Union)
+		(:desc Loads the given SYMBOLS from the given MODULE)
+		(:param MODULE Module
+			"The module from which we import the symbol")
+		(:param SYMBOLS (List (Union Symbol (Tuple Symbol Symbol)))))
+
+	(let 
+		(M (import-module MODULE))
+		(map SYMBOLS
+			(resolve M _))))
+
+;; EOF

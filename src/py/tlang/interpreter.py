@@ -6,6 +6,15 @@ import os, sys, argparse
 G = grammar(Grammar("tlang"), suffixed=True)
 G.axiom = G.symbols.ExprValue
 
+def parseFile( path:str ):
+	processor = QueryProcessor(G)
+	with open(path, "rt") as f:
+		res = G.parseStream(f)
+		if res.isSuccess():
+			return processor.process(res)
+		else:
+			return None
+
 def run( args:Optional[List[str]]=None, name="tlang" ):
 	if args is None: args = sys.argv[1:]
 	if type(args) not in (type([]), type(())): args = [args]

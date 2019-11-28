@@ -5,6 +5,10 @@ Priorities
 ==========
 
 
+Syntax::
+
+  (path.join) → (. join path) ie. "resolve `join` in `path`)
+ 
 Rework::
 
 [ ] Naming: I find the AST very verbose (`expr-value-number`), and I primarily
