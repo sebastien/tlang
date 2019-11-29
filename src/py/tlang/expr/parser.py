@@ -101,6 +101,17 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False) -> Grammar:
 #
 # -----------------------------------------------------------------------------
 
+def sourcemap(f ):
+	def decorator( self, match ):
+		# TODO: This should be an option, ie. we don't necessarily want
+		# that all the time
+		node = f(self, match)
+		node.meta("offset", match.offset)
+		node.meta("length", match.length)
+		node.meta("line",   match.line)
+		return node
+	return decorator
+
 class ExprProcessor(Processor):
 
 	INSTANCE = None
@@ -117,38 +128,47 @@ class ExprProcessor(Processor):
 	def createGrammar(self) -> Grammar:
 		return GRAMMAR or grammar()
 
+	@sourcemap
 	def onNUMBER( self, match):
 		value = float(self.process(match)[0])
 		return self.tree.node("expr-value-number", {"value":value})
 
+	@sourcemap
 	def onSTRING_DQ( self, match):
 		value = self.process(match)[1]
 		return self.tree.node("expr-value-string", {"value":value})
 
+	@sourcemap
 	def onEXPR_SYMBOL( self, match):
 		value = self.process(match)[0]
 		return self.tree.node("expr-value-symbol", {"name":value})
 
+	@sourcemap
 	def onEXPR_SPECIAL( self, match):
 		value = self.process(match)[0]
 		return self.tree.node("expr-value-symbol", {"name":value})
 
+	@sourcemap
 	def onEXPR_KEY( self, match):
 		value = self.process(match)[0]
 		return self.tree.node("expr-value-key", {"name":value})
 
+	@sourcemap
 	def onEXPR_SINGLETON( self, match):
 		value = self.process(match)[0]
 		return self.tree.node("expr-value-singleton", {"name":value})
 
+	@sourcemap
 	def onEXPR_VARIABLE( self, match):
 		value = self.process(match)[0]
 		return self.tree.node("expr-value-ref", {"name":value})
 
+	@sourcemap
 	def onEXPR_TYPE( self, match):
 		value = self.process(match)[0]
 		return self.tree.node("expr-value-type", {"name":value})
 
+	@sourcemap
 	def onExprComment( self, match ):
 		value = self.process(match)[0][1]
 		return self.tree.node("expr-comment", {"value":value})

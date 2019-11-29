@@ -7,6 +7,8 @@ from tlang.interpreter import parseFile
 from enum import Enum
 import inspect
 
+## TODO: Runtime errors should always be bound to the origin node, so that
+## we know where it's coming from.
 
 ## @indent spaces 4
 ## title: TLang's Research interpreter
@@ -147,6 +149,18 @@ def invocation( **kwargs ):
 	return decorator
 
 
+class NodeRuntimeError(RuntimeError):
+
+	def __init__( self, node:Node, *args ):
+		super().__init__( *args )
+		self.node = node
+
+	def __str__( self ):
+		if self.node:
+			return f"{self.node.meta('offset')}+{self.node.meta('length')}:{super().__repr__()}"
+		else:
+			return super().__repr__()
+
 ## section
 ##    title: Interpreters
 ##    text|texto
@@ -179,6 +193,7 @@ class Interpreter:
 		self.matches:Dict[str,Callable[Intereter,Node,Iterable[Any]]] = {}
 		self.context = context or Context()
 		self.parent  = parent
+		self.node:Optional[Node] = Node
 		for name,value in inspect.getmembers(self):
 			if hasattr(value, Interpreter.META_MATCH):
 				self.matches[getattr(value, Interpreter.META_MATCH)] = value
@@ -193,18 +208,21 @@ class Interpreter:
 
 	def feed( self, node:Node ) -> Iterable[Any]:
 		# TODO: Support namespace
-		name = node.name
+		name = node.name 
 		func = self.matches.get(name)
+		self.node = node
 		if func:
 			result = func(node)
 			if result is None:
 				print (" ! None result for node", node)
 			elif isinstance(result, Iterator):
 				yield from result
+			elif isinstance(result, RuntimeError):
+				yield NodeRuntimeError(node, result)
 			else:
 				yield result
 		else:
-			yield RuntimeError(f"Unsupported node type: {name}")
+			yield NodeRuntimeError(node, f"Unsupported node type: {name}")
 
 	def __call__( self, node:Node ) -> Iterable[Any]:
 		yield from self.feed(node)
@@ -251,7 +269,17 @@ class BaseInterpreter(Interpreter):
 		assert name, "Node should have a name"
 		value = self.context.resolve(name)
 		if not value:
-			return RuntimeError(f"Symbol '{name}' cannot be resolved")
+			return NodeRuntimeError(node, f"Symbol '{name}' cannot be resolved")
+		else:
+			return value
+
+	@match("expr-value-ref")
+	def onRef( self, node:Node ) -> Union[Value,Exception]:
+		name = node.attr("name")
+		assert name, "Node should have a name"
+		value = self.context.resolve(name)
+		if not value:
+			return NodeRuntimeError(node, f"Reference '{name}' cannot be resolved")
 		else:
 			return value
 
@@ -268,28 +296,41 @@ class BaseInterpreter(Interpreter):
 	def onInvocation( self, node:Node ) -> Iterable[Any]:
 		args   = (self.feed(_) if i == 0 else _ for i,_ in enumerate(node.children))
 		target = expand(next(args))
+		yield from self.invoke(target, args, node)
+
+	# TODO: Define the type signature
+	# NOTE: We might take "meta" as arugment
+	def invoke( self, target, args, node ):
+		"""Performs an invocation of the target using the given arguments."""
 		if isinstance(target, RuntimeError):
 			yield target
 		elif not hasattr(target, META_INVOCATION):
-			yield RuntimeError(f"Invocation target {target} has no invocation meta-information")
+			yield NodeRuntimeError(node,f"Invocation target {target} has no invocation meta-information")
 		else:
 			meta = getattr(target, META_INVOCATION)
 			argv = []
 			j    = len(meta) - 1
 			# Here we iterate through the arguments, extract the corresponding
 			# meta information and process the arguments accordingly.
+			interp = self.derive()
 			for i, arg_node in enumerate(args):
-				arg_meta     = meta[min(i,j)]
-				is_node      = arg_meta.flags & NODE == NODE
-				is_data      = arg_meta.flags & DATA == DATA
-				is_lazy      = arg_meta.flags & LAZY == LAZY
-				if is_node:
-					value = arg_node
+				if i > j:
+					# We skip any extra argument
+					break
 				else:
-					interpreter = self.data if is_data else self
-					value       = interpreter.feed(arg_node) if is_lazy else expand(interpreter.feed(arg_node))
-				argv.append(value)
-			yield from target(self, argv)
+					arg_meta     = meta[min(i,j)]
+					is_node      = arg_meta.flags & NODE == NODE
+					is_data      = arg_meta.flags & DATA == DATA
+					is_lazy      = arg_meta.flags & LAZY == LAZY
+					if is_node:
+						value = arg_node
+					else:
+						interpreter = self.data if is_data else self
+						value       = interpreter.feed(arg_node) if is_lazy else expand(interpreter.feed(arg_node))
+					if arg_meta.name != "*":
+						interp.context.define(arg_meta.name, value)
+					argv.append(value)
+			yield from target(interp, argv)
 
 # -----------------------------------------------------------------------------
 #
@@ -357,8 +398,12 @@ class Primitives(Context):
 
 	@invocation( __=EAGER )
 	def do_out( self, interpreter:Interpreter, args ):
-		print ("out:", *(_ for _ in args))
-		yield None
+		res = None
+		for v in args:
+			sys.stdout.write(str(v))
+			res = v
+		sys.stdout.write("\n")
+		yield res
 
 	@invocation( module=DATA|EAGER, __=DATA|EAGER )
 	def do_import( self, interpreter:Interpreter, args:Iterator[Value] ):
@@ -367,18 +412,17 @@ class Primitives(Context):
 
 	@invocation( iterable=VALUE|EAGER, functor=VALUE|EAGER )
 	def do_iter( self, interpreter:Interpreter, args:Iterator[Value] ):
+		"""Iterates through an iterable value. Stops when receiving the symbol `:Stop`"""
 		value   = args[0]
 		functor = args[1]
 		if isinstance(functor, Symbol):
 			# We do iterate, even if there's a no-op
 			for _ in value:
-				print ("ITER", _, functor)
 				pass
 		else:
-			for _ in value:
-				print ("ITER", _, functor)
+			for i,v in enumerate(value):
+				interpreter.invoke(functor, (v,i))
 		yield None
-
 
 	@invocation( __=DATA|EAGER )
 	def do_primitive( self, interpreter:Interpreter, args:Iterator[Value] ):
@@ -413,7 +457,7 @@ class Primitives(Context):
 				i.context.define(name, value)
 		yield from i.feed(args[-1])
 
-	@invocation( args=NODE|EAGER, __=VALUE )
+	@invocation( args=NODE, __=NODE )
 	def do_lambda( self, interpreter:Interpreter, args:Iterator[Value] ):
 		func_args = expand(interpreter.data.feed(args[0]))
 		# We might have the unnormalized form (LAMBDA A B)
@@ -422,7 +466,9 @@ class Primitives(Context):
 		func_code = args[1:]
 		# This is the actual execution of the function
 		def functor(interpreter, args):
+			# The functor creates a new context
 			interp = interpreter.derive()
+			# Maps out the function arguments
 			for i,ref in enumerate(func_args):
 				# NOTE: Not sure what args are at this stage
 				value = args[i]
@@ -431,11 +477,9 @@ class Primitives(Context):
 				else:
 					# We define the slots of the arguments
 					interp.context.define(ref.name, value)
-			for _ in func_code:
-				if isinstance(_, RuntimeError):
-					yield _
-				else:
-					yield from interp.feed(_)
+			# We re-interpret the nodes in the context
+			for line in func_code:
+				yield from interp.feed(line)
 		# We define the invocation protocol, which is always eager, for now.
 		kwargs = OrderedDict()
 		for ref in func_args:
@@ -483,8 +527,12 @@ if __name__ == "__main__":
 	import sys, logging
 	run = BaseInterpreter()
 	res = parseFile(sys.argv[1])
+	val = None
 	for _ in run.feed(res):
 		if isinstance(_, Exception):
 			logging.error(_)
+		elif _ is not None:
+			val = _
+	print (f"→ {val}")
 
 # EOF - vim: ts=4 sw=4 noet

@@ -1,0 +1,10 @@
+(primitive lambda out!)
+
+(out!
+	((lambda (A) A) "Hello, World"))
+
+
+
+
+
+

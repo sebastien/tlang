@@ -33,6 +33,7 @@ class Node:
 		self.parent:Optional['Node'] = None
 		self.attributes:Dict[str,Any] = OrderedDict()
 		self.children:List['Node'] = []
+		self.metadata:Optional[Dict[str,Any]] = None
 
 	@property
 	def root( self ) -> Optional['Node']:
@@ -75,6 +76,17 @@ class Node:
 			return self.attributes.get(name)
 		else:
 			self.attributes[name] = value
+			return self
+
+	def meta( self, name:str, value=NOTHING ):
+		"""Sets/accesses the node's metadata."""
+		if value is NOTHING:
+			return self.metadata.get(name) if self.metadata else None
+		else:
+			if not self.metadata:
+				self.metadata = {name:value}
+			else:
+				self.metadata[name] = value
 			return self
 
 	def index( self, node ) -> int:
