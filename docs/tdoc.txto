@@ -313,11 +313,15 @@ For instance, you can have a top-level attribute defining how the parsing
 should happen:
 
 ```tdoc
-@tdoc:indent spaces 2
+@tdoc:indent spaces=2
+```
+
+```
+@tdoc:indent tabs
 ```
 
 will tell TDoc to consider two spaces as the default indentation. You could do
-`@tdoc:indent tabs` or `@tdoc:indent spaces 4`, etc.
+`@tdoc:indent tabs` or `@tdoc:indent spaces=4`, etc.
 
 Specifying content nesting
 --------------------------

@@ -8,6 +8,12 @@ from collections import OrderedDict,namedtuple
 # TODO: The parser should yield its position (line, column) and a value
 # being either Skip, string, Warning, or Error
 
+# TODO: In embedded, empty elemnts might popup inbetween comments, so
+# we should put an option to strip them.
+
+# TODO: The option to wrap the result in a tag, for instance in XML 
+# documents.
+
 # TODO: Options
 
 # TODO: Whitespace:
@@ -29,6 +35,8 @@ class ParseOptions:
 	TABS   = "tabs"
 	SPACES = "spaces"
 
+	RESERVED = ("OPTIONS", "options", "indentPrefix")
+
 	OPTIONS = {
 		"comments"   : ParseOption(bool         , False, "Includes comments in the output"),
 		"embed"      : ParseOption(bool         , False, "Turns on embedded mode"),
@@ -38,7 +46,7 @@ class ParseOptions:
 	}
 
 	def __init__( self, options=None ):
-		self.options     = {}
+		self.options     = {"indentPrefix":""}
 		self.merge(options)
 
 	@property
@@ -53,7 +61,7 @@ class ParseOptions:
 		return self
 
 	def __getattr__( self, name ):
-		if name in ("options", "OPTIONS"):
+		if name in ParseOptions.RESERVED:
 			return object.__getattribute__(self, name)
 		elif name not in self.OPTIONS:
 			raise ValueError(f"No option {name}, pick any of {tuple(self.OPTIONS.keys())}")
@@ -61,7 +69,7 @@ class ParseOptions:
 			return self.options[name] if name in self.options else self.OPTIONS[name]
 
 	def __setattr__( self, name, value ):
-		if name in ("options", "OPTIONS"):
+		if name in ParseOptions.RESERVED:
 			object.__setattr__(self, name, value)
 		elif name not in self.OPTIONS:
 			raise ValueError(f"No option {name}, pick any of {tuple(self.OPTIONS.keys())}")
@@ -132,6 +140,7 @@ class Parser:
 		self._indentMode  = mode
 		self._indentCount = count
 		self._indentPrefix = ('\t' if mode == IndentMode.TABS else ' ') * count
+		self.options.indentPrefix = self._indentPrefix
 
 	@property
 	def depth( self ):
@@ -177,7 +186,7 @@ class Parser:
 				# BRANCH: RAW_CONTENT
 				# That's a nested line, with an indentation greater than
 				# the indentation of the custom parser
-				yield from driver.onRawContentLine(line[self.customParserDepth + 1:-1])
+				yield from driver.onRawContentLine(self.stripLineIndentation(line[:-1], self.customParserDepth + 1))
 				stopped = True
 			elif not l:
 				# BRANCH: RAW_CONTENT_EMPTY
@@ -273,9 +282,9 @@ class Parser:
 		if ns == "tdoc" and name == "indent":
 			v = dict( (k,v) for ns,k,v in self.parseAttributes(" " + value))
 			if "spaces" in v:
-				self.setIndent(IndentMode.SPACES, int(v["spaces"], 4))
+				self.setIndent(IndentMode.SPACES, int(v.get("spaces",4)))
 			elif "tabs" in v:
-				self.setIndent(IndentMode.TABS, int(v["tabs"], 1))
+				self.setIndent(IndentMode.TABS, int(v.get("tabs", 1)))
 			else:
 				raise SyntaxError(f"tdoc:indent expects `tabs` or `spaces=N` as value, got: `{value}`")
 		else:
@@ -375,6 +384,7 @@ class Parser:
 		n = len(self._indentPrefix)
 		while indent > 0 and line.startswith(self._indentPrefix):
 			line = line[n:]
+			indent -= 1
 		return line
 
 # -----------------------------------------------------------------------------
@@ -467,6 +477,7 @@ class EventEmitter(Emitter):
 #
 # -----------------------------------------------------------------------------
 
+# FIXME: Deal with empty lines
 class TDocEmitter(Emitter):
 	"""A driver that outputs a normalized TDoc document."""
 
@@ -640,26 +651,30 @@ class EmbeddedReader:
 	content in TDoc preformatted nodes."""
 
 	# TODO: Start, Line and end (from options)
-	def __init__( self,  options:ParseOptions ):
-		self.options = options
+	def __init__( self,  parser:Parser ):
+		self.parser  = parser
 		self.node    = "code|tdoc"
 		self.shebang = "#!"
 
 	def read( self, iterable ):
 		in_content = False
-		embed_line = self.options.embedLine or None
+		embed_line = self.parser.options.embedLine or None
 		for i,line in enumerate(iterable):
+			# NOTE: The options might be mutated by the parser, so we need
+			# to extract the prefix each time.
 			if i == 0 and line.startswith(self.shebang):
 				pass
 			elif embed_line and line.startswith(embed_line):
 				in_content = False
 				yield line[len(embed_line):]
 			elif not in_content:
-				yield self.node
-				yield f"\t{line}"
+				prefix = self.parser._indentPrefix * (self.parser.depth + 1)
+				yield f"{prefix}{self.node}"
+				yield f"{prefix}{line}"
 				in_content = True
 			else:
-				yield f"\t{line}"
+				prefix = self.parser._indentPrefix * (self.parser.depth + 1)
+				yield f"{prefix}{line}"
 
 # -----------------------------------------------------------------------------
 #
@@ -668,9 +683,10 @@ class EmbeddedReader:
 # -----------------------------------------------------------------------------
 
 def parseIterable( iterable, out=sys.stdout, options=ParseOptions(), driver=Emitter.GetDefault() ):
+	parser = Parser(options)
 	if options.isEmbedded:
-		iterable = EmbeddedReader(options).read(_ for _ in iterable)
-	return Writer(out).write(Parser(options).parse(iterable, driver))
+		iterable = EmbeddedReader(parser).read(_ for _ in iterable)
+	return Writer(out).write(parser.parse(iterable, driver))
 
 def parseString( text:str, out=sys.stdout, options=ParseOptions(), driver=Emitter.GetDefault() ):
 	with open(path) as f:

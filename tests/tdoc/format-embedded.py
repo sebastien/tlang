@@ -1,4 +1,4 @@
-## @tdoc:indent spaces 2
+## @tdoc:indent spaces=2
 ## title: TDoc embedded documentation
 ## content|texto
 ##   So this is an example of a *TDoc* document embedded in the comments
@@ -14,6 +14,7 @@ def hello_world(message='Hello, world!'):
     print (message)
 
 ## section#main title="Main section"
+##   .
 
 if __name__ == "__main__":
     hello_world()
