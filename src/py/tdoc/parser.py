@@ -2,6 +2,7 @@
 from tlang import tree
 import re, sys, os, logging, json, xml.sax.saxutils
 from typing import Optional,Any,List,Union,Iterable,Iterator,Tuple
+from enum import Enum
 from collections import OrderedDict,namedtuple
 
 # TODO: The parser should yield its position (line, column) and a value
@@ -20,8 +21,13 @@ from collections import OrderedDict,namedtuple
 # -----------------------------------------------------------------------------
 
 ParseOption = namedtuple("ParseOption", ("type", "default", "help"))
+IndentMode  = Enum("IndentMode", ("TABS", "SPACES"))
+
 class ParseOptions:
 	"""Define options for parsers, readers and writers."""
+
+	TABS   = "tabs"
+	SPACES = "spaces"
 
 	OPTIONS = {
 		"comments"   : ParseOption(bool         , False, "Includes comments in the output"),
@@ -32,8 +38,12 @@ class ParseOptions:
 	}
 
 	def __init__( self, options=None ):
-		self.options = {}
+		self.options     = {}
 		self.merge(options)
+
+	@property
+	def isEmbedded( self ):
+		return self.embed or self.embedLine or self.embedStart or self.embedEnd
 
 	def merge( self, options ):
 		if options:
@@ -112,13 +122,22 @@ class Parser:
 		self.customParser:Optional[str] = None
 		self.customParserDepth:Optional[int] = None
 		self.options = options
+		self.setIndent(IndentMode.TABS, 1)
 		self.stack:List[Parser.StackItem] = []
+
+	def setIndent( self, mode:IndentMode, count:int=1 ):
+		"""Sets the indentation level for the parser. This updates the
+		indentation prefix that is used to extract indentation from the parsed
+		lines."""
+		self._indentMode  = mode
+		self._indentCount = count
+		self._indentPrefix = ('\t' if mode == IndentMode.TABS else ' ') * count
 
 	@property
 	def depth( self ):
 		return self.stack[-1].depth if self.stack else 0
 
-	def parse( self, iterable:Iterable[str], driver:"Driver" ):
+	def parse( self, iterable:Iterable[str], driver:"Emitter" ):
 		"""Parses the given iterable strings, using the given driver to produce
 		a result.
 
@@ -129,21 +148,21 @@ class Parser:
 			yield from self.feed(line, driver)
 		yield from self.end(driver)
 
-	def start( self, driver:"Driver" ):
+	def start( self, driver:"Emitter" ):
 		"""The parser is stateful, and `start` initializes its state."""
 		self.customParser = None
 		self.customParserDepth = None
 		self.stack = []
 		yield from driver.onDocumentStart(self.options)
 
-	def end( self, driver:"Driver"  ):
+	def end( self, driver:"Emitter"  ):
 		"""Denotes the end of the parsing."""
 		while self.stack:
 			d = self.stack.pop()
 			yield from driver.onNodeEnd(d.ns, d.name, None)
 		yield from driver.onDocumentEnd()
 
-	def feed( self, line:str, driver:"Driver"  ):
+	def feed( self, line:str, driver:"Emitter"  ):
 		"""Freeds a line into the parser, which produces a directive for
 		the driver and may affect the state of the parser."""
 		# We get the line indentation, store it as `i`
@@ -178,8 +197,8 @@ class Parser:
 		elif self.isAttribute(l):
 			# BRANCH: ATTRIBUTE
 			# It's an ATTRIBUTE
-			ns, name, value = self.parseAttributeLine(l)
-			yield from driver.onAttribute(ns, name, value)
+			ns, name, value = self.parseAttributeLine(l[:-1])
+			yield from self.onAttribute(driver, ns, name, value)
 		elif m := self.isNode(l):
 			# If is a node only if it's not too indented. If it is too
 			# indented, it's a text.
@@ -187,7 +206,7 @@ class Parser:
 				# BRANCH: TEXT CONTENT
 				# The current line is TOO INDENTED (more than expected), so we consider
 				# it to be TEXT CONTENT
-				yield from self.onContentLine(self.stripLineIndentation(line,self.depth)[:-1])
+				yield from driver.onContentLine(self.stripLineIndentation(line,self.depth)[:-1])
 			else:
 				# BRANCH: TEXT NODE
 				# Here we're sure it's a NODE
@@ -213,7 +232,7 @@ class Parser:
 				# Followed by the attributes, if any
 				attr = list(attr)
 				for ns, name, value in attr:
-					yield from driver.onAttribute(ns, name, value)
+					yield from self.onAttribute(driver, ns, name, value)
 				yield from driver.onNodeContentStart(ns, name, parser)
 				# And then the first line of content, if any
 				if content is not None:
@@ -224,7 +243,7 @@ class Parser:
 			# FIXME: See feature-whitespace, there's a problem there
 			text = self.stripLineIndentation(line,self.depth)[:-1]
 			if text:
-				yield from driver.onContentLine()
+				yield from driver.onContentLine(text)
 
 	# =========================================================================
 	# PREDICATES
@@ -245,6 +264,22 @@ class Parser:
 	def isAttribute( self, line:str ) -> bool:
 		"""Tells if this line is attribute line"""
 		return line and line[0] == '@'
+
+	# =========================================================================
+	# HANDLERS
+	# =========================================================================
+
+	def onAttribute( self, driver, ns:str, name:str, value:Any ):
+		if ns == "tdoc" and name == "indent":
+			v = dict( (k,v) for ns,k,v in self.parseAttributes(" " + value))
+			if "spaces" in v:
+				self.setIndent(IndentMode.SPACES, int(v["spaces"], 4))
+			elif "tabs" in v:
+				self.setIndent(IndentMode.TABS, int(v["tabs"], 1))
+			else:
+				raise SyntaxError(f"tdoc:indent expects `tabs` or `spaces=N` as value, got: `{value}`")
+		else:
+			yield from driver.onAttribute(ns, name, value)
 
 	# =========================================================================
 	# SPECIFIC PARSERS
@@ -314,7 +349,7 @@ class Parser:
 		else:
 			ns, name = ns_name
 		content = name_value[1] if len(name_value) == 2 else None
-		return (ns, name, name)
+		return (ns, name, content)
 
 	# =========================================================================
 	# INDENTATION
@@ -327,23 +362,28 @@ class Parser:
 		the line."""
 		# TODO: We should support other indentation methods
 		n = len(line)
-		i = 0
-		while i < n and line[i] == '\t':
+		i = 0 # The indent level
+		o = 0 # The character offset
+		while o < n and line.startswith(self._indentPrefix, o):
 			i += 1
-		l = line[i:] if i>0 else line
+			o += len(self._indentPrefix)
+		l = line[o:] if o>0 else line
 		return i, l
 
 	def stripLineIndentation( self, line:str, indent:int ) -> str:
 		"""Strips the indentation from the given line."""
-		return line[indent:]
+		n = len(self._indentPrefix)
+		while indent > 0 and line.startswith(self._indentPrefix):
+			line = line[n:]
+		return line
 
 # -----------------------------------------------------------------------------
 #
-# DRIVER
+# EMITTER
 #
 # -----------------------------------------------------------------------------
 
-class Driver:
+class Emitter:
 	"""An abstract interface for the parser driver. The driver yields
 	values that are then handled by a writer. In other words, it transforms
 	the stream of events produced by the parser in a stream of values to
@@ -351,7 +391,7 @@ class Driver:
 
 	@classmethod
 	def GetDefault( cls ):
-		return XMLDriver()
+		return XMLEmitter()
 
 	def __init__( self ):
 		self.options = None
@@ -390,7 +430,7 @@ class Driver:
 #
 # -----------------------------------------------------------------------------
 
-class EventDriver(Driver):
+class EventEmitter(Emitter):
 	"""A driver that outputs an event stream."""
 
 	def __init__( self ):
@@ -427,7 +467,7 @@ class EventDriver(Driver):
 #
 # -----------------------------------------------------------------------------
 
-class TDocDriver(Driver):
+class TDocEmitter(Emitter):
 	"""A driver that outputs a normalized TDoc document."""
 
 	RE_QUOTE = re.compile("[\" ]")
@@ -485,7 +525,7 @@ class TDocDriver(Driver):
 #
 # -----------------------------------------------------------------------------
 
-class XMLDriver(Driver):
+class XMLEmitter(Emitter):
 	"""A driver that emits an XML-serialized document (as a text string)."""
 
 	def __init__( self ):
@@ -600,21 +640,22 @@ class EmbeddedReader:
 	content in TDoc preformatted nodes."""
 
 	# TODO: Start, Line and end (from options)
-	def __init__( self, comment="#", line="code|tdoc"):
-		self.comment = comment
-		self.line = line
+	def __init__( self,  options:ParseOptions ):
+		self.options = options
+		self.node    = "code|tdoc"
 		self.shebang = "#!"
 
 	def read( self, iterable ):
 		in_content = False
+		embed_line = self.options.embedLine or None
 		for i,line in enumerate(iterable):
 			if i == 0 and line.startswith(self.shebang):
 				pass
-			elif line.startswith(self.comment):
+			elif embed_line and line.startswith(embed_line):
 				in_content = False
-				yield line[len(self.comment):]
+				yield line[len(embed_line):]
 			elif not in_content:
-				yield self.line
+				yield self.node
 				yield f"\t{line}"
 				in_content = True
 			else:
@@ -626,26 +667,26 @@ class EmbeddedReader:
 #
 # -----------------------------------------------------------------------------
 
-def parseIterable( iterable, out=sys.stdout, options=ParseOptions(), driver=Driver.GetDefault() ):
-	if options.embed:
-		iterable = (EmbeddedReader().read(_ for _ in iterable))
+def parseIterable( iterable, out=sys.stdout, options=ParseOptions(), driver=Emitter.GetDefault() ):
+	if options.isEmbedded:
+		iterable = EmbeddedReader(options).read(_ for _ in iterable)
 	return Writer(out).write(Parser(options).parse(iterable, driver))
 
-def parseString( text:str, out=sys.stdout, options=ParseOptions(), driver=Driver.GetDefault() ):
+def parseString( text:str, out=sys.stdout, options=ParseOptions(), driver=Emitter.GetDefault() ):
 	with open(path) as f:
 		return parseIterable( (_[:-1] for _ in text.split("\n")), out=out, options=options, driver=driver)
 
-def parsePath( path:str, out=sys.stdout, options=ParseOptions(), driver=Driver.GetDefault() ):
+def parsePath( path:str, out=sys.stdout, options=ParseOptions(), driver=Emitter.GetDefault() ):
 	with open(path) as f:
 		return parseIterable( f.readlines(), out=out, options=options, driver=driver)
 
-def parseStream( stream, out=sys.stdout, options=ParseOptions(), driver=Driver.GetDefault() ):
+def parseStream( stream, out=sys.stdout, options=ParseOptions(), driver=Emitter.GetDefault() ):
 	return parseIterable( stream.readlines(), out=out, options=options, driver=driver)
 
-DRIVERS = {
-	"xml"   : XMLDriver,
-	"event" : EventDriver,
-	"tdoc"  : TDocDriver,
+EMITTERS = {
+	"xml"    : XMLEmitter,
+	"events" : EventEmitter,
+	"tdoc"   : TDocEmitter,
 }
 
 if __name__ == "__main__":

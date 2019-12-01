@@ -1,6 +1,6 @@
 import sys, argparse
 from typing import Optional, List
-from tdoc.parser import DRIVERS, XMLDriver, EventDriver, TDocDriver, ParseOptions, parseString, parsePath
+from tdoc.parser import EMITTERS, ParseOptions, parseString, parsePath
 
 def run( args:Optional[List[str]]=None, name="tdoc" ):
 	"""Command-line interface to the TDoc parser."""
@@ -13,7 +13,7 @@ def run( args:Optional[List[str]]=None, name="tdoc" ):
 	oparser.add_argument("files", metavar="FILE", type=str, nargs='*',
 		help='The .tdoc source files to process')
 	oparser.add_argument("-O", "--output-format", action="store", dest="outputFormat",
-		choices=list(DRIVERS.keys()), default=next(_ for _ in DRIVERS),
+		choices=list(EMITTERS.keys()), default=next(_ for _ in EMITTERS),
 		help=ParseOptions.OPTIONS["comments"].help)
 	oparser.add_argument("-c", "--with-comments", action="store_true", dest="comments",
 		help=ParseOptions.OPTIONS["comments"].help)
@@ -26,12 +26,11 @@ def run( args:Optional[List[str]]=None, name="tdoc" ):
 		help=ParseOptions.OPTIONS["embedLine"].help)
 	oparser.add_argument("-ee", "--embed-end", type=str, default=None,dest="embedEnd",
 		help=ParseOptions.OPTIONS["embedEnd"].help)
-
 	# We create the parse and register the options
 	opts = oparser.parse_args(args=args)
 	# We extract parser optios
 	parse_options = ParseOptions(vars(opts))
-	driver = DRIVERS[opts.outputFormat]()
+	driver = EMITTERS[opts.outputFormat]()
 	for path in opts.files:
 		res  = parsePath(path, options=parse_options, driver=driver)
 
