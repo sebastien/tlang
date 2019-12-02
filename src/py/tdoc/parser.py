@@ -38,6 +38,7 @@ class ParseOptions:
 	RESERVED = ("OPTIONS", "options", "indentPrefix")
 
 	OPTIONS = {
+		"document"   : ParseOption(bool         , False, "Wraps the result in a document node"),
 		"comments"   : ParseOption(bool         , False, "Includes comments in the output"),
 		"embed"      : ParseOption(bool         , False, "Turns on embedded mode"),
 		"embedLine"  : ParseOption(Optional[str], None , "Line prefix for embedded TDoc data (eg. '#')"),
@@ -163,12 +164,16 @@ class Parser:
 		self.customParserDepth = None
 		self.stack = []
 		yield from driver.onDocumentStart(self.options)
+		if self.options.document:
+			yield from driver.onNodeStart(None, self.options.document, None)
 
 	def end( self, driver:"Emitter"  ):
 		"""Denotes the end of the parsing."""
 		while self.stack:
 			d = self.stack.pop()
 			yield from driver.onNodeEnd(d.ns, d.name, None)
+		if self.options.document:
+			yield from driver.onNodeEnd(None, self.options.document, None)
 		yield from driver.onDocumentEnd()
 
 	def feed( self, line:str, driver:"Emitter"  ):
@@ -215,7 +220,7 @@ class Parser:
 				# BRANCH: TEXT CONTENT
 				# The current line is TOO INDENTED (more than expected), so we consider
 				# it to be TEXT CONTENT
-				yield from driver.onContentLine(self.stripLineIndentation(line,self.depth)[:-1])
+				yield from driver.onContentLine(l[:-1])
 			else:
 				# BRANCH: TEXT NODE
 				# Here we're sure it's a NODE
@@ -382,7 +387,7 @@ class Parser:
 	def stripLineIndentation( self, line:str, indent:int ) -> str:
 		"""Strips the indentation from the given line."""
 		n = len(self._indentPrefix)
-		while indent > 0 and line.startswith(self._indentPrefix):
+		while indent >= 0 and line.startswith(self._indentPrefix):
 			line = line[n:]
 			indent -= 1
 		return line
@@ -509,7 +514,7 @@ class TDocEmitter(Emitter):
 
 	def onAttribute( self, ns:Optional[str], name:str, value:Optional[str] ):
 		if value is None:
-			value_text is None
+			value_text = None
 		elif self.RE_QUOTE.search(value):
 			value_text = '"' + value.replace('"', '\\"') + '"'
 		else:
@@ -576,7 +581,7 @@ class XMLEmitter(Emitter):
 		self.isCurrentNodeClosed = True
 
 	def onAttribute( self, ns:Optional[str], name:str, value:Optional[str] ):
-		svalue = '"' + value.replace('"', '\\"') + '"'
+		svalue = '"' + value.replace('"', '\\"') + '"' if value else ""
 		attr   =  f" {ns}:{name}={svalue}" if ns else f" {name}={svalue}"
 		yield attr
 
@@ -668,12 +673,12 @@ class EmbeddedReader:
 				in_content = False
 				yield line[len(embed_line):]
 			elif not in_content:
-				prefix = self.parser._indentPrefix * (self.parser.depth + 1)
+				prefix = self.parser._indentPrefix * (self.parser.depth)
 				yield f"{prefix}{self.node}"
 				yield f"{prefix}{line}"
 				in_content = True
 			else:
-				prefix = self.parser._indentPrefix * (self.parser.depth + 1)
+				prefix = self.parser._indentPrefix * (self.parser.depth)
 				yield f"{prefix}{line}"
 
 # -----------------------------------------------------------------------------

@@ -15,6 +15,8 @@ def run( args:Optional[List[str]]=None, name="tdoc" ):
 	oparser.add_argument("-O", "--output-format", action="store", dest="outputFormat",
 		choices=list(EMITTERS.keys()), default=next(_ for _ in EMITTERS),
 		help=ParseOptions.OPTIONS["comments"].help)
+	oparser.add_argument("-D", "--with-document", action="store", dest="document", default="document",
+		help=ParseOptions.OPTIONS["document"].help)
 	oparser.add_argument("-c", "--with-comments", action="store_true", dest="comments",
 		help=ParseOptions.OPTIONS["comments"].help)
 	oparser.add_argument("-e", "--embed", action="store_true",
