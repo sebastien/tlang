@@ -455,4 +455,6 @@ TLang's query language was inspired by the following languages:
 
 - [Scheme]: Scheme's macro system.
 
+- https://github.com/tree-sitter/tree-sitter/pull/444
+
 # EOF - vim: ts=2 sw=2 et syn=texto

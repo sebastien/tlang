@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-#| @indent spaces 2
+#| @tdoc:indent spaces=2
 #| title: Query compiler research
 #| text
 #|   We want to create a compiler that will transform a TLang query expression
@@ -22,7 +22,6 @@ from typing import Optional, Iterator, NamedTuple, Dict, List
 # /  → DOWN[0]
 # \\ → UP[-1]
 # \  → UP[0]
-
 
 WalkStep = NamedTuple('WalkStep', [('node',Node), ('depth',int)])
 

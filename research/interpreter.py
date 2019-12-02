@@ -7,20 +7,22 @@ from tlang.interpreter import parseFile
 from enum import Enum
 import inspect
 
-## TODO: Runtime errors should always be bound to the origin node, so that
-## we know where it's coming from.
+# TODO: Runtime errors should always be bound to the origin node, so that
+# we know where it's coming from.
 
-## @indent spaces 4
+# TODO: Consider lambdas/closures as processes that need to be fed N arguments
+
+## @tdoc:indent spaces=2
 ## title: TLang's Research interpreter
 ## text|texto
-##     This is the experimental, slow, Python-based interpreter for TLang. 
-##     The goal is to create an interpreter that is suitable for experimentation
-##     with features, as well as creating a proof of concept for interpreting
-##     TLang. It is not meant to be fast, but is rather meant as a reference.
+##   This is the experimental, slow, Python-based interpreter for TLang. 
+##   The goal is to create an interpreter that is suitable for experimentation
+##   with features, as well as creating a proof of concept for interpreting
+##   TLang. It is not meant to be fast, but is rather meant as a reference.
 
 ## section
-##    title: Data types
-##    :
+##   title: Data types
+##   :
 # -----------------------------------------------------------------------------
 #
 # SYMBOL
@@ -46,8 +48,8 @@ Atom  = Union[None,str,int,bool,Symbol]
 Value = Union[Atom,Symbol]
 
 ## section
-##    title: Runtime model
-##    :
+##   title: Runtime model
+##   :
 # -----------------------------------------------------------------------------
 #
 # SLOT
@@ -162,13 +164,13 @@ class NodeRuntimeError(RuntimeError):
 			return super().__repr__()
 
 ## section
-##    title: Interpreters
-##    text|texto
-##        The interpreters define how the TLang program tree is turned into
-##        _values_ and _effects_. The core mechanics relies on walking the
-##        tree and producing values or effects, based on the operational
-##        semantics.
-##    :
+##   title: Interpreters
+##   text|texto
+##     The interpreters define how the TLang program tree is turned into
+##     _values_ and _effects_. The core mechanics relies on walking the
+##     tree and producing values or effects, based on the operational
+##     semantics.
+##   :
 # -----------------------------------------------------------------------------
 #
 # INTERPRETER (ABSTRACT)
@@ -208,7 +210,7 @@ class Interpreter:
 
 	def feed( self, node:Node ) -> Iterable[Any]:
 		# TODO: Support namespace
-		name = node.name 
+		name = node.name
 		func = self.matches.get(name)
 		self.node = node
 		if func:
@@ -382,7 +384,6 @@ class DataInterpreter(Interpreter):
 # PRIMITIVES
 #
 # -----------------------------------------------------------------------------
-
 
 class Primitives(Context):
 

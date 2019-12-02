@@ -1,8 +1,8 @@
 
-from typing import Optional, Any, List, Dict, Union
+from typing import Optional,Any,List,Dict,Union,Iterator,Iterable,Callable
 from collections import OrderedDict
 from tlang.utils import NOTHING
-import json
+import json, inspect
 
 # TODO: XML and JSON interop
 # TODO: Source reference as attributes
@@ -28,9 +28,11 @@ class Node:
 	IDS = 0
 
 	def __init__( self, name:str ):
+		# FIXME: This does not support namespace
 		self.name = name
 		self.id   = Node.IDS ; Node.IDS += 1
 		self.parent:Optional['Node'] = None
+		# FIXME: This does not support namespaces for attributes
 		self.attributes:Dict[str,Any] = OrderedDict()
 		self.children:List['Node'] = []
 		self.metadata:Optional[Dict[str,Any]] = None
@@ -137,8 +139,18 @@ class Node:
 				return False
 		return True
 
+	def toPrimitive( self ):
+		res   = [self.name]
+		attr  = dict( (k,v) for k,v in self.attributes.items())
+		if attr:
+			res.append(attr)
+		for _ in self.children:
+			res.append(_.toPrimitive())
+		return res
+
 	def __str__( self ):
 		return "".join(Repr.Apply(self))
+
 
 # -----------------------------------------------------------------------------
 #
@@ -232,6 +244,35 @@ class DOMAdapter(Adapter):
 		self.node.insert(i, node)
 		return node
 
+
+# -----------------------------------------------------------------------------
+#
+# OBEJCT ADAPATER
+#
+# -----------------------------------------------------------------------------
+
+class ObjectAdapter(Adapter):
+	"""Wraps a node so that you can use it as an object, where properties
+	are mapped to attributes and items to child nodes."""
+
+	def __getattribute__( self, name:str ):
+		if name == "node" or name == "wrap":
+			return super().__getattribute__(name)
+		else:
+			return node.attr(name)
+
+	def __setattr__( self, name:str, value:Any ):
+		if name == "node" or name == "wrap":
+			return super().__setattr__(name)
+		else:
+			return node.attr(name, value)
+
+	def __get_item__( self, index:int ):
+		return self.node.children[index]
+
+	def __len__( self ):
+		return len(self.node.children)
+
 # -----------------------------------------------------------------------------
 #
 # TREE BUILDER
@@ -240,8 +281,11 @@ class DOMAdapter(Adapter):
 
 class TreeBuilder:
 
-	def node( self, name, *content ):
+	@classmethod
+	def MakeNode( cls, name, *content, **kwargs ):
 		node = Node(name)
+		for k,v in kwargs.items():
+			node.attr(k,v)
 		if not content:
 			return node
 		head = content[0]
@@ -252,8 +296,93 @@ class TreeBuilder:
 				# TODO: Validate schema
 				node.attr(k, v)
 		for child in content:
-			if child is not None:
-				node.add(child)
+			if isinstance(child, Iterable):
+				for c in child:
+					if c is not None:
+						node.add(c)
+			else:
+				if child is not None:
+					node.add(child)
 		return node
+
+	def node( self, name, *content, **kwargs ):
+		return self.MakeNode(name, *content, **kwargs)
+
+# -----------------------------------------------------------------------------
+#
+# TREE PROCESSOR
+#
+# -----------------------------------------------------------------------------
+
+class TreeProcessorError(Exception):
+
+	def __init__( self, node, error ):
+		self.node = node
+		self.error = error
+
+	def __str__( self ):
+		return f"{self.error} in {self.node}"
+
+class TreeProcessor:
+
+	META_MATCH = "__tlang_model_treebuilder_match"
+
+	@staticmethod
+	def Match( name:str ):
+		def decorator(f):
+			setattr(f, TreeProcessor.META_MATCH, name)
+			return f
+		return decorator
+
+	def __init__( self ):
+		self.matches:Dict[str,Callable[TreeProcessor,Node,Iterable[Any]]] = {}
+		self.node:Optional[Node] = Node
+		for name,value in inspect.getmembers(self):
+			if hasattr(value, TreeProcessor.META_MATCH):
+				self.matches[getattr(value, TreeProcessor.META_MATCH)] = value
+			elif name.startswith("on_"):
+				self.matches[name[3:]] = value
+		self.init()
+
+	def init( self ):
+		pass
+
+	def build( self, node:Node ):
+		res = []
+		if isinstance(node, Iterable):
+			for _ in node:
+				for _ in self.feed(_):
+					pass
+		else:
+			for _ in self.feed(node):
+				pass
+		return self
+
+	def feed( self, node:Node ) -> Iterable[Any]:
+		# TODO: Support namespace
+		name = node.name
+		func = self.matches.get(name)
+		self.node = node
+		if func:
+			result = func(node)
+			if result is None:
+				pass
+			elif isinstance(result, Iterator):
+				yield from result
+			elif isinstance(result, Exception):
+				yield TreeProcessorError(node, result)
+			else:
+				yield result
+		else:
+			yield TreeProcessorError(node, f"Unsupported node type: {name}")
+
+class NodeError(Exception):
+
+	def __init__( self, node:Node, error:Exception ):
+		self.node = node
+		self.error = error
+
+	def __str__( self ):
+		return f"{self.error} in {self.node}"
 
 # EOF - vim: ts=4 sw=4 noet

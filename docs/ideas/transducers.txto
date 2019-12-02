@@ -14,16 +14,16 @@ and their definition.
 
 ;; We select all the references. `$0` and `$REF` will reference the `ref`
 ;; node, while `$NAME` and `$1` will reference `{@name}`.
-(on #change {REF:ref}/{NAME:@name}
+(on #change {ref:REF}/{@name:NAME}
 
 	;; We remove the node from the referenced symbol
-	(do #remove REF/@symbol/@refs  REF)
+	(do #remove $REF/@symbol/@refs  REF)
 
     (when @name
 		;; We resolve the symbol by looking back in the traversal
 		;; for a definition with the given name. We save the
 		;; result as SYMBOL
-		(when {SYMBOL:.<<def*/{@name:ATTR}[(eq? ATTR NAME)] | head}
+		(when {.<<def*/{@name:ATTR}[(eq? ATTR NAME)][0]:SYMBOL}
 			;; We set the resolved symbol as the attribute value
 			(do #set $REF/@symbol  SYMBOL)
 			;; We remove the symbol
@@ -71,7 +71,7 @@ handle it as well:
 	(do #set  ADDED/@symbol  SYMBOL))
 ```
 
-We have introduced a mutually-recursive dependency, which is a potentially
+We have introduced a mutually recursive dependency, which is a potentially
 problematic. Also, in general it might be quite tricky to ensure that there
 is not going to be an issue.
 
@@ -110,5 +110,31 @@ The compiler should:
 
 3) Created indexes and lookup structures based on expensive selectors like
    `>>`, `<<`, `\\` or `//`.
+
+Imperative transducers
+======================
+
+The idea of transducers is to collapse transformations that might involve 
+multiple iterations. For instance:
+
+```tlang
+(select recipe/ingredients/i)
+| (group (tuple ./@id ./@type))
+| (map count)
+```
+
+Has selection, yielding N elements, then a grouping by `(@id @type)` pair, and
+then a counting of the results.
+
+An alternative would be to introduce a `reduce-group` primitive:
+
+```tlang
+(reduce-group recipe/ingredients/i (tuple @id @type)
+  (lambda ((r 0) v) (+ r 1)))
+```
+
+# TODO: Not sure how we would express that as a tree transform, because
+# one elmenet would represent a query set (ie. N->1 mapping).
+
 
 # EOF - vim: ts=2 sw=2 et syn=texto

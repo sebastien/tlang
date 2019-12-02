@@ -7,8 +7,15 @@ Priorities
 
 Syntax::
 
-  (path.join) → (. join path) ie. "resolve `join` in `path`)
- 
+-  `path.join` → `(. join path)` ie. "resolve `join` in `path`
+-   `(a b c)→(d e)` becomes `(lambda (a b c) d e)`
+-  (→ a b)` becomes `(lambda (_ _1 _2) a b)`
+-  `key:` for a binding, `:Symbol` for a singleton
+
+Housekeeping::
+
+- Migrate `tdoc` to its own project
+
 Rework::
 
 [ ] Naming: I find the AST very verbose (`expr-value-number`), and I primarily
@@ -165,5 +172,8 @@ https://pldi16.sigplan.org/details/pldi-2016-papers/38/Programmatic-and-Direct-M
 - https://comby.dev/#basic-usage templates, etc
 
 https://awelonblue.wordpress.com/2018/11/10/hierarchical-transaction-machines/
+https://news.ycombinator.com/item?id=21675113
+https://github.com/lezer-parser/
+
 # EOF - vim: ts=2 sw=2 et syn=texto
 
