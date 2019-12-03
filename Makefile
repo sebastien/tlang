@@ -10,6 +10,7 @@ SOURCES_PCSS   =$(wildcard src/pcss/*.pcss)
 
 BUILD_XML      =\
 	$(patsubst %.txto,build/%.xml,$(filter docs/%,$(SOURCES_TXTO))) \
+	$(patsubst %.py,build/%.xml,$(wildcard research/*.py)) \
 	$(patsubst %.tlang,build/%.xml,$(filter examples/%,$(SOURCES_TLANG)))
 
 BUILD_XSL      =\
@@ -27,16 +28,16 @@ TIMESTAMP     :=$(shell date +'%F')
 TIME          :=$(shell date -R)
 YEAR          :=$(shell date +'%Y')
 
-# REQ:texto:pip install --user texto
+# REQ:$PYTHON -mpip install --user texto
 TEXTO         :=texto
-# REQ:texto:pip install --user polyblocks
-POLYBLOCKS    :=polyblocks
+# REQ:$PYTHON -mpip install --user tdoc
+TDOC          :=tdoc
 # REQ:texto:pip install --user paml
 PAML          :=paml
 # REQ:texto:pip install --user --upgrade libparsing ctypes pythoniccss
 PCSS          :=pcss
 
-REQUIRED_CMD  :=$(TEXTO) $(POLYBLOCKS) $(PAML) $(PCSS)
+REQUIRED_CMD  :=$(TEXTO) $(PAML) $(PCSS) $(TDOC)
 
 # === COLORS ==================================================================
 YELLOW        :=$(shell echo `tput setaf 226`)
@@ -71,6 +72,14 @@ all: $(BUILD_ALL)
 info:
 	$(info $(BUILD_ALL))
 
+clean:
+	@for FILE in $(BUILD_ALL); do\
+		if [ -e "$$FILE" ]; then \
+			unlink "$$FILE"; \
+		fi \
+	done
+	@find build -depth -type d -empty -delete
+
 # -----------------------------------------------------------------------------
 #
 # RULES
@@ -78,7 +87,7 @@ info:
 # -----------------------------------------------------------------------------
 
 build/%.xml: %.txto build/lib/xsl/stylesheet.xsl
-	$(call log_product,TXTO→XML)
+	$(call log_product,TEXTO XML)
 	@mkdir -p `dirname "$@"`
 	@echo '<?xml version="1.0"?>' > "$@"
 	@echo -n '<?xml-stylesheet type="text/xsl" media="screen" href="' >> "$@"
@@ -87,13 +96,22 @@ build/%.xml: %.txto build/lib/xsl/stylesheet.xsl
 	@$(TEXTO) -Oxml "$<" | tail -n +2 >> "$@"
 
 build/%.xml: %.tlang build/lib/xsl/stylesheet.xsl
-	$(call log_product,TLANG→XML)
+	$(call log_product,EMBEDDED TDOC TLANG XML)
 	@mkdir -p `dirname "$@"`
 	@echo '<?xml version="1.0"?>' > $@
 	@echo -n '<?xml-stylesheet type="text/xsl" media="screen" href="' >> "$@"
 	@realpath --relative-to "$@" "build/lib/xsl/stylesheet.xsl" | head -c -1 >> "$@"
 	@echo '"?>' >> "$@"
-	@$(POLYBLOCKS) -Oxml "$<" | tail -n +2 >> "$@"
+	@$(TDOC) -Oxml -Dprogram --embed-line ';; ' "$<" | tail -n +2 >> "$@"
+
+build/%.xml: %.py build/lib/xsl/stylesheet.xsl
+	$(call log_product,EMBEDDED TDOC PY XML)
+	@mkdir -p `dirname "$@"`
+	@echo '<?xml version="1.0"?>' > $@
+	@echo -n '<?xml-stylesheet type="text/xsl" media="screen" href="' >> "$@"
+	@realpath --relative-to "$@" "build/lib/xsl/stylesheet.xsl" | head -c -1 >> "$@"
+	@echo '"?>' >> "$@"
+	@$(TDOC) -Oxml -Dprogram --embed-line '## ' "$<" | tail -n +2 >> "$@"
 
 build/lib/xsl/%.xsl: lib/xsl/%.xsl.paml
 	$(call log_product,XSL/PAML→XSL)

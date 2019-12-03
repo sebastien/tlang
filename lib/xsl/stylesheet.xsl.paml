@@ -136,6 +136,18 @@
 				# <xsl::attribute(name=id)
 				# 	<xsl::value-of(select="generate-id(.)")
 				<xsl::value-of(select=.)
+# ------------------------------------------------------------------------------
+#
+# PROGRAM
+#
+# ------------------------------------------------------------------------------
+
+	<xsl::template(match="program")
+		<html
+			<head
+				<link(rel=stylesheet,href="{document/@base}/lib/css/stylesheet.css")
+			<body.program-
+				<xsl::apply-templates
 
 # ------------------------------------------------------------------------------
 #
@@ -200,8 +212,12 @@
 				<xsl::attribute(name=name)
 					<xsl::value-of(select=@id)
 				<xsl::variable(name=header)
-					<xsl::text:h>
-					<xsl::value-of(select=@depth)
+					<xsl::choose
+						<xsl::when(test=@depth)
+							<xsl::text:h>
+							<xsl::value-of(select=@depth)
+						<xsl::otherwise
+							<xsl::text:h1>
 				<xsl::element(name="{$header}")
 					<xsl::apply-templates(select=title)
 			<xsl::apply-templates(select=content)
