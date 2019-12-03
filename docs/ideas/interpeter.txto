@@ -1,0 +1,75 @@
+== TLang Interpreter
+
+We have different interpreters:
+
+- Data: produces host data structures from the AST
+- Process: binds values in contexts, creating subinterpreters, returning a value
+
+The invocation protocol (application) can then make use of different
+interpretations:
+
+- `raw` passes the AST as-is
+- `data` evaluates the AST node as a data structure
+- `process` turns the AST node into a generator of values and effects
+
+Ex: `(lambda ARGS CODE…)` evaluates `ARGS` as `raw` and extracts the names
+of the arguments, and then `CODE` is only evaluated when the `lambda` is 
+used in an invocation. It returns a value that needs N arguments to work.
+
+
+Here's an interesting perspective on closure: what if we consider a closure
+as a stream where:
+
+```
+(lambda (A B) (+ A B))
+```
+
+generates a process that is like the following (note how the instructions
+are unstructured, that's important).
+
+```
+;; We declare + as a primitive for this process (ie. it's already available
+;; and bound)
+(primitive +)
+(slots A B R)
+
+;; We receive values A and B from the environment (they're dynamic)
+(receive! :in A)
+(receive! :in B)
+
+;; We switch to the '+' channel
+(channel +)
+(emit! + A)
+(emit! + B)
+(receive! + R)
+(emit! :out R)
+```
+
+This would make it relatively easy to suspend a lambda, because in that case
+we just need to keep the slots and the instruction pointer.
+
+It also opens the door to streaming composition. Let's look at the following
+pipeline, which represents a classic data pipeline for preparing paginated
+filtered results.
+
+```
+(map ITEMS normalize-item) | (filter criteria) | (sort key) | (take 10)
+;; A                         B                    C            D
+```
+
+We'll need to iterate on ITEMS in A, then again in B, then again in C on
+the filtered set then again on at most 10 elements.
+
+While C needs a full iteration (it's a sort), we could certainly collapse the
+map and the filter. We could define a map filter operation, but maybe the
+interpreter would be able to automatically combine both.
+
+But if the iteration and the pipe is lazy, ie. it happens one element at 
+a time, then the step A will fee B, wich will fee C and D. If we remove
+the sort, we should only iterate on 10 elements.
+
+That's already possible if we're using itertors, so the idea is to have
+the same notion but reified at the interpreter level (maybe using the iter
+primitive?).
+
+# EOF - vim: ts=4 sw=4 et syn=texto
