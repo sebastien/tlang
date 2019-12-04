@@ -151,6 +151,8 @@ class Node:
 	def __str__( self ):
 		return "".join(Repr.Apply(self))
 
+	def __repr__( self ):
+		return f"<Node:{self.name} {' '.join(str(k)+'='+repr(v) for k,v in self.attributes.items())}{' …' + str(len(self.children)) if self.children else ''}>"
 
 # -----------------------------------------------------------------------------
 #

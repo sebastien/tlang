@@ -1,1 +1,3 @@
-from .model import Node
+from .model import Node, TreeBuilder
+node = TreeBuilder.MakeNode
+

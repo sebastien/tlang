@@ -221,5 +221,7 @@ if __name__ == "__main__":
 	assert process.step(state) is not Status.WAIT, "The process should not be in the WAIT step."
 	assert state.step == 1, "The state should still be at step 1"
 
+# IDEA: we define a machine for the executor: it manages a stack of processes.
+# When a process waits for a h
 
 # EOF - vim: ts=4 sw=4 noet
