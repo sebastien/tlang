@@ -27,8 +27,9 @@ def symbols( g:Grammar ) -> Symbols:
 	}
 	words = {
 		"LP"              : "(",
+		"COLON"           : ":",
 		"RP"              : ")",
-		"LB"              : "}",
+		"LB"              : "{",
 		"RB"              : "}",
 		"LS"              : "[",
 		"RS"              : "]",
@@ -60,6 +61,7 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False, suffixed=False) -> Gramma
 		s.QUERY_AXIS_SELF,
 	)
 
+	g.group("Query")
 	g.rule("QueryNode",          s.QUERY_NODE)
 	g.rule("QueryVariable",      s.QUERY_VARIABLE)
 	g.rule("QueryAttribute",     s.QUERY_ATTRIBUTE)
@@ -76,7 +78,7 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False, suffixed=False) -> Gramma
 
 	# TODO: Support optional name
 	g.rule("QuerySelectorBinding",
-		s.LB, s.QuerySelectorValue._as("value"), s.RB
+		s.LB, g.arule(s.QUERY_VARIABLE, s.COLON).optional()._as("name"), s.Query._as("value"), s.RB
 	)
 
 	g.group("QuerySelector",
@@ -102,14 +104,14 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False, suffixed=False) -> Gramma
 		s.QueryPredicate.optional()._as("predicate"),
 	)
 
+	g.rule("QuerySuffixed",         s.QueryPrefix._as("prefix"), s.QuerySuffix.oneOrMore()._as("suffixes"))
+	g.rule("QuerySuffixedOptional", s.QueryPrefix._as("prefix"), s.QuerySuffix.zeroOrMore()._as("suffixes"))
+	g.rule("QueryAttributePrefix",  s.QueryAttribute._as("prefix"), s.QuerySuffix.zeroOrMore()._as("suffixes"))
+
 	if suffixed:
-		g.rule("Query",
-			s.QueryPrefix._as("prefix"), s.QuerySuffix.oneOrMore()._as("suffixes")
-		)
+		s.Query.set(s.QuerySuffixed, s.QueryAttributePrefix)
 	else:
-		g.rule("Query",
-			s.QueryPrefix._as("prefix"), s.QuerySuffix.zeroOrMore()._as("suffixes")
-		)
+		s.Query.set(s.QuerySuffixedOptional, s.QueryAttributePrefix)
 
 	# We insert the QuerySuffixed just before the EXPR_VARIABLE, as the query
 	# also has a variable. We only want ExprValuePrefix to be queries with
@@ -177,9 +179,9 @@ class QueryProcessor(ExprProcessor):
 	def onQueryPredicate( self, match, expr ):
 		return self.tree.node("query-predicate", expr)
 
-	def onQuerySelectorBinding( self, match, value ):
+	def onQuerySelectorBinding( self, match, name, value ):
 		# TODO: Support implicit/explict
-		return self.tree.node("query-binding", value)
+		return self.tree.node("query-binding", name, value)
 
 	def onQuerySelectorValue( self, match ):
 		return self.process(match[0])
@@ -193,11 +195,20 @@ class QueryProcessor(ExprProcessor):
 	def onQuerySuffix( self, match, axis, selector, predicate ):
 		return self.onQueryPrefix(match, axis, selector, predicate)
 
-	def onQuery( self, match, prefix, suffixes ):
+	def onQuerySuffixed( self, match, prefix, suffixes ):
 		node = self.tree.node("query")
 		node.add(prefix)
 		for _ in suffixes:node.add(_)
 		return self.normalizeQueryNode(node)
+
+	def onQuerySuffixedOptional( self, match, prefix, suffixes ):
+		return self.onQuerySuffixed(match, prefix, suffixes)
+
+	def onQueryAttributePrefix( self, match, prefix, suffixes ):
+		return self.onQuerySuffixed(match, prefix, suffixes)
+
+	def onQuery( self, match ):
+		return self.process(match[0])
 
 	def normalizeQueryNode( self, node ):
 		# OK, so here we have an edge case which is related to the parser:

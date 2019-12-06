@@ -14,12 +14,12 @@ def symbols( g:Grammar ) -> Symbols:
 		"WS"                      : "[\s\n]+",
 		"NUMBER"                  : "[0-9]+(\.[0-9]+)?",
 		"STRING_DQ"               : "\"([^\"]*)\"",
-		"EXPR_SYMBOL"             : "[a-z][\-a-z0-9]*[\!\?]?",
+		"EXPR_NAME"               : "[a-z][\-a-z0-9]*[\!\?]?",
 		"EXPR_VARIABLE"           : "[_A-Z][\_A-Z0-9]*",
-		"EXPR_SINGLETON"          : ":[A-Za-z][\_a-zA-Z0-9]*",
+		"EXPR_SYMBOL"             : ":[A-Za-z][\_a-zA-Z0-9]*",
+		"EXPR_SINGLETON"          : "#[A-Za-z][\-a-zA-Z0-9]*[\!\?]?",
+		"EXPR_KEY"                : "[A-Za-z][\_a-zA-Z0-9]*:",
 		"EXPR_TYPE"               : "[A-Z][\_a-zA-Z0-9]*",
-		"EXPR_SPECIAL"            : "@|\\*|\\+|\\-",
-		"EXPR_KEY"                : "#[A-Z][\-a-zA-Z0-9]*[\!\?]?",
 		"EXPR_COMMENT"            : ";;([^\n]*)",
 		"REST"                    : "(\\.\\.\\.)|…",
 	}
@@ -52,7 +52,7 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False) -> Grammar:
 	g.group("ExprValuePrefix")
 	g.group("ExprComment",   s.EXPR_COMMENT)
 	g.rule("ExprValue")
-	g.rule("ExprBinding"   , s.LB, s.ExprValue._as("value"), g.arule(s.COLON, s.EXPR_VARIABLE).optional()._as("name"), s.RB)
+	g.rule("ExprBinding"   , s.LB, g.arule(s.EXPR_VARIABLE, s.COLON).optional()._as("name"), s.ExprValue._as("value"), s.RB)
 	g.rule("ExprTemplate"  , s.EXPR_TEMPLATE, s.ExprValue._as("value"), s.RB)
 
 	g.rule("ExprList",       s.LP,    s.ExprValue._as("arg"),  s.RP)
@@ -73,11 +73,11 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False) -> Grammar:
 		s.STRING_DQ,
 		s.EXPR_SINGLETON,
 		s.EXPR_KEY,
-		s.EXPR_SPECIAL,
 		# NOTE: Query is going to be inserted here #9
-		s.EXPR_SYMBOL,           # 10
-		s.EXPR_VARIABLE,         # 11
-		s.EXPR_TYPE,             # 12
+		s.EXPR_NAME,             # 10
+		s.EXPR_SYMBOL,           # 11
+		s.EXPR_VARIABLE,         # 12
+		s.EXPR_TYPE,             # 13
 	)
 	g.group("ExprValueSuffix").set(
 		s.ExprPipe,
@@ -144,19 +144,19 @@ class ExprProcessor(Processor):
 		return self.tree.node("expr-value-symbol", {"name":value})
 
 	@sourcemap
-	def onEXPR_SPECIAL( self, match):
+	def onEXPR_NAME( self, match):
 		value = self.process(match)[0]
-		return self.tree.node("expr-value-symbol", {"name":value})
-
-	@sourcemap
-	def onEXPR_KEY( self, match):
-		value = self.process(match)[0]
-		return self.tree.node("expr-value-key", {"name":value})
+		return self.tree.node("expr-value-name", {"name":value})
 
 	@sourcemap
 	def onEXPR_SINGLETON( self, match):
 		value = self.process(match)[0]
-		return self.tree.node("expr-value-singleton", {"name":value})
+		return self.tree.node("expr-value-symbol-singleton", {"name":value})
+
+	@sourcemap
+	def onEXPR_KEY( self, match):
+		value = self.process(match)[0]
+		return self.tree.node("expr-value-symbol-key", {"name":value})
 
 	@sourcemap
 	def onEXPR_VARIABLE( self, match):

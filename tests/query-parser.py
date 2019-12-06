@@ -74,9 +74,16 @@ node[(has? {<<*/@name})]
 """
 
 BINDINGS = """
+{A:node}
+{A:node/child}
+{A:node/child[@attribute]}
+{A://node}
+{A:./*}
+{./*}
 {./*}
 {CHILDREN:./*}
-{CHILDREN:./*}{//[(in? CHILDREN .)}
+{CHILDREN:./*}
+{//*[@attribute]}
 """
 
 VARIABLES = """

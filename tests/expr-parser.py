@@ -10,6 +10,7 @@ VALUES = """
 1.0
 symbol-name
 :Singleton
+Binding:
 #key-value
 "string value"
 ;; Comment
@@ -38,10 +39,10 @@ QUOTES = """
 
 BINDINGS = """
 {1}
-{1:A}
-{(count A):A}
-{(count A):A} {(count B):B}
-{(count A | add 5):A} {(count B | add 10):B}
+{A:1}
+{A:(count A)}
+{A:(count A)} {B:(count B)}
+{C:(count A | add 5)} {D:(count B | add 10)}
 """
 
 TEMPLATES = """
@@ -79,6 +80,7 @@ if __name__ == "__main__":
 	test_quotes()
 	test_bindings()
 	test_templates()
+	test_snippets()
 	test_long()
 
 # EOF - vim: ts=4 sw=4 noet
