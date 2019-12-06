@@ -16,6 +16,7 @@ SELECTORS = """
 node
 node-*
 VARIABLE_NAME
+ns:node
 """
 
 AXES = """
@@ -95,6 +96,7 @@ AB/node/@attr
 
 QUERIES = """
 ./*
+./node
 """
 
 def test_selectors():

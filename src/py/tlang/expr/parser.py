@@ -26,13 +26,11 @@ def symbols( g:Grammar ) -> Symbols:
 	words = {
 		"LP"              : "(",
 		"RP"              : ")",
-		"LB"              : "{",
-		"RB"              : "}",
 		"COMMA"           : ",",
-		"COLON"           : ":",
 		"QUOTE"           : "'",
 		"PIPE"            : "|",
 		"EXPR_TEMPLATE"   : "${",
+		"RB"              : "}",
 	}
 	groups = ()
 	return ParserUtils.EnsureSymbols(g, tokens, words, groups)
@@ -52,7 +50,6 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False) -> Grammar:
 	g.group("ExprValuePrefix")
 	g.group("ExprComment",   s.EXPR_COMMENT)
 	g.rule("ExprValue")
-	g.rule("ExprBinding"   , s.LB, g.arule(s.EXPR_VARIABLE, s.COLON).optional()._as("name"), s.ExprValue._as("value"), s.RB)
 	g.rule("ExprTemplate"  , s.EXPR_TEMPLATE, s.ExprValue._as("value"), s.RB)
 
 	g.rule("ExprList",       s.LP,    s.ExprValue._as("arg"),  s.RP)
@@ -67,7 +64,6 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False) -> Grammar:
 		s.ExprList,              # 0
 		s.ExprQuote,
 		s.ExprTemplate,
-		s.ExprBinding,
 		s.ExprComment,
 		s.NUMBER,                # 5
 		s.STRING_DQ,
@@ -197,22 +193,19 @@ class ExprProcessor(Processor):
 	def onExprTemplate( self, match, value ):
 		return self.tree.node("expr-value-template", value)
 
-	def onExprBinding( self, match, value, name ):
-		node = self.tree.node("expr-value-binding")
-		if name:
-			name = name[1].attr("name")
-			node.attr("explicit", name)
-		return node
-
 	def onExprJoin( self, match, arg ):
 		# NOTE: The join suffix creates a sequence of values which
 		# is denoted as a different type from list.
 		if arg.name == "expr-seq":
 			return arg
 		else:
-			node = self.tree.node("expr-seq")
-			node.add(arg)
-			return node
+			if arg.parent:
+				# If the arg is already attached, we should not change it.
+				return arg
+			else:
+				node = self.tree.node("expr-seq")
+				node.add(arg)
+				return node
 
 	def onExprRest( self, match, arg ):
 		# FIXME: This is probably not right

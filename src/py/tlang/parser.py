@@ -2,10 +2,10 @@ from tlang.query.parser import grammar, QueryProcessor
 from tlang.utils import ParserUtils
 from libparsing  import Grammar
 
-# NOTE: We need the `suffixed=True` here or expressions won't parse
-G = grammar(Grammar("tlang"), suffixed=True)
+Processor = QueryProcessor
+G = grammar(Grammar("tlang"), suffixed=False)
 G.axiom = G.symbols.ExprValue
-P = QueryProcessor(G)
+P = Processor(G)
 
 def parseString( text:str, isVerbose=False, process=True ):
 	return ParserUtils.ParseString(grammar, text, isVerbose, processor=QueryProcessor.Get() if process else None)

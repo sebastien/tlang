@@ -1,4 +1,4 @@
-from tlang.tlang.parser import parseString, parseFile
+from tlang.parser import parseString, parseFile, G, Processor
 from typing import Optional, List
 import os, sys, argparse
 
@@ -19,7 +19,7 @@ def run( args:Optional[List[str]]=None, name="tlang" ):
 		G.setVerbose()
 	for path in opts.files:
 		res       = G.parseStream(sys.stdin) if path == "-" else G.parsePath(path)
-		processor = QueryProcessor(G)
+		processor = Processor(G)
 		if not res.isSuccess():
 			print (res.describe())
 			return None

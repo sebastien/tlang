@@ -6,8 +6,14 @@ Exercises the tlang.query module.
 """
 
 QUERY_EXPR = """
-(out! "Hello, world!")
 (select @name)
+(select  ./node)
+(select  ./node/attribute)
+(select  //node/attribute)
+(select {A:@name})
+(select {A:./node})
+(select {A:./node/attribute})
+(select {A://node/attribute})
 """
 
 def test_query_expr():

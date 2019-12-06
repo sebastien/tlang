@@ -14,7 +14,7 @@ def symbols( g:Grammar ) -> Symbols:
 		"WS"                      : "[\s\n]+",
 		"NUMBER"                  : "[0-9]+(\.[0-9]+)?",
 		"STRING_DQ"               : "\"[^\"]*\"",
-		"QUERY_NODE"              : "[a-z\*\?][\-a-z0-9\*\?]*",
+		"QUERY_NODE"              : "(([a-z][\-a-z0-9]*):)?([a-z\*\?][\-a-z0-9\*\?]*)",
 		"QUERY_ATTRIBUTE"         : "@[a-z\*\?]?[\-a-z0-9\*\?]*",
 		"QUERY_VARIABLE"          : "[A-Z][_A-Z0-9]*",
 		"QUERY_CURRENT_NODE"      : "\.+",
@@ -62,7 +62,7 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False, suffixed=False) -> Gramma
 	)
 
 	g.group("Query")
-	g.rule("QueryNode",          s.QUERY_NODE)
+	g.rule("QueryNode", s.QUERY_NODE._as("name"))
 	g.rule("QueryVariable",      s.QUERY_VARIABLE)
 	g.rule("QueryAttribute",     s.QUERY_ATTRIBUTE)
 	g.rule("QueryCurrentNode",   s.QUERY_CURRENT_NODE)
@@ -104,10 +104,12 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False, suffixed=False) -> Gramma
 		s.QueryPredicate.optional()._as("predicate"),
 	)
 
+	# FIXME: So that whole "suffixed" thing is to avoid grammar conflicts
+	# with the expr parser. But it doesn't work that well in the current
+	# state, so we should remove it and rework it.
 	g.rule("QuerySuffixed",         s.QueryPrefix._as("prefix"), s.QuerySuffix.oneOrMore()._as("suffixes"))
 	g.rule("QuerySuffixedOptional", s.QueryPrefix._as("prefix"), s.QuerySuffix.zeroOrMore()._as("suffixes"))
 	g.rule("QueryAttributePrefix",  s.QueryAttribute._as("prefix"), s.QuerySuffix.zeroOrMore()._as("suffixes"))
-
 	if suffixed:
 		s.Query.set(s.QuerySuffixed, s.QueryAttributePrefix)
 	else:
@@ -156,8 +158,10 @@ class QueryProcessor(ExprProcessor):
 		return self.tree.node("query-axis", {"axis":axis})
 
 	def onQueryNode( self, match ):
-		pattern = self.process(match)[0][0]
-		attr = {"pattern":pattern} if self.IsPattern(pattern) else {"name":pattern}
+		m = self.process(match)[0]
+		ns      = m[2]
+		pattern = m[3]
+		attr = {"pattern":pattern,"ns":ns} if self.IsPattern(pattern) else {"name":pattern,"ns":ns}
 		return self.tree.node("query-node", attr)
 
 	def onQuerySubset( self, match ):
