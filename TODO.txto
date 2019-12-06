@@ -21,7 +21,9 @@ Rework::
     `(group :Expressions number string computation …)`. There's something
     to be said, though, about the advantage of using prefixes like `type-data-*`,
     as it acts pretty much like namespaces and also makes it possible to
-    define groups easily.
+    define groups easily, using the schema. So you could say that `list` is
+    actually of type `expr-value-list` and you have that hierarchy in the 
+    already.
 
 [ ] TLang: run queries on the command line.
 [ ] Expr: expr-value-invocation should actually be expr-list

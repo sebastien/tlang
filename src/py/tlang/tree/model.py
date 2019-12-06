@@ -150,7 +150,10 @@ class Node:
 
 	def __getitem__( self, index:Union[int,str] ):
 		if isinstance(index, str):
-			return self.attributes[index]
+			if index not in self.attributes:
+				raise IndexError(f"Node has no attribute '{index}': {self}")
+			else:
+				return self.attributes[index]
 		else:
 			return self.children[index]
 
@@ -290,8 +293,8 @@ class ObjectAdapter(Adapter):
 class TreeBuilder:
 
 	@classmethod
-	def MakeNode( cls, name, *content, **kwargs ):
-		node = Node(name)
+	def MakeNode( cls, nodeName, *content, **kwargs ):
+		node = Node(nodeName)
 		for k,v in kwargs.items():
 			node.attr(k,v)
 		if not content:
@@ -313,8 +316,8 @@ class TreeBuilder:
 					node.add(child)
 		return node
 
-	def node( self, name, *content, **kwargs ):
-		return self.MakeNode(name, *content, **kwargs)
+	def node( self, nodeName, *content, **kwargs ):
+		return self.MakeNode(nodeName, *content, **kwargs)
 
 # -----------------------------------------------------------------------------
 #

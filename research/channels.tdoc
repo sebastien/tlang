@@ -1,0 +1,56 @@
+
+#def-primitive#mul
+#	arg#A
+#	arg#B
+#
+#def-primitive#add
+#	arg#A
+#	arg#B
+
+process#add
+	declare
+		slot#A
+		slot#B
+		slot#R
+	open channel=in
+	receive channel=in slot=A
+	receive channel=in slot=B
+	primitive name=mul slot=R
+		arg slot=A
+		arg slot=B
+	open channel=out
+	emit channel=out slot=R
+
+process#mul
+	declare
+		slot#A
+		slot#B
+		slot#R
+	open channel=in
+	receive channel=in slot=A
+	receive channel=in slot=B
+	primitive name=mul slot=R
+		arg slot=A
+		arg slot=B
+	open channel=out
+	emit channel=out slot=R
+
+process#main
+	declare
+		slot#A
+		slot#R
+	start process=mul input=m_in output=m_out
+	emit channel=m_in
+		integer value=10
+	start process=add input=a_in output=a_out
+	emit channel=a_in
+		integer value=1
+	emit channel=a_in
+		integer value=2
+	receive channel=a_out slot=A
+	emit channel=m_in slot=A
+	receive channel=m_out slot=R
+	emit channel=out slot=R
+
+# EOF
+
