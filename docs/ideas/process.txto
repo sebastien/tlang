@@ -1,0 +1,89 @@
+== Process
+
+A process is defined a sequence of operations (the template), and the state, 
+which keeps track of the last executed operation. Processes also define slots
+and channels.
+
+
+```tlang
+(def (fib n)
+  (if (<= n 2)
+    1
+    (+ (fib (- n 1)) (fib (- n 2)))))
+```
+
+Gets converted in the following process
+
+```
+;; META
+PRIMITIVES  + - <= if 
+TYPES       :Integer
+SLOT        N A B
+CHANNEL     C CA CB CC CD
+
+;; PROGRAM
+GET  :IN N
+OPEN  C <=
+  PUT   C N
+  PUT   C 2
+  GET   C _
+CLOSE C ; C is now usable
+
+JMP? V0 exit
+
+;; There are many invocation stragies here. We do eager
+;; and minimizing the number of open channels
+OPEN  C -
+  PUT   C N
+  PUT   C 1
+  GET   C A
+CLOSE C
+OPEN  C fib
+  PUT   C A
+  GET   C A
+CLOSE C
+
+exit:
+  PUT :IN 1
+  END
+
+```
+
+
+```tlang
+(each TRANSACTION
+  (if (> (get _ amount) 100)
+    (emit! _)))
+```
+
+```
+INPUT TRANSACTION       ; TRANSACTION is an input channel
+PRIMITIVES > get emit!  ; these are the primitives we need
+CHANNELS T C            ; We need a channel to iterate and one to call
+SLOTS  _ A              ; We only need two slots
+
+; Now that's the sequence of instructions
+OPEN T TRANSACTION; This creates a channel that iterates on the TRANSACTION SLOT
+loop:
+  READ T _
+  OPEN C get
+  PUT   _
+  PUT   :amount ; Amount is a symbol in (get _ amount)
+  GET  C A
+  CLOSE C
+  OPEN C >
+  PUT  C A
+  PUT  C 100
+  GET  C A
+  CLOSE C
+  JMP?  C loop
+  PUT   :SELF _
+```
+
+
+
+```
+
+
+
+# EOF - vim: ts=2 sw=2 syn=texto et

@@ -1,4 +1,6 @@
 appenv_declare tlang
 appenv_name    tlang
+appenv_load    projects
+appenv_load    tdoc
 appenv_prepend PYTHONPATH "$APPENV_DIR/src/py"
 appenv_prepend PATH "$APPENV_DIR/bin"

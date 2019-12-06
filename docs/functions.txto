@@ -1,5 +1,6 @@
 == TLang Core Library
 
+# TODO: Move to stdlib
 Terminology:
 
 - `predicate`

@@ -33,7 +33,9 @@ Syntax
 ======
 
 TL4 has no functions or procedures, it is a sequence of operations and labels
-to which the interpreter can jump to and from.
+to which the interpreter can jump to and from. Unlike assembly, it has types
+and (relatively) high-level domain specific operations that make it possible
+to work on trees.
 
 Numbers
 -------

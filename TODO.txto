@@ -7,14 +7,11 @@ Priorities
 
 Syntax::
 
--  `path.join` → `(. join path)` ie. "resolve `join` in `path`
--   `(a b c)→(d e)` becomes `(lambda (a b c) d e)`
--  (→ a b)` becomes `(lambda (_ _1 _2) a b)`
--  `key:` for a binding, `:Symbol` for a singleton
-
-Housekeeping::
-
-- Migrate `tdoc` to its own project
+[ ]  `path.join` → `(. join path)` ie. "resolve `join` in `path`
+[ ]   `(a b c)→(d e)` becomes `(lambda (a b c) d e)`
+[ ]  (→ a b)` becomes `(lambda (_ _1 _2) a b)`
+[ ]  `key:` for a binding, `:Symbol` for a singleton
+[ ] `"*.xml"` for globbing node names
 
 Rework::
 
@@ -26,7 +23,6 @@ Rework::
     as it acts pretty much like namespaces and also makes it possible to
     define groups easily.
 
-[ ] TDoc: input (read) and output (write)
 [ ] TLang: run queries on the command line.
 [ ] Expr: expr-value-invocation should actually be expr-list
 

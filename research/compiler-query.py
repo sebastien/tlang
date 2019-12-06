@@ -272,7 +272,6 @@ class Traversal:
 
 	def _process( self, state:WalkState, step:WalkStep ):
 		state.onStep(step)
-		print ("PROCESS", step.node)
 		for rule in self.rules:
 			# FIXME: OK, so here we match all the rules, but obviously we
 			# should not have to test them all. Only the atomic rules should
@@ -338,7 +337,9 @@ Q4.onMatch(match_found)
 
 tree = node("dir", {"name":"tlang"},
 	node("dir", {"name":"research"},
-		node("file", {"name":"compiler-query.py"})))
+		node("file", {"name":"compiler-query.py"}),
+		node("file", {"name":"interpreter.py"}),
+		node("file", {"name":"interpreter-stream.py"})))
 
 
 print (tree)

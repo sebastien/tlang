@@ -1,0 +1,14 @@
+== Channels
+
+Channels are a building block of control flow that make it possible to 
+implement cooperative parallelism and also open the door to lazy evaluation
+strategies.
+
+Because we want TLang to be incremental, we want to be able to pause and resume
+processes easily, even across program invocations. We also want to avoid unnecessary
+computation, and lazy evaluation solves that problem.
+
+Channels are like pipes where we PUT values and GET values out of them. We
+can also PEEK and see if there is a value available.
+
+# EOF - vim: ts=2 sw=2 syn=texto et
