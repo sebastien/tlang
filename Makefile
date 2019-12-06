@@ -102,7 +102,7 @@ build/%.xml: %.tlang build/lib/xsl/stylesheet.xsl
 	@echo -n '<?xml-stylesheet type="text/xsl" media="screen" href="' >> "$@"
 	@realpath --relative-to "$@" "build/lib/xsl/stylesheet.xsl" | head -c -1 >> "$@"
 	@echo '"?>' >> "$@"
-	@$(TDOC) -Oxml -Dprogram --embed-line ';; ' "$<" | tail -n +2 >> "$@"
+	@$(TDOC) -Oxml -rprogram --embed-line ';; ' "$<" | tail -n +2 >> "$@"
 
 build/%.xml: %.py build/lib/xsl/stylesheet.xsl
 	$(call log_product,EMBEDDED TDOC PY XML)
@@ -111,7 +111,7 @@ build/%.xml: %.py build/lib/xsl/stylesheet.xsl
 	@echo -n '<?xml-stylesheet type="text/xsl" media="screen" href="' >> "$@"
 	@realpath --relative-to "$@" "build/lib/xsl/stylesheet.xsl" | head -c -1 >> "$@"
 	@echo '"?>' >> "$@"
-	@$(TDOC) -Oxml -Dprogram --embed-line '## ' "$<" | tail -n +2 >> "$@"
+	@$(TDOC) -Oxml -rprogram --embed-line '## ' "$<" | tail -n +2 >> "$@"
 
 build/lib/xsl/%.xsl: lib/xsl/%.xsl.paml
 	$(call log_product,XSL/PAML→XSL)

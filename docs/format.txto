@@ -2,6 +2,8 @@
 
 # TODO: Rules language is probably not right
 # TODO: Support for context variables (like indentation support)
+# FIXME: If there is a bidirectional mapping, we need to prove the equivalence
+# in form and how one is translated to the other. This is certainly not done here.
 
 The _format language_ provides tools for creating a bi-directional binding
 between a text representation and a tree representation. By mapping tokens and subtrees to rules, it becomes possible to convert

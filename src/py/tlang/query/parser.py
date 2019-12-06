@@ -107,13 +107,13 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False, suffixed=False) -> Gramma
 	# FIXME: So that whole "suffixed" thing is to avoid grammar conflicts
 	# with the expr parser. But it doesn't work that well in the current
 	# state, so we should remove it and rework it.
-	g.rule("QuerySuffixed",         s.QueryPrefix._as("prefix"), s.QuerySuffix.oneOrMore()._as("suffixes"))
+	#g.rule("QuerySuffixed",         s.QueryPrefix._as("prefix"), s.QuerySuffix.oneOrMore()._as("suffixes"))
 	g.rule("QuerySuffixedOptional", s.QueryPrefix._as("prefix"), s.QuerySuffix.zeroOrMore()._as("suffixes"))
 	g.rule("QueryAttributePrefix",  s.QueryAttribute._as("prefix"), s.QuerySuffix.zeroOrMore()._as("suffixes"))
-	if suffixed:
-		s.Query.set(s.QuerySuffixed, s.QueryAttributePrefix)
-	else:
-		s.Query.set(s.QuerySuffixedOptional, s.QueryAttributePrefix)
+	# if suffixed:
+	# 	s.Query.set(s.QuerySuffixed, s.QueryAttributePrefix)
+	# else:
+	s.Query.set(s.QuerySuffixedOptional, s.QueryAttributePrefix)
 
 	# We insert the QuerySuffixed just before the EXPR_VARIABLE, as the query
 	# also has a variable. We only want ExprValuePrefix to be queries with
@@ -199,17 +199,21 @@ class QueryProcessor(ExprProcessor):
 	def onQuerySuffix( self, match, axis, selector, predicate ):
 		return self.onQueryPrefix(match, axis, selector, predicate)
 
-	def onQuerySuffixed( self, match, prefix, suffixes ):
+	# NOTE: Deprecated
+	# def onQuerySuffixed( self, match, prefix, suffixes ):
+	# 	node = self.tree.node("query")
+	# 	node.add(prefix)
+	# 	for _ in suffixes:node.add(_)
+	# 	return self.normalizeQueryNode(node)
+
+	def onQuerySuffixedOptional( self, match, prefix, suffixes ):
 		node = self.tree.node("query")
 		node.add(prefix)
 		for _ in suffixes:node.add(_)
 		return self.normalizeQueryNode(node)
 
-	def onQuerySuffixedOptional( self, match, prefix, suffixes ):
-		return self.onQuerySuffixed(match, prefix, suffixes)
-
 	def onQueryAttributePrefix( self, match, prefix, suffixes ):
-		return self.onQuerySuffixed(match, prefix, suffixes)
+		return self.onQuerySuffixedOptional(match, prefix, suffixes)
 
 	def onQuery( self, match ):
 		return self.process(match[0])

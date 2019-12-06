@@ -16,6 +16,7 @@ from enum import Enum
 ##   data. A process is stepped using the `Process.next` method, which will
 ##   tell wether it was sucessful in stepping or not. For instance, if the
 ##   receiving channel is not emitting, it will not be able to continue.
+## :
 
 match = TreeProcessor.Match
 T     = TypeVar("T")
@@ -27,9 +28,7 @@ Status = Enum("Status", "WAIT STEP")
 #
 # -----------------------------------------------------------------------------
 
-## section
-##    title: Channel
-##    :
+## section title=Channel
 
 # TODO: Should be parametric
 class Channel(Generic[T]):
@@ -84,8 +83,6 @@ class Channel(Generic[T]):
 ## section: Process
 ##   text|texto
 ##      The process has 
-
-
 
 class Process:
 

@@ -148,6 +148,12 @@ class Node:
 			res.append(_.toPrimitive())
 		return res
 
+	def __getitem__( self, index:Union[int,str] ):
+		if isinstance(index, str):
+			return self.attributes[index]
+		else:
+			return self.children[index]
+
 	def __str__( self ):
 		return "".join(Repr.Apply(self))
 
@@ -269,7 +275,7 @@ class ObjectAdapter(Adapter):
 		else:
 			return node.attr(name, value)
 
-	def __get_item__( self, index:int ):
+	def __getitem__( self, index:int ):
 		return self.node.children[index]
 
 	def __len__( self ):
@@ -349,16 +355,22 @@ class TreeProcessor:
 	def init( self ):
 		pass
 
-	def build( self, node:Node ):
-		res = []
+	def process( self, node:Node ):
+		res = None
 		if isinstance(node, Iterable):
 			for _ in node:
 				for _ in self.feed(_):
-					pass
+					if isinstance(_, Exception):
+						raise _
+					else:
+						res = _
 		else:
 			for _ in self.feed(node):
-				pass
-		return self
+				if isinstance(_, Exception):
+					raise _
+				else:
+					res = _
+		return _
 
 	def feed( self, node:Node ) -> Iterable[Any]:
 		# TODO: Support namespace

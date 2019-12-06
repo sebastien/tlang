@@ -1,0 +1,27 @@
+(primitive def lambda import)
+
+(import /core map)
+(import /io   emit!)
+(import /tree transform rewrite)
+
+;; This is an example of how we could format a tree
+(def format-tlang TREE
+
+	(transform TREE
+		(rewrite expr-seq
+			(map ./* (lambda (_) (
+				(emit! '(line … ${(rewrite _)} )))))
+
+		(rewrite expr-list
+			(emit! "(" … ${(rewrite ./*)} ")"))
+
+		(rewrite expr-value-name
+			(emit! ./@name))
+
+		(rewrite expr-variable
+			(emit! ./@name))
+		
+		(emit!
+			'(text … ${(rewrite ./*)})))))
+
+
