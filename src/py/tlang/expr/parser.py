@@ -137,7 +137,8 @@ class ExprProcessor(Processor):
 	@sourcemap
 	def onEXPR_SYMBOL( self, match):
 		value = self.process(match)[0]
-		return self.tree.node("ex:symbol", {"name":value})
+		# We strip the leading ":"
+		return self.tree.node("ex:symbol", {"name":value[1:]})
 
 	@sourcemap
 	def onEXPR_NAME( self, match):
@@ -152,7 +153,8 @@ class ExprProcessor(Processor):
 	@sourcemap
 	def onEXPR_KEY( self, match):
 		value = self.process(match)[0]
-		return self.tree.node("ex:key", {"name":value})
+		# We strip the trailing :
+		return self.tree.node("ex:key", {"name":value[:-1]})
 
 	@sourcemap
 	def onEXPR_VARIABLE( self, match):

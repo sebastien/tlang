@@ -1,26 +1,33 @@
-;;; title: Creates a basic library to use with TLang
+;; title: Creates a basic library to use with TLang
 
 (primitive lambda let cond iter mod out! is?)
 
 (let
     
+;; symbol#map
+;;   arg name=LIST type=":List"
+;;   arg name=F type=":Functor" 
     (map (lambda (LIST F)
         (iter LIST 
             (lambda (A I) yield (F A I)))))
 
+;; symbol#if
+;;   arg name=COND
+;;   arg name=A
+;;   arg name=B
     (if (lambda (COND A B)
         (cond COND A B)))
 
+;; symbol#filter
+;;   arg name=LIST
+;;   arg name=F
     (filter (lambda (LIST F)
         (iter LIST 
             (lambda (A I) (if (F A I) A :Stop)))))
 
+;; symbol#out!
+;;   arg name=*
     (out! (filter '(0 1 2 3 4 5 6 7)
         (lambda _ (is? (mod _ 2) 0)))))
-
-
-
-
-
 
 ;; EOF - vim: ts=4 sw=4 et

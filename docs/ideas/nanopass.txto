@@ -1,0 +1,55 @@
+== Nanopass
+
+Ideally, TLang should be implemented using a nanopass approach, converting
+the AST into the semantic tree, which then gets reduced and ultimately
+produces a bytecode for the interpreter.
+
+```
+(out! "Hello, world!")
+```
+
+The parse result now looks like
+
+```
+(list
+   (ref    (@  (slot "out!")))
+   (string (@  (value "Hello, world!"))))
+```
+
+And we want to translate that to something interpretable
+
+``` 
+(invoke
+  (resolve "out!")
+  (string  "Hello, world"))
+```
+
+which then gets turned into something that's directly interpretable.
+
+```
+(primitive "out!" 0)
+(invoke 0 "Hello, world")
+```
+
+The nanopass approach can also be seen as the collapsing tower of 
+interpreters in the eponymous paper: each pass is in itself a mini interpreter
+of a reduced/simplified language.
+
+In the context of TLang we can at least identify three different
+interpreters:
+
+- The expression interpreter, which manages contexts (scopes), slots
+  and invocations.
+
+- The template interpreter, which builds subtrees 
+
+- The query interpreter, which runs a query in a context and emits
+  values that are then fed to the other interpeters.
+
+The nanopass approach, or the collapsing tower of interpreters might be
+a great next step after the bootstrap level that has these three interpreters.
+
+The only thing that should be shared in the bootstrapping phase is an asynchronous
+communication models (ie. _channels_) and a correpsonding execution model.
+
+# EOF - vim: ts=2 sw=2 et

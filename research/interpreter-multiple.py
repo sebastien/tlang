@@ -139,7 +139,10 @@ class ValueInterpreter(TreeProcessor):
 		return [self.literalInterpreter.process(_) for _ in node.children]
 
 	def invoke( self, target, protocol:'Arguments', args:List[Any] ):
-		"""Performs an invocation of the target using the given arguments."""
+		"""Performs an invocation of the target using the given arguments.
+		This will use the protocol information in order to determine what to
+		do with the arguments, which can be passed a raw AST, AST as data or
+		AST as value, and evaluated lazily or eagerly."""
 		argv = []
 		j    = len(protocol) - 1
 		# Here we iterate through the arguments, extract the corresponding
