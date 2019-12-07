@@ -224,14 +224,23 @@ class ExprProcessor(Processor):
 	# FIXME: Not sure what the difference between invocation and list
 	# is in practice. Should be the same.
 	def onExprValue( self, match, prefix, suffixes ):
+		"""An `ExprValue` has a prefix and zero or more suffixes. The main
+		challenge here is that the suffix might change the way the resulting
+		value is constructed, for instance with `…` or `|`. This method takes
+		care of constructing the resulting value appropriately."""
 		# NOTE: This is where we manage priorities. We should define
 		# more clearly what happens there.
 
-		# The result is what we return
+		# The result is what we return, we start with the prefix, which
+		# is pretty much always a straightforward value.
+		# SEE: `s.ExprValuePrefix.set`
 		result  = prefix
-		# NOTE: Arguably, these transformations would probably be
-		# better explained/represented in TLang itself.
+
+		# Now we're going to iterate through the suffixes, and switching the
+		# result based on what suffix we have.
 		for i,suffix in enumerate(suffixes):
+			# NOTE: Arguably, these transformations would probably be
+			# better explained/represented in TLang itself.
 			prefix_name  = prefix.name
 			suffix_name  = suffix.name
 			# … VALUE (REST)
@@ -254,6 +263,7 @@ class ExprProcessor(Processor):
 					# content is merged.
 					prefix.merge(suffix)
 				else:
+					print (f"SUFFIX {i}: {suffix} in {prefix}")
 					# Otherwise we inject the preceding value in the SEQ
 					suffix.insert(0, prefix)
 					prefix = suffix

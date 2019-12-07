@@ -202,18 +202,14 @@ class Repr:
 		yield "("
 		yield node.name
 		if node.hasAttributes:
-			yield " (@ "
 			for k,v in node.attributes.items():
-				yield " ("
-				yield str(k)
-				yield " "
+				yield f" ({k}: "
 				# TODO: We should support node references
 				if isinstance(v, Node):
 					yield "#{0}".format(v)
 				else:
 					yield json.dumps(v)
 				yield ")"
-			yield ")"
 		for child in node.children:
 			if pretty:
 				yield "\n"

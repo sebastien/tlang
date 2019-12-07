@@ -15,7 +15,7 @@ def symbols( g:Grammar ) -> Symbols:
 		"NUMBER"                  : "[0-9]+(\.[0-9]+)?",
 		"STRING_DQ"               : "\"[^\"]*\"",
 		"QUERY_NODE"              : "(([a-z][\-a-z0-9]*):)?([a-z\*\?][\-a-z0-9\*\?]*)",
-		"QUERY_ATTRIBUTE"         : "@[a-z\*\?]?[\-a-z0-9\*\?]*",
+		"QUERY_ATTRIBUTE"         : "@[a-z\*\?]+[\-a-z0-9\*\?]*",
 		"QUERY_VARIABLE"          : "[A-Z][_A-Z0-9]*",
 		"QUERY_CURRENT_NODE"      : "\.+",
 		"QUERY_SUBSET"            : "#(\d+)",
