@@ -13,9 +13,12 @@ Syntax::
 [ ]  `key:` for a binding, `:Symbol` for a singleton
 [ ] `"*.xml"` for globbing node names
 
+AST:
+
+[ ] expr: not sure about variabls vs ref, vs symbol, should be investigated
 Rework::
 
-[ ] Naming: I find the AST very verbose (`expr-value-number`), and I primarily
+[x] Naming: I find the AST very verbose (`expr-value-number`), and I primarily
     did that because I wanted an easy way to know if a node is a subset of 
     another. I think it's easier to create groups that we name:
     `(group :Expressions number string computation …)`. There's something

@@ -127,47 +127,47 @@ class ExprProcessor(Processor):
 	@sourcemap
 	def onNUMBER( self, match):
 		value = float(self.process(match)[0])
-		return self.tree.node("expr-value-number", {"value":value})
+		return self.tree.node("ex:number", {"value":value})
 
 	@sourcemap
 	def onSTRING_DQ( self, match):
 		value = self.process(match)[1]
-		return self.tree.node("expr-value-string", {"value":value})
+		return self.tree.node("ex:string", {"value":value})
 
 	@sourcemap
 	def onEXPR_SYMBOL( self, match):
 		value = self.process(match)[0]
-		return self.tree.node("expr-value-symbol", {"name":value})
+		return self.tree.node("ex:symbol", {"name":value})
 
 	@sourcemap
 	def onEXPR_NAME( self, match):
 		value = self.process(match)[0]
-		return self.tree.node("expr-value-name", {"name":value})
+		return self.tree.node("ex:name", {"name":value})
 
 	@sourcemap
 	def onEXPR_SINGLETON( self, match):
 		value = self.process(match)[0]
-		return self.tree.node("expr-value-symbol-singleton", {"name":value})
+		return self.tree.node("ex:singleton", {"name":value})
 
 	@sourcemap
 	def onEXPR_KEY( self, match):
 		value = self.process(match)[0]
-		return self.tree.node("expr-value-symbol-key", {"name":value})
+		return self.tree.node("ex:key", {"name":value})
 
 	@sourcemap
 	def onEXPR_VARIABLE( self, match):
 		value = self.process(match)[0]
-		return self.tree.node("expr-value-ref", {"name":value})
+		return self.tree.node("ex:ref", {"name":value})
 
 	@sourcemap
 	def onEXPR_TYPE( self, match):
 		value = self.process(match)[0]
-		return self.tree.node("expr-value-type", {"name":value})
+		return self.tree.node("ex:type", {"name":value})
 
 	@sourcemap
 	def onExprComment( self, match ):
 		value = self.process(match)[0][1]
-		return self.tree.node("expr-comment", {"value":value})
+		return self.tree.node("ex:comment", {"value":value})
 
 	def onExprValuePrefix( self, match ):
 		return self.process(match)[0]
@@ -176,13 +176,13 @@ class ExprProcessor(Processor):
 		return self.process(match[0])
 
 	def onExprList( self, match, arg ):
-		node = self.tree.node("expr-list")
-		if arg.name == "expr-seq":
+		node = self.tree.node("ex:list")
+		if arg.name == "ex:seq":
 			node.merge(arg)
 		else:
 			if arg.parent:
 				root = arg.root
-				if root.name == "expr-seq":
+				if root.name == "ex:seq":
 					node.merge(root)
 				else:
 					node.add(root)
@@ -191,33 +191,33 @@ class ExprProcessor(Processor):
 		return node
 
 	def onExprTemplate( self, match, value ):
-		return self.tree.node("expr-value-template", value)
+		return self.tree.node("ex:template", value)
 
 	def onExprJoin( self, match, arg ):
 		# NOTE: The join suffix creates a sequence of values which
 		# is denoted as a different type from list.
-		if arg.name == "expr-seq":
+		if arg.name == "ex:seq":
 			return arg
 		else:
 			if arg.parent:
 				# If the arg is already attached, we should not change it.
 				return arg
 			else:
-				node = self.tree.node("expr-seq")
+				node = self.tree.node("ex:seq")
 				node.add(arg)
 				return node
 
 	def onExprRest( self, match, arg ):
 		# FIXME: This is probably not right
-		node = self.tree.node("expr-rest")
+		node = self.tree.node("ex:rest")
 		node.add(arg)
 		return node
 
 	def onExprPipe( self, match, arg ):
-		return self.tree.node("expr-pipe", arg)
+		return self.tree.node("ex:pipe", arg)
 
 	def onExprQuote( self, match, arg ):
-		return self.tree.node("expr-quote", arg)
+		return self.tree.node("ex:quote", arg)
 
 	# FIXME: Not sure what the difference between invocation and list
 	# is in practice. Should be the same.
@@ -233,12 +233,12 @@ class ExprProcessor(Processor):
 			prefix_name  = prefix.name
 			suffix_name  = suffix.name
 			# … VALUE (REST)
-			if suffix_name == "expr-rest":
-				if prefix_name != "expr-seq":
+			if suffix_name == "ex:rest":
+				if prefix_name != "ex:seq":
 					# If the prefix is not a SEQ, then we wrap it in a sequence
 					# as REST requires a SEQ.
 					assert prefix is result
-					prefix = self.tree.node("expr-seq", prefix)
+					prefix = self.tree.node("ex:seq", prefix)
 					result = prefix
 				# We have a … VALUE and the prefix is already
 				# a SEQ, then we append the REST at the end of the SEQ,
@@ -246,8 +246,8 @@ class ExprProcessor(Processor):
 				prefix.add(suffix)
 				prefix  = suffix
 			# <SPACE> VALUE (SEQ)
-			elif suffix_name == "expr-seq":
-				if prefix_name == "expr-rest" or prefix_name == "expr-seq":
+			elif suffix_name == "ex:seq":
+				if prefix_name == "ex:rest" or prefix_name == "ex:seq":
 					# If the SEQ is preceded by a REST or SEQ, then its
 					# content is merged.
 					prefix.merge(suffix)
@@ -257,9 +257,9 @@ class ExprProcessor(Processor):
 					prefix = suffix
 					result = suffix
 			# | VALUE (PIPE)
-			elif suffix_name == "expr-pipe":
-				if prefix_name != "expr-seq":
-					prefix = self.tree.node("expr-seq", prefix)
+			elif suffix_name == "ex:pipe":
+				if prefix_name != "ex:seq":
+					prefix = self.tree.node("ex:seq", prefix)
 				prefix.merge(suffix)
 		return result
 

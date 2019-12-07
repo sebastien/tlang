@@ -155,37 +155,37 @@ class QueryProcessor(ExprProcessor):
 
 	def onQueryAxis( self, match ):
 		axis = self.process(match)[0][0]
-		return self.tree.node("query-axis", {"axis":axis})
+		return self.tree.node("q:axis", {"axis":axis})
 
 	def onQueryNode( self, match ):
 		m = self.process(match)[0]
 		ns      = m[2]
 		pattern = m[3]
 		attr = {"pattern":pattern,"ns":ns} if self.IsPattern(pattern) else {"name":pattern,"ns":ns}
-		return self.tree.node("query-node", attr)
+		return self.tree.node("q:node", attr)
 
 	def onQuerySubset( self, match ):
 		index = int(self.process(match)[0][1])
-		return self.tree.node("query-subset", {"index":index})
+		return self.tree.node("q:subset", {"index":index})
 
 	def onQueryAttribute( self, match ):
 		pattern = self.process(match)[0][0][1:]
 		attr = {"pattern":pattern} if self.IsPattern(pattern) else {"name":pattern}
-		return self.tree.node("query-attribute", attr)
+		return self.tree.node("q:attribute", attr)
 
 	def onQueryCurrentNode( self, match ):
-		return self.tree.node("query-node")
+		return self.tree.node("q:node")
 
 	def onQueryVariable( self, match ):
 		name = self.process(match)[0][0]
-		return self.tree.node("query-variable", {"name":name})
+		return self.tree.node("q:ref", {"name":name})
 
 	def onQueryPredicate( self, match, expr ):
-		return self.tree.node("query-predicate", expr)
+		return self.tree.node("q:predicate", expr)
 
 	def onQuerySelectorBinding( self, match, name, value ):
 		# TODO: Support implicit/explict
-		return self.tree.node("query-binding", name, value)
+		return self.tree.node("q:binding", name, value)
 
 	def onQuerySelectorValue( self, match ):
 		return self.process(match[0])
@@ -194,20 +194,20 @@ class QueryProcessor(ExprProcessor):
 		return self.process(match[0])
 
 	def onQueryPrefix( self, match, axis, selector, predicate ):
-		return self.tree.node("query-selection", axis, selector, predicate)
+		return self.tree.node("q:selection", axis, selector, predicate)
 
 	def onQuerySuffix( self, match, axis, selector, predicate ):
 		return self.onQueryPrefix(match, axis, selector, predicate)
 
 	# NOTE: Deprecated
 	# def onQuerySuffixed( self, match, prefix, suffixes ):
-	# 	node = self.tree.node("query")
+	# 	node = self.tree.node("q:query")
 	# 	node.add(prefix)
 	# 	for _ in suffixes:node.add(_)
 	# 	return self.normalizeQueryNode(node)
 
 	def onQuerySuffixedOptional( self, match, prefix, suffixes ):
-		node = self.tree.node("query")
+		node = self.tree.node("q:query")
 		node.add(prefix)
 		for _ in suffixes:node.add(_)
 		return self.normalizeQueryNode(node)
@@ -221,37 +221,37 @@ class QueryProcessor(ExprProcessor):
 	def normalizeQueryNode( self, node ):
 		# OK, so here we have an edge case which is related to the parser:
 		# queries have precedence over EXPR_VARIABLES, so we might end up
-		# with a query that has just one query-variable, like so:
+		# with a query that has just one q:ref, like so:
 		#
 		# ```
-		#  (query
-		#       (query-selection
-		#           (query-variable (@  (name NAME)))))))
+		#  (q:query
+		#       (q:selection
+		#           (q:ref (@  (name NAME)))))))
 		# ```
 		# 
 		# We also have case where we have the following:
 		#
 		# ```
-		#     (query
-		#           (query-selection
-		#               (query-attribute (@  (pattern [])))))
+		#     (q:query
+		#           (q:selection
+		#               (q:attribute (@  (pattern [])))))
 		# ```
 		#
 		# The following routine normalizes the subtree as a proper
-		# `(expr-variable NAME)` or `(expr-value-symbol (@ (name "@")))`
+		# `(ex:variable NAME)` or `(ex:symbol (@ (name "@")))`
 		selectors = node.children
-		if len(selectors) == 1 and selectors[0].name == "query-selection":
+		if len(selectors) == 1 and selectors[0].name == "q:selection":
 			s = selectors[0].children
 			if len(s) == 1:
 				n = s[0]
-				if n.name == "query-variable":
-					n.name = "expr-variable"
+				if n.name == "q:ref":
+					n.name = "ex:ref"
 					return n.detach()
-				elif n.name == "query-node" and n.attr("name"):
+				elif n.name == "q:node" and n.attr("name"):
 					# TODO: Maybe check for wether it's a pattern or a name?
 					# FIXME: This should be attr("name")
-					return self.tree.node("expr-value-symbol", {"name":n.attr("name")})
-				elif n.name == "query-attribute":
+					return self.tree.node("ex:symbol", {"name":n.attr("name")})
+				elif n.name == "q:attribute":
 					# FIXME: Why do we remove the query attribute?
 					#return self.tree.node("expr-value-symbol", {"name":n.attr("name")})
 					return n

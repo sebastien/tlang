@@ -80,6 +80,16 @@ class Node:
 			self.attributes[name] = value
 			return self
 
+	def copy( self, depth=-1 ):
+		"""Does a deep copy of this node. If a depth is given, it will
+		stop at the given depth."""
+		node = Node(self.name)
+		self.attributes = dict((k,v) for k,v in self.attributes.items())
+		if depth != 0:
+			for child in self.children:
+				self.append(child.copy(depth - 1))
+		return node
+
 	def meta( self, name:str, value=NOTHING ):
 		"""Sets/accesses the node's metadata."""
 		if value is NOTHING:
@@ -110,6 +120,9 @@ class Node:
 		node.parent = self
 		self.children.append(node)
 		return node
+
+	def append( self, node:'Node') -> 'Node':
+		return self.add(node)
 
 	def remove( self, node:'Node' ) -> 'Node':
 		assert node.parent is self, "Cannot remove node from {0}, it has a different parent: {1}".format(self, node.parent)
@@ -337,6 +350,7 @@ class TreeProcessorError(Exception):
 class TreeProcessor:
 
 	META_MATCH = "__tlang_model_treebuilder_match"
+	PREFIX     = ""
 
 	@staticmethod
 	def Match( name:str ):
@@ -352,7 +366,7 @@ class TreeProcessor:
 			if hasattr(value, TreeProcessor.META_MATCH):
 				self.matches[getattr(value, TreeProcessor.META_MATCH)] = value
 			elif name.startswith("on_"):
-				self.matches[name[3:]] = value
+				self.matches[self.PREFIX + name[3:].replace("_","-")] = value
 		self.init()
 
 	def init( self ):
@@ -373,7 +387,7 @@ class TreeProcessor:
 					raise _
 				else:
 					res = _
-		return _
+		return res
 
 	def feed( self, node:Node ) -> Iterable[Any]:
 		# TODO: Support namespace
@@ -391,7 +405,25 @@ class TreeProcessor:
 			else:
 				yield result
 		else:
-			yield TreeProcessorError(node, f"Unsupported node type: {name}")
+			yield from self.catchall(node)
+
+	def catchall( self, node ) -> Iterable[Any]:
+		yield TreeProcessorError(node, f"{self.__class__.__name__} does not support node type: {node.name} in ")
+
+# NOTE: We might differenciate later
+class TreeTransform(TreeProcessor):
+
+	def catchall( self, node ):
+		n = node.copy(0)
+		for c in node.children:
+			for _ in self.process(c):
+				pass
+		yield n
+
+	# TODO: The catchall might just be a copy?
+
+class SemanticError(Exception):
+	pass
 
 class NodeError(Exception):
 
