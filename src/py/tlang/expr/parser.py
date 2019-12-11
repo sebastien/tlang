@@ -114,7 +114,7 @@ class ExprProcessor(Processor):
 
 	@classmethod
 	def Get(cls):
-		if not cls.INSTANCE: cls.INSTANCE = ExprProcessor()
+		if not cls.INSTANCE: cls.INSTANCE = cls()
 		return cls.INSTANCE
 
 	def __init__( self, grammar=None, strict=True ):
@@ -143,7 +143,7 @@ class ExprProcessor(Processor):
 	@sourcemap
 	def onEXPR_NAME( self, match):
 		value = self.process(match)[0]
-		return self.tree.node("ex:name", {"name":value})
+		return self.tree.node("ex:ref", {"name":value})
 
 	@sourcemap
 	def onEXPR_SINGLETON( self, match):
@@ -263,7 +263,6 @@ class ExprProcessor(Processor):
 					# content is merged.
 					prefix.merge(suffix)
 				else:
-					print (f"SUFFIX {i}: {suffix} in {prefix}")
 					# Otherwise we inject the preceding value in the SEQ
 					suffix.insert(0, prefix)
 					prefix = suffix

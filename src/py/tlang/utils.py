@@ -52,16 +52,47 @@ class ParserUtils:
 	@classmethod
 	def ParseMain( cls, grammarFactory, processor, args=None, output=sys.stdout ):
 		args = args or sys.argv[1:]
+		res = []
 		for arg in args:
 			if os.path.exists(arg):
 				result = cls.ParseFile(grammarFactory, arg, True, processor=False)
 			else:
 				result = cls.ParseString(grammarFactory, arg, True, processor=False)
-			if not result.isSuccess():
-				output.write (result.describe())
-			else:
-				output.write (str(processor.process(result)))
+			res.append(result)
+			if output:
+				if not result.isSuccess():
+					output.write (result.describe())
+				else:
+					output.write (str(processor.process(result)))
+		return res
 
+
+	@staticmethod
+	def Indent (element, context):
+		indent=(context.get('indent') or 0)
+		context.set('indent', (indent + 1))
+
+	@staticmethod
+	def Dedent (element, context):
+		self=__module__
+		indent=(context.get('indent') or 0)
+		context.set('indent', (indent - 1))
+
+	@staticmethod
+	def CheckIndent ( element, context, min=None):
+		if min is None: min = False
+		indent = context.get("indent") or 0
+		o      = context.offset or 0
+		so     = max(o - indent, 0)
+		eo     = o
+		tabs   = 0
+		# This is a fix
+		if so == eo and so > 0:
+			so = eo
+		for i in range(so, eo):
+			if context[i] == b"\t":
+				tabs += 1
+		return tabs == indent
 
 # -----------------------------------------------------------------------------
 #
