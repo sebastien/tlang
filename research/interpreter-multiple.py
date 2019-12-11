@@ -1,5 +1,6 @@
 import tlang
 from tlang.tree.model import TreeTransform,TreeProcessor,TreeBuilder,NodeError,SemanticError
+from collections import OrderedDict
 from typing import Union,Any,Tuple,Optional,Dict,List,Iterator
 ## @tdoc:process text=texto desc=texto
 ## @tdoc:indent spaces=2
@@ -18,24 +19,6 @@ N = TreeBuilder.MakeNode
 ## section title="Model"
 ##   desc
 ##     The core elements required by the runtime of the interpreter.
-
-class Symbol:
-
-	def __init__( self, name:str ):
-		self.name = name
-
-	def __repr__( self ):
-		return self.name
-
-class Singleton(Symbol):
-	pass
-
-class Reference(Symbol):
-	pass
-
-End   = object()
-Atom  = Union[None,str,int,bool,Symbol]
-Value = Union[Atom,Symbol]
 
 class Slot:
 
@@ -168,7 +151,7 @@ class ValueInterpreter(TreeProcessor):
 				if arg_meta.name != "*":
 					self.context.define(arg_meta.name, value)
 				argv.append(value)
-		res = target(argv)
+		res = target(self, argv)
 		self.popContext()
 		return res
 
@@ -255,46 +238,50 @@ class Primitives:
 	def bind( self, context ):
 		context.define("out!",   self.do_out)
 		context.define("lambda", self.do_lambda)
+		context.define("add",    self.do_add)
 		return self
 
 	@invocation( __=EAGER )
-	def do_out( self, *args ):
+	def do_out( self, interpreter, args ):
 		print (*args)
 
+	@invocation( a=EAGER, b=EAGER )
+	def do_add( self, interpreter, args ):
+		a, b = args
+		return a + b
+
 	@invocation( args=NODE, __=NODE )
-	def do_lambda( self, args:Iterator[Value] ):
-		print ("LAMBDA", args)
-		return self.do_out
-		# func_args = expand(interpreter.data.feed(args[0]))
-		# # We might have the unnormalized form (LAMBDA A B)
-		# if isinstance(func_args, Reference):
-		# 	func_args = [func_args]
-		# func_code = args[1:]
-		# # This is the actual execution of the function
-		# def functor(interpreter, args):
-		# 	# The functor creates a new context
-		# 	interp = interpreter.derive()
-		# 	# Maps out the function arguments
-		# 	for i,ref in enumerate(func_args):
-		# 		# NOTE: Not sure what args are at this stage
-		# 		value = args[i]
-		# 		if isinstance(value, RuntimeError):
-		# 			yield RuntimeError(f"Cannot bind argument {i} '{ref.name}', because: {value}")
-		# 		else:
-		# 			# We define the slots of the arguments
-		# 			interp.context.define(ref.name, value)
-		# 	# We re-interpret the nodes in the context
-		# 	for line in func_code:
-		# 		yield from interp.feed(line)
-		# # We define the invocation protocol, which is always eager, for now.
-		# kwargs = OrderedDict()
-		# for ref in func_args:
-		# 	kwargs[ref.name] = EAGER|VALUE
-		# # We yield the decorated functor
-		# yield invocation( **kwargs )(functor)
-
-
-
+	def do_lambda( self, interpreter, args:Iterator[Any] ):
+		# We extrat the function arguments
+		func_args = []
+		for i,arg in enumerate(args[0].children):
+			# FIXME: We only support ex:ref arguments for now 
+			assert arg.name == "ex:ref"
+			# TODO: This is where we can extract form and type of evaluation
+			func_args.append(Argument(arg.attr("name"), i))
+		# This is the actual execution of the function
+		func_code = args[1:]
+		def functor(interpreter, args):
+			# The functor creates a new context
+			interp = interpreter.derive()
+			# Maps out the function arguments
+			for i,arg in enumerate(func_args):
+				# NOTE: Not sure what args are at this stage
+				value = args[i]
+				if isinstance(value, RuntimeError):
+					yield RuntimeError(f"Cannot bind argument {i} '{arg.name}', because: {value}")
+				else:
+					# We define the slots of the arguments
+					interp.context.define(arg.name, value)
+			# We re-interpret the nodes in the context
+			for ast_node in func_code:
+				yield from interp.feed(ast_node)
+		# We define the invocation protocol, which is always eager, for now.
+		kwargs = OrderedDict()
+		for ref in func_args:
+			kwargs[ref.name] = EAGER|VALUE
+		# We yield the decorated functor
+		yield invocation( **kwargs )(functor)
 
 # -----------------------------------------------------------------------------
 #
@@ -305,7 +292,8 @@ class Primitives:
 if __name__ == "__main__":
 	#PROGRAM = '(out! "Hello, World!")'
 	#PROGRAM = " '(1 (2 3) 4 (5 6 (7 8))) "
-	PROGRAM = '((lambda (A) A) "Hello, world!")'
+	#PROGRAM = '((lambda (A) A) "Hello, world!")'
+	PROGRAM = "(out! (add 1 2))"
 	tree = tlang.parseString(PROGRAM)
 	print (tree)
 	print ("---")

@@ -45,6 +45,11 @@ io
 		info!
 		hint!
 
+tree
+	graft A:Tree B:Tree
+	rewrite 
+	rewrite-rule
+
 date
 
 math
