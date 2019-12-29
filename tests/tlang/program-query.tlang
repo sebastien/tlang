@@ -1,0 +1,23 @@
+;; We are explicit about the primitives we want to use
+(primitive let lambda out select map tree)
+
+(let
+	;; We declare a tree
+	(T (tree '(
+		(dir (:name "src")
+			(dir (:name "py")
+				(dir (:name "tlang")
+					(file (:name "__init__.py"))
+					(file (:name "command.py"))
+					(dir (:name "interpreter")
+						(file (:name "__init__.py"))
+						(file (:name "model.py"))
+						(file (:name "core.py")))))))))
+	
+	;; And we query the file trees, listing them out
+	(map
+		(select T //file[@name])
+		(lambda (FILE)
+			(out! "Found file" FILE)))
+
+;; EOF 

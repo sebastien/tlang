@@ -1,3 +1,8 @@
-(primitive lambda)
+(primitive lambda out!)
+
+
+;; Basic iteration
 (iter '(1 2 3 4 5 6) :Nop)
 (iter '(1 2 3 4 5 6) (lambda _ _))
+
+

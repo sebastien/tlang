@@ -1,0 +1,17 @@
+(primitive let out!)
+
+;; expect: A=1 B=10
+(let (A 1) (B 10)
+  (out! "A=" A " B=" B))
+
+;; expect: A=2 B=10
+(let (A 1) (B 10)
+  (let (A 2)
+    (out! "A=" A " B=" B)))
+
+;; expect: A=1 B=10
+(let (A 1) (B 10)
+  (let (A A)
+    (out! "A=" A " B=" B))) 
+
+;; EOF - vim: ts=2 sw=2 et

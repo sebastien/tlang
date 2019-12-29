@@ -84,7 +84,7 @@ class Node:
 		"""Does a deep copy of this node. If a depth is given, it will
 		stop at the given depth."""
 		node = Node(self.name)
-		self.attributes = dict((k,v) for k,v in self.attributes.items())
+		self.attributes = type(self.attributes)((k,v) for k,v in self.attributes.items())
 		if depth != 0:
 			for child in self.children:
 				self.append(child.copy(depth - 1))

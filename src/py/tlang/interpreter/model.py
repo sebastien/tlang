@@ -41,6 +41,7 @@ class Context:
 
 META_INVOCATION = "__tlang_invocation__"
 
+## TODO: We probably want to move these
 ##   symbol#EAGER: Flag that denotes an eager evaluation
 EAGER = 0
 ##   symbol#VALUE: Flag that denotes an evaluation of the AST
@@ -65,7 +66,6 @@ class Argument:
 class Rest(Argument):
 	pass
 
-
 Arguments = List[Argument]
 
 def invocation( **kwargs ):
@@ -85,5 +85,41 @@ def invocation( **kwargs ):
 		setattr(f, META_INVOCATION, args)
 		return f
 	return decorator
+
+class Channel:
+
+	def __init__( self ):
+		self.count = 0
+		self.queue = []
+
+	def writeLazy( self, evaluator ):
+		self.queue.append((0, evaluator))
+		self.count += 1
+		return self
+
+	def write( self, value ):
+		self.queue.append((1, value))
+		self.count += 1
+		return self
+
+	def hasNext( self ):
+		return self.count > 0
+
+	def peek( self ):
+		if self.count > 0:
+			v = self.queue[0]
+			if v[0] == 0:
+				# We evaluate
+				v = (1, v[1]())
+				self.queue[0] = v
+			return v[1]
+		else:
+			return None
+
+	def read( self ):
+		# TODO: We should raise an exception when count == 0
+		v = self.peek()
+		self.queue.pop(0)
+		return v
 
 # EOF - vim: ts=4 sw=4 noet

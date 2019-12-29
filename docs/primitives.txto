@@ -1,0 +1,15 @@
+== TLang Primitives
+
+
+Channels
+========
+
+A process has `#input` (arguments), `#output` (result) and `#sub` (invoke/call)
+channels available by default. Channels are values and can be referenced as
+such.
+
+(read :Channel) → :Any
+
+(write :Channel :Any)
+
+

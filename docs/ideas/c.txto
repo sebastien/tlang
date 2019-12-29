@@ -1,0 +1,47 @@
+== C Interoperability
+
+
+C Tree API
+==========
+
+TLang's runtime library should have the following:
+
+- Tree data structures
+- Low-level tree walking/iteration/mutation functions (should be defined)
+
+- An implementation of the TL4 operations (tl4_op_XXX)
+- An implementation of the TLang runtime: `tlang_runtime_slot_{set,get,resolve}`, `tlang_runtime_scope_{push,pop}`, `tlang_invoke_{static,dynamic}`  (invocation protocols are the ones that need to be super optimized).
+
+All the operations should be inlined/inline-able, so that we don't pay the invocation cost. So we have the following
+levels:
+
+- `level 0`: data model, tree primitives
+- `level 1`: TL4 query/transform support
+- `level 2`: expression runtime primitives
+- `level 3`: TL4 expr support
+
+We should probably start by implementing a backend in Python in a very C-like style, and then port it to C.
+
+Invocations
+===========
+
+The _expression language_ in TLang has a parametric invocation protocol, meaning
+that functions dictate how their arguments are going to be passed when the 
+invocation happens.
+
+Arguments can be passed as the following _forms_:
+
+- `node`: the argument is passed as an AST node, which means that the function
+  should be partially evaluated, as it's not an operation that should happen
+  at runtime.
+
+- `data`: the argument is to be interpreted as a quoted expression, meaning that
+  its value is likely going to be a primitive data structure.
+
+- `expr`: the argument is an expression that yields an arbitrary value, which is
+  the most common form of argument.
+
+Now, arguments can also be passed as different modes:
+
+- _eager_: the argument is evaluated before the inovcation happens
+- _lazy_: the argument is only evaluated when it is first referenced

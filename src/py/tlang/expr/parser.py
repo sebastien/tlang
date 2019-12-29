@@ -20,7 +20,7 @@ def symbols( g:Grammar ) -> Symbols:
 		"EXPR_SINGLETON"          : "#[A-Za-z][\-a-zA-Z0-9]*[\!\?]?",
 		"EXPR_KEY"                : "[A-Za-z][\_a-zA-Z0-9]*:",
 		"EXPR_TYPE"               : "[A-Z][\_a-zA-Z0-9]*",
-		"EXPR_COMMENT"            : ";;([^\n]*)",
+		"EXPR_COMMENT"            : ";+([^\n]*)",
 		"REST"                    : "(\\.\\.\\.)|…",
 	}
 	words = {

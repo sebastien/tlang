@@ -1,77 +1,110 @@
-from .model import Context,Argument,Rest,invocation,EAGER,VALUE,DATA,NODE
-from tlang.tree.model import NodeError
+from .model import Context,Channel,Argument,Rest,invocation,EAGER,VALUE,DATA,NODE
+from tlang.tree.model import NodeError,Node
 from collections import OrderedDict
-from typing import Iterator,Any
+from typing import Iterator,Iterable,Any
 
 class Primitives:
 
 	def bind( self, context ):
-		context.define("out!",   self.do_out)
-		context.define("lambda", self.do_lambda)
-		context.define("add",    self.do_add)
+		# Core operations
+		context.define("let",        self.do_let)
+
+		# Channel
+		context.define("lazy",       self.do_lazy)
+		context.define("next",       self.do_next)
+		context.define("next?",      self.do_hasNext)
+		context.define("skip",       self.do_next)
+
+		# Helpers
 		context.define("primitive",  self.do_primitive)
+		context.define("out!",       self.do_out)
+		context.define("lambda",     self.do_lambda)
+
+		# Math
+		context.define("add",        self.do_add)
 		return self
 
-	@invocation( __=EAGER )
-	def do_primitive( self, interpreter, args ):
-		print ("TODO:primitive",*args)
+	@invocation( __=DATA|EAGER )
+	def do_primitive( self, interpreter, args:Iterable[Node] ):
+		missing = []
+		for prim in args:
+			# FIXME: For some reason, the ex:ref have no 
+			# attributes, but they should.
+			if prim.name == "ex:ref":
+				pass
+				# name = prim["name"]
+				# if not self.has(name):
+				# 	missing.append(name)
+		if missing:
+			yield RuntimeError(f"Undefined primitives {missing}")
+		else:
+			yield None
 
+	@invocation( __=NODE )
+	def do_lazy( self, interpreter, args ):
+		"""Returns a pre-populated channel with lazy evaluations
+		of the given arguments."""
+		chan = Channel()
+		for node in args:
+			# NOTE: We need to close over the context
+			chan.writeLazy(lambda n=node, interp=interpreter: interp.process(n))
+		return chan
 
 	@invocation( __=EAGER )
 	def do_out( self, interpreter, args ):
 		print (*args)
 
+	@invocation( value=EAGER )
+	def do_next( self, interpreter, args ):
+		chan = args[0]
+		if isinstance(chan, Channel):
+			if chan.count > 0:
+				return chan.read()
+			else:
+				# TODO: We should raise an exception
+				return None
+		else:
+			return None
+
+	@invocation( value=EAGER )
+	def do_hasNext( self, interpreter, args ):
+		chan = args[0]
+		if isinstance(chan, Channel):
+			return chan.count > 0
+		else:
+			return False
+
 	@invocation( a=EAGER, b=EAGER )
 	def do_add( self, interpreter, args ):
 		a, b = args
 		return a + b
-	# @invocation( iterable=VALUE|EAGER, functor=VALUE|EAGER )
-	# def do_iter( self, interpreter:Interpreter, args:Iterator[Value] ):
-	# 	"""Iterates through an iterable value. Stops when receiving the symbol `:Stop`"""
-	# 	value   = args[0]
-	# 	functor = args[1]
-	# 	if isinstance(functor, Symbol):
-	# 		# We do iterate, even if there's a no-op
-	# 		for _ in value:
-	# 			pass
-	# 	else:
-	# 		for i,v in enumerate(value):
-	# 			interpreter.invoke(functor, (v,i))
-	# 	yield None
 
-	# @invocation( __=DATA|EAGER )
-	# def do_primitive( self, interpreter:Interpreter, args:Iterator[Value] ):
-	# 	missing = []
-	# 	for prim in args:
-	# 		assert isinstance(prim, Symbol)
-	# 		if not self.has(prim.name):
-	# 			missing.append(prim.name)
-	# 	if missing:
-	# 		yield RuntimeError(f"Undefined primitives {missing}")
-	# 	else:
-	# 		yield None
+	@invocation( __=NODE )
+	def do_let( self, interpreter, args:Iterable[Node] ):
+		"""Of the form `(let (SYMBOL VALUE)… VALUE)`, eagerly evaluates the
+		values in the `(SYMBOL VALUE)` pairs and binds them to the corresponding
+		`SYMBOL` in the context. Yields the evaluation of the last `VALUE`."""
+		if len(args) < 2:
+			raise RuntimeError("Let has a form (let (SYMBOL VALUE)… VALUE))")
+		# We create a subcontext
+		interp = interpreter.derive()
+		# We bind the values in the context
+		for node in args[:-1]:
+			# Expected (expr-value-symbol *)
+			name  = node.children[0].attr("name")
+			# NOTE: This is a letrec as the scope is the current derived
+			# interpreter.
+			# FIXME: This should probably be the first node that is not a comment
+			value = None
+			for v in interp.feed(node.children[1]):
+				value = v
+			if isinstance(value, RuntimeError):
+				yield RuntimeError(f"Could not define symbol '{name}' because: {value}")
+			else:
+				interp.context.define(name, value)
+		yield from interp.feed(args[-1])
 
-	# @invocation( __=NODE )
-	# def do_let( self, interpreter:Interpreter, args:Iterator[Value] ):
-	# 	"""Of the form `(let (SYMBOL VALUE)… VALUE)`, eagerly evaluates the
-	# 	values in the `(SYMBOL VALUE)` pairs and binds them to the corresponding
-	# 	`SYMBOL` in the context. Yields the evaluation of the last `VALUE`."""
-	# 	if len(args) < 2:
-	# 		raise RuntimeError("Let has a form (let (SYMBOL VALUE)… VALUE))")
-	# 	i      = interpreter.derive()
-	# 	for node in args[:-1]:
-	# 		# Expected (expr-value-symbol *)
-	# 		name  = node.children[0].attr("name")
-	# 		# NOTE: This is a letrec as the scope is the current derived
-	# 		# interpreter.
-	# 		# FIXME: This should probably be the first node that is not a comment
-	# 		value = expand(i.feed(node.children[1]))
-	# 		if isinstance(value, RuntimeError):
-	# 			yield RuntimeError(f"Could not define symbol '{name}' because: {value}")
-	# 		else:
-	# 			i.context.define(name, value)
-	# 	yield from i.feed(args[-1])
-
+	# FIXME: Lambda should be rewritten using channels.
 	@invocation( args=NODE, __=NODE )
 	def do_lambda( self, interpreter, args:Iterator[Any] ):
 		# We extrat the function arguments
@@ -107,7 +140,6 @@ class Primitives:
 		kwargs = OrderedDict()
 		for ref in func_args:
 			kwargs[ref.name] = EAGER|VALUE
-		print ("KWARGS", kwargs)
 		# We yield the decorated functor
 		yield invocation( **kwargs )(functor)
 

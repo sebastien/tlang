@@ -1,0 +1,15 @@
+(primitive lazy next out!)
+
+;; Lazy defers the execution of what it contains. In its simple
+;; form (lazy VALUE) it returns a single value `VALUE`. In its
+;; composite form, it will return a different value each time it
+;; is 
+
+;; Prints nothing
+(lazy (out! "Hello, world"))
+
+;; Prints nothing either
+(lazy (out! "One") (out! "Two"))
+
+
+; EOF

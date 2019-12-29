@@ -2,4 +2,5 @@
 lib\/fonts\/.+
 .*\.pyc
 build
+ref
 

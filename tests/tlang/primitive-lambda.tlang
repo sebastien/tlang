@@ -1,3 +1,23 @@
 (primitive lambda out!)
 (out!
 	((lambda (A) A) "Hello, World"))
+
+
+;; Under the hood a lazy input sequence (the arguments), and 
+;; binds them to symbols. The binding consumes.
+
+
+(lambda (A B C) (* (+ A B) 10) )
+
+means
+
+(bind A (read #input))
+(bind B (read #input))
+(bind C (read #input))
+
+(with (write #call *)
+	(with (write #call +)
+		(write A)
+		(write B)
+		(read))
+	10)

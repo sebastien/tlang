@@ -84,9 +84,12 @@ class ValueInterpreter(TreeProcessor):
 		# protocol information and process the arguments accordingly.
 		self.pushContext()
 		inter = self
+		has_rest = protocol and protocol[-1].name == "__"
 		for i, arg_node in enumerate(args):
-			if i > j:
-				# We skip any extra argument
+			if not has_rest and i > j:
+				# We skip any extra argument, but only if 
+				# there is no __ (rest) argument in the 
+				# protocol.
 				break
 			else:
 				arg_meta     = protocol[min(i,j)]
@@ -100,7 +103,7 @@ class ValueInterpreter(TreeProcessor):
 					# NOTE: We derive for the lazy evaluation as the context
 					# might change.
 					value = inter.derive().feed(arg_node) if is_lazy else inter.process(arg_node)
-				if arg_meta.name != "*":
+				if arg_meta.name != "__":
 					self.context.define(arg_meta.name, value)
 				argv.append(value)
 		res = target(self, argv)

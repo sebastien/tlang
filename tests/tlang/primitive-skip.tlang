@@ -1,0 +1,27 @@
+(primitive out! lazy let skip next)
+
+;; TODO: Rewrite using channel primitives
+;; (process (INPUT OUTPUT)
+;;    (iter INPUT
+;;        (read   INPUT)
+;;        ;; NOTE: Write is sync, ie. it only works
+;;        ;; if there is a read.
+;;        (write  OUTPUT)
+;; 
+;; title: Like next, but does not try to evaluate
+
+;; expect: --
+(out! "-")
+(skip (lazy (out! "Skipped"))
+(out! "-")
+
+;; expect: 13
+(let 
+	(L (lazy (out! 1) (out! 2) (out!3)))
+	(out!
+		(next L)
+		; NOTE: skip returns #Nil
+		(skip L)
+		(next L)))
+
+; EOF
