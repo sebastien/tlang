@@ -25,7 +25,6 @@ from collections import namedtuple
 # \\ → UP[-1]
 # \  → UP[0]
 
-
 # -----------------------------------------------------------------------------
 #
 # WALKING
@@ -46,12 +45,16 @@ WalkStep = NamedTuple('WalkStep', [('node',Node), ('depth',int), ('index',int), 
 NodeSet  = List[Node]
 
 def walkDownDepth(node:Node, depth:int=0, step:int=0) -> Iterator[WalkStep]:
+	"""Walks down the given node and yields corresponding WalkStep, starting
+	off the given `depth` and `step`. """
 	for i,c in enumerate(node.children):
 		yield WalkStep(c, depth, i, step)
 		step += 1
 		yield from walkDownDepth(c, depth + 1, step)
 
 def walkDownBreadth(node:Node, depth:int=0, step:int=0) -> Iterator[WalkStep]:
+	"""Walks the give node in a breadth-first mode, yielding corresponding
+	WalkSteps."""
 	for i,c in enumerate(node.children):
 		yield WalkStep(c, depth, i, step)
 		step += 1
@@ -147,6 +150,9 @@ class NodeRule( AtomicRule ):
 	def match( self, state:WalkState, step:WalkStep ) -> bool:
 		return step.node.name == self.name
 
+	def __repr__( self ):
+		return f"{self.name}"
+
 class AttributeRule( Rule ):
 	"""Matches a node with the given attribute."""
 
@@ -156,6 +162,9 @@ class AttributeRule( Rule ):
 
 	def match( self, state:WalkState, step:WalkStep ) -> bool:
 		return step.node.hasAttribute(self.name)
+
+	def __repr__( self ):
+		return f"@{self.name}"
 
 # -----------------------------------------------------------------------------
 #
@@ -208,25 +217,37 @@ class WalkStateRule( CompositeRule ):
 			else:
 				return True
 
-class Predicate(CompositeRule):
+class Current(WalkStateRule):
+
+	def __init__( self, rule:Rule ):
+		super().__init__(rule, None, Range(0,0), None)
+
+	def __repr__( self ):
+		return f"{repr(self.rule)}"
+
+class Ancestor(WalkStateRule):
+
+	def __init__( self, rule:Rule ):
+		super().__init__(rule, None, Range(None, -1), None)
+
+	def __repr__( self ):
+		return f"\\\\{repr(self.rule)}"
+
+class Parent(WalkStateRule):
+
+	def __init__( self, rule:Rule ):
+		super().__init__(rule, None, Range(-1, -1), None)
+
+	def __repr__( self ):
+		return f"\\{repr(self.rule)}"
+
+class Query(CompositeRule):
 
 	COUNT = 0
 
-	@classmethod
-	def Is( cls, rule:Rule ) -> WalkStateRule:
-		return WalkStateRule(rule, None, Range(0, 0), None)
-
-	@classmethod
-	def Ancestor( cls, rule:Rule ) -> WalkStateRule:
-		return WalkStateRule(rule, None, Range(None, -1), None)
-
-	@classmethod
-	def Parent( cls, rule:Rule ) -> WalkStateRule:
-		return WalkStateRule(rule, None, Range(-1, -1), None)
-
 	def __init__(  self, *rules:Rule ):
-		super().__init__(f"P{Predicate.COUNT}")
-		Predicate.COUNT += 1
+		super().__init__(f"P{Query.COUNT}")
+		Query.COUNT += 1
 		self._rules  = rules
 
 	@property
@@ -239,6 +260,14 @@ class Predicate(CompositeRule):
 			if not rule.match(state, step):
 				return False
 		return True
+
+	def __repr__( self ):
+		n = len(self._rules) - 1
+		r = ""
+		while n >= 0:
+			r = f"{repr(self._rules[n])}[{r}]" if r else repr(self._rules[n])
+			n -= 1
+		return r
 
 # -----------------------------------------------------------------------------
 #
@@ -261,7 +290,6 @@ class Traversal:
 		# We exclude WalkStateRules, as they're just meant to be used
 		# by rpedicates.
 		self.rules = [_ for _ in self.rules if not isinstance(_, WalkStateRule)]
-
 
 	def traverse( self, node:Node, walk ):
 		state       = WalkState()
@@ -309,25 +337,25 @@ R2 = NodeRule("R2", "file")
 R3 = AttributeRule("R3", "name")
 
 ## NOTE: We're trying to define an encoding for queries here.
-# P1 is dir[@name]
-Q1 = Predicate(
-	Predicate.Is(R1),
-	Predicate.Is(R3),
+# Q1 is dir[@name]
+Q1 = Query(
+	Current(R1),
+	Current(R3),
 )._as("Q1")
 
-# Q2 is //P1 → //dir[@name]
-Q2 = Predicate(Predicate.Ancestor(Q1))._as("Q2")
+# Q2 is \\dir[@name] ←→ \\Q1
+Q2 = Query(Ancestor(Q1))._as("Q2")
 
-# Q3 is R1/R2 → dir/file
-Q3 = Predicate(
-	Predicate.Is(R2),
-	Predicate.Parent(R1)
+# Q3 is dir/file  ←→ R1/R2
+Q3 = Query(
+	Current(R2),
+	Parent(R1)
 )._as("Q3")
 
 # Q4 is Q2[Q3]
-Q4 = Predicate(
-	Predicate.Is(Q3),
-	Predicate.Is(Q2)
+Q4 = Query(
+	Current(Q2),
+	Current(Q3),
 )._as("Q4")
 
 def match_found( state:WalkState, step:WalkStep ):
