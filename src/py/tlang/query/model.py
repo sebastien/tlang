@@ -1,113 +1,118 @@
-
+from enum import Enum
 from typing import Optional, Any, List, Dict
 from collections import OrderedDict
 from tlang.utils import NOTHING
+from tlang.tree.model import Node
 
 __doc__ = """
-The core model representing selectors
+Defines a model to represent selector and queries.
 """
 
-# -----------------------------------------------------------------------------
-#
-# VALUES
-#
-# -----------------------------------------------------------------------------
 
-class Literal:
-	pass
-
-class Number(Literal):
-	pass
-
-class String(Literal):
-	pass
-
-# -----------------------------------------------------------------------------
-#
-# NODE/ATTRIBUTE PATTERN
-#
-# -----------------------------------------------------------------------------
+class Axis(Enum):
+	SELF        = "."
+	PARENT      = "\\"
+	ANCESTORS   = "\\\\"
+	CHILDREN    = "/"
+	DESCENDANTS = "//"
+	PREV        = "<"
+	NEXT        = "<"
+	AFTER       = ">>"
+	BEFORE      = "<<"
 
 class Predicate:
-	pass
 
-class IsNode(Predicate):
-	pass
-
-class IsNodeLike(Predicate):
-	pass
-
-class IsAttribute(Predicate):
-	pass
-
-class IsAttributeLike(Predicate):
-	pass
-
-class Constraint(Predicate):
-	pass
-
-# -----------------------------------------------------------------------------
-#
-# AXIS
-#
-# -----------------------------------------------------------------------------
-
-class Axis:
-
-	def __init__( self, depth:int=-1 ):
+	def __init__( self ):
 		pass
 
-class Descendants(Axis):
-	SYMBOL = "/"
+	def match( self, node:Node ) -> bool:
+		raise NotImplementedError
 
-class Ancestors(Axis):
-	SYMBOL = "\\"
+class NodeNamePredicate(Predicate):
 
-class NextSiblings(Axis):
-	SYMBOL = ">"
+	def __init__( self, attribute:str ):
+		super().__init__()
+		self.attribute = attribute
 
-class PreviousSiblings(Axis):
-	SYMBOL = "<"
+	def match( self, node:Node ) -> bool:
+		self.node.name == self.attribute
 
-class Before(Axis):
-	SYMBOL = "<<"
+class AttributeNamePredicate(Predicate):
 
-class After(Axis):
-	SYMBOL = ">>"
+	def __init__( self, attribute:str ):
+		super().__init__()
+		self.attribute = attribute
+
+	def match( self, node:Node ) -> bool:
+		self.node.hasAttribute(self.attribute)
+
+# TODO: ExternalPredicate
+# TODO: {And,Or,Not}Predicate
+
 
 # -----------------------------------------------------------------------------
 #
-# VARIABLES
+# SELECTION
 #
 # -----------------------------------------------------------------------------
 
-class Binding:
-	pass
+class Selection:
 
-class Expansion:
-	pass
+	def __init__( self, axis:Axis, predicate:Predicate ):
+		# The list of sub-selections
+		self._then:List['Selection']  = []
+		# The list of selections that must match
+		self._where:List['Selection'] = []
+		self.predicate = predicate
+
+	# =========================================================================
+	# COMBINATORS
+	# =========================================================================
+
+	def where( self, selection:'Selection' ) -> 'Selection':
+		"""Adds a selection that will filter out matching nodes for this
+		selection."""
+		self._where.append(selection)
+		return self
+
+	def then( self, selection:'Selection' ) -> 'Selection':
+		"""Starts a new sub selection that uses matching nodes as root."""
+		self._then.append(selection)
+		return self
 
 # -----------------------------------------------------------------------------
 #
-# INVOCATION
+# API SUGAR
 #
 # -----------------------------------------------------------------------------
 
-class Invocation:
-	pass
+class Select:
 
-# -----------------------------------------------------------------------------
-#
-# SELECTOR
-#
-# -----------------------------------------------------------------------------
+	@staticmethod
+	def Self( predicate:Predicate ):
+		return Selection(Axis.SELF, predicate)
 
-class Selector:
-	pass
+	@staticmethod
+	def Ancestors( predicate:Predicate ):
+		return Selection(Axis.ANCESTORS, predicate)
 
-class Query:
-	pass
+	@staticmethod
+	def Descendants( predicate:Predicate ):
+		return Selection(Axis.DESCENDANTS, predicate)
 
+	@staticmethod
+	def Children( predicate:Predicate ):
+		return Selection(Axis.CHILDREN, predicate)
 
+class With:
+	"""A friendly interface to the predicates"""
+
+	@staticmethod
+	def Name( name:str ):
+		return NodeNamePredicate(name)
+
+	@staticmethod
+	def Attribute( name:str ):
+		return AttributeNamePredicate(name)
 
 # EOF - vim: ts=4 sw=4 noet
