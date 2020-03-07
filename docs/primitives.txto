@@ -1,15 +1,312 @@
 == TLang Primitives
 
+# NOTE: There's a fundamental question about the right level of primitives.
+# Doing invocations with channels is a cool abstraction, but super wasteful
+# in practice. These abstractions are only viable if they can be erased
+# by the compiler. In other words, that they are built from patterns
+# that can be easily detected and simplified.
+#
+# Control flow:
+# - and,or,not (we can make if, cond, etc with these)
+# - tail: evaluetes each argument, returning the last
+# Binding:
+# - let: binds values in the scope
+# Invocation:
+# - channels: read,write,send,send-lazy,peek,skip
+# - process
+# Predicates
+# - is?
+# - eq?, gt[e]?, lt[e]?
+# Math
+# - add,sub,mul,div,shift,mod,rest
+
+# true primitives: match VALUE EXPECTED THEN ELSE
+# → In that case match is potentially quite more complicated then its
+#   lower implementation (or (and A B) C)
+# true primitives: seq
+
+
+Core concepts
+=============
+
+- Operations:: they define what the program does and are, for most of them,
+  imperative and have effect.
+
+- Slots:: slots hold values and can be annotated to capture metainformation 
+  such as typing, lifetyme and access restrictions.
+
+- Processes:: Processes are *sequences of operations* along with an opreation
+  cursor that indicates where the process is at.
+
+- Context:: a context is a collection of slots. Slots might be shared amongst
+  different contexts and can be decorated with restrictions and annotations.
+
+Slots
+======
+
+- `(use NAME)` declares that the slot with the given name is being used. It should
+   not be already in use.
+- `(set NAME VALUE)` sets the slot with the given `NAME` to the given `VALUE`.
+   The slot must already exist.
+- `(get NAME)` gets the slot with the given `NAME`.
+- `(free NAME)` declares that the slot with the given name is not used anymore.
+
+Annotations are mostly compile-time information, which might also be available
+at runtime, but not always:
+
+- `(annotate   SLOT NAME VALUE)` sets the anntation with the given `NAME` to the slot
+- `(annotation SLOT NAME)` gets an annotation with the given `NAME` form the slot
+
+Computation
+===========
+
+- `(and A B)` 
+- `(or  A B)` 
+- `(not A B)` 
+
+- `(add{i,f} A B)` 
+- `(sub{i,f} A B)` 
+- `(div{i,f} A B)` 
+- `(mul{i,f} A B)` 
+- `(mod{i,f} A B)` 
+- `(shift{i,f} A)` 
+- `(lshift{i,f} A)` 
+
+
+Process
+=======
+
+A process is a sequence of operation that are executed in a context. In practice,
+a process is very much like an assembly source code, where the progrma is a flat
+list if instructions with labels that can be used to jump to.
+
+- `(seq OP…)` declares a sequence of operations where each operation has an
+  index. Labels can be used by using `#LABEL`, where `LABEL` is your label name.
+
+Each operation in a process has an index, which can be alised to a label.
+Processes support the following operations:
+
+- `(exec)`: executes the curent operation and sets the current operation to the next.
+- `(pos)`: returns the currnet operation in the process
+- `(jump N)`: jumps to the n-th operation in the sequence
+
+There are also derivative primitives.
+
+- `(next)` which jumps to the next operation `(jump (add (get pos) 1))`
+- `(branch SLOT VALUE N M)` if the `SLOT` has value `VALUE` then jump to `N` or `M`,
+
 
 Channels
 ========
 
 A process has `#input` (arguments), `#output` (result) and `#sub` (invoke/call)
-channels available by default. Channels are values and can be referenced as
-such.
+channels available by default. Channels are ways for processes to communicate 
+values.
 
-(read :Channel) → :Any
+```
+(process (IN OUT SUB) EXPR…)
+```
 
-(write :Channel :Any)
+Values can be read from channels, a _read operation_ is always 
+_synchronous_, which means it will wait for data to be available
+before proceeding:
+
+```
+;; Reads a value like structure form from the IN channel
+(read IN STRUCTURE)
+```
+
+Values can be written to channels, a _write operation_ is also
+always _synchronous_, which means it will wait for some other process
+to read before proceeding:
+
+```
+;; Write a value to the OUT channel as soon as a process is 
+;; initiating a read.
+(write OUT "Hello, World")
+```
+
+Alternatively, values can be sent to a channel. As opposed to the
+write, the _send operation_ will evaluate the value right away, without
+waiting for a process to read.
+
+```
+;; Write a value to the OUT channel, whether someone is reading the
+;; channel or not.
+(send OUT "Hello, World")
+```
+
+A third form of communication is to send a value that will only
+be executed when it is read (evaluation synhronized on read).
+
+```
+;; The (* 100 100) expression will only be computed once it is
+;; read from the channel.
+(send-lazy OUT (* 100 100))
+```
+
+It is also possible to know if a channel has unread values, or is going
+to produce a value on a `read` operation:
+
+```
+;; Returns #True if there are more values to be read from the IN 
+;; channel.
+(has? IN)
+```
+
+You can also take a peek at the value without actaully reading it
+using `peek`.
+
+```
+;; Returns the value that would be READ, without consuming it.
+(peek IN)
+```
+
+Likewise, it is also possible to never read a value and skip it:
+
+```
+;; Skips the next value that would be otherwise read from the
+;; channel. If the value was lazily written, it will never be
+;; evaluated.
+(skip IN)
+```
+
+```
+;; Returns the number or key within the input channel
+(pos IN)
+```
+
+Invocation protocol
+-------------------
+
+Channels can be used as a way to pass values from the parent
+process to the sub process. The invocation protocol defines 
+how many, and in which form the values should be passed in the channel.
+
+For instance, the protocol for a `mul` function, would be like this:
+
+```
+'(mul (A :Number #Eager) (B :Number #Eager) :Number)
+'(and (A :Any    #Eager) (B :Any    #Lazy)  :Any)
+'(or  (A :Any    #Eager) (B :Any    #Lazy)  :Any)
+'(not (A :Any    #Eager))
+```
+
+This style of computation is focused on side effects: we don't care 
+about the result value, what we care about is sending stuff through the
+channels. It's a procedural implementation.
+
+```
+;; and implementation
+(process (IN OUT)
+  (loop
+    (true? (read IN)
+
+```
+;; cond implementation
+;; Note that the process will run until there's no more input,
+;; and will stop running as soon as IN and OUT are closed.
+(process (IN OUT)
+  ;; We read the input
+  (or 
+    (and
+      (read IN)
+      (seq (
+        ;; We return the evaluation of the next argument
+        (write OUT (read IN))
+        (close OUT)
+        (close IN))))
+    (skip IN)))
+```
+
+```
+;; iter
+(process (IN OUT)
+  (write OUT (pos INT)) (write OUT (read IN)))
+```
+
+```
+;; map COLL CHAN implementation
+(process (IN OUT)
+  (open ITER_OUT)
+  (iter IN ITER_OUT)
+  (write
+  (pipe (iter (read 
+  (
+  
+  (write OUT (read IN)))
+```
+
+Branching
+=========
+
+
+
+
+
+# (send-lazy)
+# 
+# (quote VALUE) 
+# (eval  VALUE)
+# 
+# (lazy VALUE) != (quote VALUE), because lazy produces a value that when accessed 
+# will expand into an eager value. However, that implies a notion of state, and
+# channels is probably better suited for that.
+#
+
+Optimization
+============
+
+The invocation protocol if executed as-is would be very wasteful, and needs
+to be simplified as much as possible as part of the compilation process.
+
+Let's take the example of the implementation of `(let (SYMBOL VALUE)… VALUE)`. The process
+would be as follow:
+
+```
+(seq
+	#read
+	(last? IN)
+	(jmpe _ #t #end)
+	(set A (read IN (:Symbol :Value)))
+	(bind (read A :Symbol) (read A :Value))
+	(jmp #read)
+
+	#end
+	(read)
+	(eval))
+```
+
+but actually, no, we really want to rewrite that differently.
+
+```
+(rewrite
+	(let {({Symbol=A} {Expression=B])…=L} {Expression:C})
+	(map L
+		{(bind {A} (eval (seq {B})))}
+		{(eval (seq ({C})))}))
+```
+
+which would then do
+
+```
+(let (A 1) (B 10) (+ A B))
+```
+
+```
+(bind (A (eval (seq 1))))
+(bind (B (eval (seq 10))))
+(eval (seq (+ A B)))
+```
+
+Let's take the example of the implementation of `(if COND THEN ELSE)`. We
+have:
+
+```
+(let if (lambda
+	
+))
+ 
+
 
 

@@ -105,6 +105,11 @@ class Channel:
 	def hasNext( self ):
 		return self.count > 0
 
+	def consume( self ):
+		if self.count > 0:
+			self.queue.pop(0)
+		return self
+
 	def peek( self ):
 		if self.count > 0:
 			v = self.queue[0]
@@ -119,7 +124,7 @@ class Channel:
 	def read( self ):
 		# TODO: We should raise an exception when count == 0
 		v = self.peek()
-		self.queue.pop(0)
+		self.consume()
 		return v
 
 # EOF - vim: ts=4 sw=4 noet

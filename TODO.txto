@@ -46,6 +46,9 @@ Rework::
 
 [ ] Capture: should be the name in upper-case {result} → {RESULT}
 
+[ ] Interpreter/Compiler: they're essentially the same, with different
+    effects, so we should find a common abstraction.
+
 Design::
 
 [ ] Architecture: define the architecture document so that we have

@@ -1,7 +1,7 @@
 (primitive out! lazy let skip next)
 
 ;; TODO: Rewrite using channel primitives
-;; (process (INPUT OUTPUT)
+;; (lambda (INPUT OUTPUT)
 ;;    (iter INPUT
 ;;        (read   INPUT)
 ;;        ;; NOTE: Write is sync, ie. it only works
@@ -12,12 +12,13 @@
 
 ;; expect: --
 (out! "-")
-(skip (lazy (out! "Skipped"))
+(skip (lazy (out! "Skipped")))
 (out! "-")
 
-;; expect: 13
+;; expect: 1.0
+;; expect: 3.0
 (let 
-	(L (lazy (out! 1) (out! 2) (out!3)))
+	(L (lazy (out! 1) (out! 2) (out! 3)))
 	(out!
 		(next L)
 		; NOTE: skip returns #Nil

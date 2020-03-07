@@ -21,6 +21,8 @@ class Axis(Enum):
 	BEFORE      = "<<"
 
 class Predicate:
+	"""An abstract class that defines a predicate, that might match
+	a given context."""
 
 	def __init__( self ):
 		pass
@@ -28,14 +30,23 @@ class Predicate:
 	def match( self, node:Node ) -> bool:
 		raise NotImplementedError
 
+	def clone( self ):
+		raise NotImplementedError
+
 class NodeNamePredicate(Predicate):
 
-	def __init__( self, attribute:str ):
+	def __init__( self, name:str ):
 		super().__init__()
-		self.attribute = attribute
+		self.name = name
 
 	def match( self, node:Node ) -> bool:
-		self.node.name == self.attribute
+		return node.name == self.name
+
+	def clone( self ):
+		return self.__class__(self.name)
+
+	def __str__( self ):
+		return self.name
 
 class AttributeNamePredicate(Predicate):
 
@@ -45,6 +56,12 @@ class AttributeNamePredicate(Predicate):
 
 	def match( self, node:Node ) -> bool:
 		self.node.hasAttribute(self.attribute)
+
+	def clone( self ):
+		return self.__class__(self.attribute)
+
+	def __str__( self ):
+		return f"@{self.attribute}"
 
 # TODO: ExternalPredicate
 # TODO: {And,Or,Not}Predicate
@@ -57,12 +74,17 @@ class AttributeNamePredicate(Predicate):
 # -----------------------------------------------------------------------------
 
 class Selection:
+	"""Combines a predicate and an axis, and allows for chaining of
+	selections, using `where` (to restrict) and `then` (to expand)."""
+
+	# TODO: Add capture
 
 	def __init__( self, axis:Axis, predicate:Predicate ):
 		# The list of sub-selections
 		self._then:List['Selection']  = []
 		# The list of selections that must match
 		self._where:List['Selection'] = []
+		self.axis = axis
 		self.predicate = predicate
 
 	# =========================================================================
@@ -80,6 +102,17 @@ class Selection:
 		self._then.append(selection)
 		return self
 
+	def clone( self ):
+		res = self.__class__(self.axis, self.predicate.clone())
+		res._then = [_.clone() for _ in self._then]
+		res._where = [_.clone() for _ in self._where]
+		return res
+
+	def __str__( self ):
+		w = "".join(f"[{str(_)}]" for _ in self._where)
+		t = "".join(str(_) for _ in self._then)
+		return f"{self.axis.value if self.axis is not Axis.SELF else ''}{self.predicate}{w}{t}"
+
 # -----------------------------------------------------------------------------
 #
 # API SUGAR
@@ -87,6 +120,7 @@ class Selection:
 # -----------------------------------------------------------------------------
 
 class Select:
+	"""A friendly interface to creating selections"""
 
 	@staticmethod
 	def Self( predicate:Predicate ):
@@ -105,7 +139,7 @@ class Select:
 		return Selection(Axis.CHILDREN, predicate)
 
 class With:
-	"""A friendly interface to the predicates"""
+	"""A friendly interface to creating predicates"""
 
 	@staticmethod
 	def Name( name:str ):

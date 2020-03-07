@@ -276,22 +276,25 @@ class Query(CompositeRule):
 # -----------------------------------------------------------------------------
 
 class Traversal:
+	"""Traverse a node (and its descendants), running rules and triggering
+	them when there is a match."""
 
 	def __init__( self, *rules:Rule ):
 		self.rules:List[Rule] = []
 		for r in rules or ():
-			# We skip the walk state rules
+			# We decompose the composite rules.
 			if isinstance(r, CompositeRule):
 				for _ in r.expandRules():
 					if _ not in self.rules:
 						self.rules.append(_)
 			if r not in self.rules:
 				self.rules.append(r)
-		# We exclude WalkStateRules, as they're just meant to be used
-		# by rpedicates.
+		# NOTE: WalkStateRules are a bit special.
 		self.rules = [_ for _ in self.rules if not isinstance(_, WalkStateRule)]
 
 	def traverse( self, node:Node, walk ):
+		"""Traverses the given `node` using the given walk function. The walk
+		function should generate `WalkStep`."""
 		state       = WalkState()
 		self._process(state, WalkStep(node, -1, 0, 0))
 		for step in walk(node, step=1):
@@ -303,8 +306,8 @@ class Traversal:
 		for rule in self.rules:
 			# FIXME: OK, so here we match all the rules, but obviously we
 			# should not have to test them all. Only the atomic rules should
-			# be tested, as the non atom ones can be deduced from the
-			# atomic.
+			# be tested, as the non atomic ones can be deduced from the
+			# atomic. In other words
 			# FIXME: We should also discard some of the matches based on the
 			# rules. The limits will tell how long we'll need to keep them.
 			if rule.match(state, step):
@@ -354,8 +357,8 @@ Q3 = Query(
 
 # Q4 is Q2[Q3]
 Q4 = Query(
-	Current(Q2),
 	Current(Q3),
+	Current(Q2),
 )._as("Q4")
 
 def match_found( state:WalkState, step:WalkStep ):
@@ -372,7 +375,9 @@ tree = node("dir", {"name":"tlang"},
 
 print (tree)
 
+# Now we define a traversal with Q4 and run the matches
 t = Traversal(Q4)
+print ("TRAVERSAL", Q4)
 print (t.rules)
 state = t.traverse(tree, walkDownDepth)
 # TODO: We should get the rank as an optimization

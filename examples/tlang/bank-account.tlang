@@ -1,17 +1,17 @@
-;; @title Bank Account Example
-;; @texto
-;; The bank account example shows how to define a basic schema defining
-;; the data model and define transforms that compute values and produce
-;; reports.
+;; title: Bank Account Example
+;; body
+;;   The bank account example shows how to define a basic schema defining
+;;   the data model and define transforms that compute values and produce
+;;   reports.
 
 (use tlang/schema (schema synthesis attr))
 (use tlang/types  (:Id :Date :Number :Label :Currency :Bool))
 
-;; @h1 Schema
-;; @texto
-;; The first step is to define a schema for how our data is expressed as
-;; a tree. Nodes can reference other nodes through attributes, and some
-;; attributes can be dynamically computed when markes as `#synthetic`.
+;; h1: Schema
+;; body
+;;    The first step is to define a schema for how our data is expressed as
+;;    a tree. Nodes can reference other nodes through attributes, and some
+;;    attributes can be dynamically computed when markes as `#synthetic`.
 (schema
 
   (Account 
@@ -38,18 +38,18 @@
         (transaction Transaction)
         (from       :Account)
         (to         :Account)
-;; @note:texto
-;; The synthetic attributes are derived from the parent
-;; transaction. We'll define how these attributes are computed
-;; in the [synthesis](#) section below.
+;; note
+;;    The synthetic attributes are derived from the parent
+;;    transaction. We'll define how these attributes are computed
+;;    in the [synthesis](#) section below.
         (date       :Date     #synthetic)
         (amount     :Number   #synthetic)
         (currency   :Currency #synthetic))))
 
-;; @h1 Synthesis
-;; @texto
-;; This is where we define the attributes that need to be computed dynamically,
-;; based on other parts of the tree.
+;; h1: Synthesis
+;; body:
+;;   This is where we define the attributes that need to be computed dynamically,
+;;   based on other parts of the tree.
 
 (synthesis
 
@@ -66,23 +66,20 @@
   (attr Operation/@currency
     @transaction/@date))
 
-;; @h1 Transform
-;; @texto
-;; ```
-;; 
-;; ```
+;; h1: Transform
+;; body
 (def accounts-tree
   (namespace o)
 
   ;; TODO: We want a hierarchical list of accounts with their current 
   ;; balance, maybe from a start and end date.
-  (transform #root
+  (transform /
     (o:Accounts
-      (map (#root/Ledger//{Account:A} | sorted ./@label)
+      (map (Ledger//{Account:A} | sorted ./@label)
         (o:account
           (@
-            (label    ./@label)
-            (balance  (
+            (o:label    ./@label)
+            (o:balance  (
               (minus 
                 ;; NOTE: so here we have a very interesting opportunity for
                 ;; optimization. 
@@ -94,7 +91,7 @@
                 ;;    know that we're in a transform, so the tree won't change.
                 ;;    That means that once we know all the accounts (one traversal),
                 ;;    we can execute the predicates on the rest.
-                (sum #root/Ledger/transactions/Transaction/[@to=A/@id]/@amount)
-                (sum #root/Ledger/transactions/Transaction/[@from=A/@id]/@amount)))))))))
+                (sum /Ledger/transactions/Transaction/[@to=A/@id]/@amount)
+                (sum /Ledger/transactions/Transaction/[@from=A/@id]/@amount)))))))))
 
 ;; EOF - vim: ts=2 sw=2 et syn=scheme

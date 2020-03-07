@@ -1,0 +1,13 @@
+(primitive match out!)
+
+;; It should probably be something more high level like
+;; (switch N (0 (out! "0")) (1 (out! "2")) (N (out!)))
+;; Or we could do something different like
+;; (lazy (lazy AC AE) (lazy BC BE) …) | first (→ (A) (# A 0)) | rest
+;; Which means that we create a lazy iterator of iterato with all the 
+;; branches (COND EXPR…) 
+
+
+(match 0
+	(1     (out! "1"))
+	(0     (out! "0")))

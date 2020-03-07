@@ -196,7 +196,7 @@ class Repr:
 	"""Generates a text-based representation of a given node."""
 
 	@classmethod
-	def Apply( cls, node, pretty=True, depth=0 ):
+	def Apply( cls, node, pretty=True, compact=False, depth=0 ):
 		prefix = "  " * depth if pretty else ""
 		yield prefix
 		yield "("
@@ -210,14 +210,16 @@ class Repr:
 				else:
 					yield json.dumps(v)
 				yield ")"
-		for child in node.children:
-			if pretty:
-				yield "\n"
-			yield prefix
-			yield " "
-			yield from cls.Apply(child, pretty, depth + 1)
+		if node.children and compact:
+			yield "…"
+		else:
+			for child in node.children:
+				if pretty:
+					yield "\n"
+				yield prefix
+				yield " "
+				yield from cls.Apply(child, pretty, depth + 1)
 		yield ")"
-
 
 # -----------------------------------------------------------------------------
 #

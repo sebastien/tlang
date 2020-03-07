@@ -13,7 +13,7 @@ class Primitives:
 		context.define("lazy",       self.do_lazy)
 		context.define("next",       self.do_next)
 		context.define("next?",      self.do_hasNext)
-		context.define("skip",       self.do_next)
+		context.define("skip",       self.do_skip)
 
 		# Helpers
 		context.define("primitive",  self.do_primitive)
@@ -60,6 +60,18 @@ class Primitives:
 		if isinstance(chan, Channel):
 			if chan.count > 0:
 				return chan.read()
+			else:
+				# TODO: We should raise an exception
+				return None
+		else:
+			return None
+
+	@invocation( value=EAGER )
+	def do_skip( self, interpreter, args ):
+		chan = args[0]
+		if isinstance(chan, Channel):
+			if chan.count > 0:
+				return chan.consume()
 			else:
 				# TODO: We should raise an exception
 				return None
