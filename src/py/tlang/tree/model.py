@@ -38,6 +38,14 @@ class Node:
 		self.metadata:Optional[Dict[str,Any]] = None
 
 	@property
+	def head( self ) -> Optional['Node']:
+		return self.children[0] if self.children else None
+
+	@property
+	def tail( self ) -> List['Node']:
+		return self.children[1:]
+
+	@property
 	def root( self ) -> Optional['Node']:
 		root   = None
 		parent = self.parent
@@ -404,6 +412,14 @@ class TreeProcessor:
 				yield result
 		else:
 			yield from self.catchall(node)
+
+	def run( self, node:Node, value=None ) -> Any:
+		"""Like feed, but instead of returning an iterator will run through
+		all the values and return the last one."""
+		value = value
+		for v in self.feed(node):
+			value = v
+		return value
 
 	def catchall( self, node ) -> Iterable[Any]:
 		yield TreeProcessorError(node, f"{self.__class__.__name__} does not support node type: {node.name} in ")

@@ -87,8 +87,8 @@ class ValueInterpreter(TreeProcessor):
 		has_rest = protocol and protocol[-1].name == "__"
 		for i, arg_node in enumerate(args):
 			if not has_rest and i > j:
-				# We skip any extra argument, but only if 
-				# there is no __ (rest) argument in the 
+				# We skip any extra argument, but only if
+				# there is no __ (rest) argument in the
 				# protocol.
 				break
 			else:

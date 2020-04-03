@@ -3,8 +3,6 @@ from tlang.tree import Node
 from tlang.query import Selection, Predicate, Axis
 from typing import Optional, Iterator, NamedTuple, Tuple, Dict, List
 
-## todo@texto
-##   [ ] 
 ## The core principle of the query compiler/interpreter is that upon traveral
 ## we keep track of the rules that matched:
 ##
@@ -156,7 +154,12 @@ class Interpreter:
 		`Dict[Optional[Rule],List[Rule]` and tells which rules should be
 		active on next step if the mapped rule matches.
 		"""
+		# These are the rules that should become active once the key rule
+		# matches.
 		rules = self.next
+		# These are the rules that should become directly active once
+		# the key rule matches. In other words, these rules must be tested
+		# before we change the current node as we continue our walk.
 		direct_rules = self.there
 		predicate_rule:Dict[str,Rule] = {}
 		def add( d:TRuleMap, key:str, r:Rule ):
@@ -169,6 +172,9 @@ class Interpreter:
 				l.append(r)
 			return l
 		def register_helper( sel:Selection, origin:Optional[Rule] ):
+			"""Takes a selection, extracts the predicate, registers it as
+			a new rule if not already defined and updates the direct successor
+			and regular successors rule maps."""
 			axis = sel.axis
 			key  = str(sel.predicate)
 			# NOTE: We need to make sure the key captures all the possible

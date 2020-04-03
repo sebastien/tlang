@@ -1,0 +1,6 @@
+(primitive out! cond)
+
+(cond ((out! "ONE,") (out! "NOT OK"))
+      ((out! "TWO,") (out! "NOT OK"))
+      (1 (out! "OK"))
+      (2 (out! "NOT OK")))

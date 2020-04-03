@@ -1,0 +1,7 @@
+(primitive out! and or)
+
+;; @expect OK
+(and 1 (out! "OK"))
+
+;; @expect OK
+(or 0 (out! "OK"))

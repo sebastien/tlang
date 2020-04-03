@@ -41,16 +41,16 @@ class Context:
 
 META_INVOCATION = "__tlang_invocation__"
 
-## TODO: We probably want to move these
-##   symbol#EAGER: Flag that denotes an eager evaluation
+# TODO: We probably want to move these
+#  @symbol Flag that denotes an eager evaluation
 EAGER = 0
-##   symbol#VALUE: Flag that denotes an evaluation of the AST
+#  @symbol Flag that denotes an evaluation of the AST
 VALUE = 0
-##   symbol#LAZY: Flag that denotes a lazy evaluation (opposite of `EAGER`)
+#  @symbol Flag that denotes a lazy evaluation (opposite of `EAGER`)
 LAZY  = pow(2,0)
-##   symbol#DATA: Flag that denotes a data evaluation (ie. no invocation, just the data)
+#  @symbol Flag that denotes a data evaluation (ie. no invocation, just the data)
 DATA  = pow(2,1)
-##   symbol#NODE: Flag that denotes that the argument should be passed as AST
+#  @symbol#NODE: Flag that denotes that the argument should be passed as AST
 NODE  = pow(2,2)
 
 class Argument:
