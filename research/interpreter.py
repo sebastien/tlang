@@ -15,7 +15,7 @@ import inspect
 ## @tdoc:indent spaces=2
 ## title: TLang's Research interpreter
 ## text|texto
-##   This is the experimental, slow, Python-based interpreter for TLang. 
+##   This is the experimental, slow, Python-based interpreter for TLang.
 ##   The goal is to create an interpreter that is suitable for experimentation
 ##   with features, as well as creating a proof of concept for interpreting
 ##   TLang. It is not meant to be fast, but is rather meant as a reference.
@@ -199,7 +199,6 @@ class Interpreter:
 			if hasattr(value, Interpreter.META_MATCH):
 				self.matches[getattr(value, Interpreter.META_MATCH)] = value
 		self.init()
-
 
 	def init( self ):
 		pass

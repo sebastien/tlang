@@ -51,7 +51,7 @@ class ValueInterpreter(TreeProcessor):
 					raise _
 
 	def on_comment( self, node ):
-		pass
+		return node
 
 	def on_ref( self, node ):
 		return self.on_name(node)
@@ -85,7 +85,9 @@ class ValueInterpreter(TreeProcessor):
 		self.pushContext()
 		inter = self
 		has_rest = protocol and protocol[-1].name == "__"
-		for i, arg_node in enumerate(args):
+		# We skip comments from invocations, but they're still part
+		# of the AST.
+		for i, arg_node in enumerate(_ for _ in args if _.name != "ex:comment"):
 			if not has_rest and i > j:
 				# We skip any extra argument, but only if
 				# there is no __ (rest) argument in the

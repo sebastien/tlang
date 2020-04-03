@@ -2,6 +2,7 @@ from .model import Context,Channel,Argument,Rest,invocation,EAGER,LAZY,VALUE,DAT
 from tlang.tree.model import NodeError,Node
 from collections import OrderedDict
 from typing import Iterator,Iterable,Any
+import math
 
 # TLang primitives are defined as a context to which are bound implementations
 # implemented as part of th eruntime. Each primitive is decorated with
@@ -41,6 +42,12 @@ class Primitives:
 
 		# Math
 		context.define("add",        self.do_add)
+		context.define("sub",        self.do_sub)
+		context.define("mul",        self.do_mul)
+		context.define("div",        self.do_div)
+		context.define("floor",      self.do_floor)
+		context.define("ceil",       self.do_ceil)
+		context.define("round",      self.do_round)
 		return self
 
 	@invocation( __=DATA|EAGER )
@@ -109,6 +116,33 @@ class Primitives:
 	def do_add( self, interpreter, args ):
 		a, b = args
 		return a + b
+
+	@invocation( a=EAGER, b=EAGER )
+	def do_sub( self, interpreter, args ):
+		a, b = args
+		return a - b
+
+	@invocation( a=EAGER, b=EAGER )
+	def do_mul( self, interpreter, args ):
+		a, b = args
+		return a * b
+
+	@invocation( a=EAGER, b=EAGER )
+	def do_div( self, interpreter, args ):
+		a, b = args
+		return float(a) / (b or 1)
+
+	@invocation( a=EAGER )
+	def do_floor( self, interpreter, args ):
+		return int(math.floor(args[0]))
+
+	@invocation( a=EAGER )
+	def do_ceil( self, interpreter, args ):
+		return int(math.ceil(args[0]))
+
+	@invocation( a=EAGER )
+	def do_round( self, interpreter, args ):
+		return int(round(args[0]))
 
 	@invocation( a=EAGER, b=LAZY )
 	def do_or( self, interpreter, args ):

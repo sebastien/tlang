@@ -126,7 +126,8 @@ class ExprProcessor(Processor):
 
 	@sourcemap
 	def onNUMBER( self, match):
-		value = float(self.process(match)[0])
+		m = self.process(match)
+		value = int(m[0]) if len(m) == 1 else float(m[0])
 		return self.tree.node("ex:number", {"value":value})
 
 	@sourcemap

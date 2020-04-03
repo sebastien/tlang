@@ -1,0 +1,12 @@
+(out!
+	(add 10  100) ;; @expect 110
+	(sub 100 100) ;; @expect 0
+	(mul 100 3)   ;; @expect 300
+	(div 100 4))  ;; @expect 25.0
+
+(out!
+	(floor 100.2)  ;; @expect 100
+	(ceil  100.5)  ;; @expect 101
+	(round 100.5)  ;; @expect 100
+	(round 100.6)) ;; @expect 101
+
