@@ -52,7 +52,7 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False) -> Grammar:
 	g.rule("ExprValue")
 	g.rule("ExprTemplate"  , s.EXPR_TEMPLATE, s.ExprValue._as("value"), s.RB)
 
-	g.rule("ExprList",       s.LP,    s.ExprValue._as("arg"),  s.RP)
+	g.rule("ExprList",       s.LP,    s.ExprValue.optional()._as("arg"),  s.RP)
 	# NOTE: Here we want to avoid using `ExprValue` as otherwise we'll end up
 	# with really deeply nested matches.
 	g.rule("ExprQuote",      s.QUOTE, s.ExprValuePrefix._as("arg"))
@@ -180,7 +180,10 @@ class ExprProcessor(Processor):
 
 	def onExprList( self, match, arg ):
 		node = self.tree.node("ex:list")
-		if arg.name == "ex:seq":
+		if not arg:
+			# That's the empty list
+			pass
+		elif arg.name == "ex:seq":
 			node.merge(arg)
 		else:
 			if arg.parent:

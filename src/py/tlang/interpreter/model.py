@@ -1,5 +1,20 @@
 from typing import List,Dict,Optional,Any
 
+class Singleton:
+	ALL = {}
+
+	@classmethod
+	def Get( cls, name ):
+		if name not in cls.ALL:
+			cls.ALL[name] = Singleton(name)
+		return cls.ALL[name]
+
+	def __init__( self, name:str ):
+		self.name = name
+
+	def __repr__( self ):
+		return f"#{self.name}"
+
 class Slot:
 
 	def __init__( self, value=None ):
@@ -10,6 +25,16 @@ class Context:
 	def __init__( self, parent:'Context'=None ):
 		self.parent:Optional[Context] = parent
 		self.slots:Dict[str,Slot] = {}
+
+	def listReachableSlots( self ) -> List[str]:
+		res = []
+		context = self
+		while context:
+			for k in context.slots:
+				if k not in res:
+					res.append(k)
+			context = context.parent
+		return res
 
 	def derive( self ) -> 'Context':
 		return Context(self)

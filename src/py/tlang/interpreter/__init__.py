@@ -5,12 +5,18 @@ from tlang.interpreter.primitives import Primitives
 from tlang.interpreter.core import ValueInterpreter
 import os, sys, argparse
 
-def run( tree:Node ):
+def run( tree:Node, repl=False ):
 	inter = ValueInterpreter()
 	Primitives().bind(inter.context)
 	try:
-		for _ in inter.feed(tree):
-			print (_)
+		if not repl:
+			for _ in inter.feed(tree):
+				print (_)
+		else:
+			for child in tree.children:
+				if child.name == "ex:comment":
+					continue
+				print (inter.run(child))
 	except NodeError as e:
 		print (e)
 
@@ -23,6 +29,8 @@ def command( args:Optional[List[str]]=None, name="tlang" ):
 	)
 	oparser.add_argument("files", metavar="FILE", type=str, nargs='*',
 		help='The .tlang source files to process')
+	oparser.add_argument("-l", "--log", action="store_true",
+		help='Logs the value of each expresssion')
 	oparser.add_argument("-vp", "--verbose-parsing", action="store_true",
 		help='Outputs detailed parsing information')
 	# We create the parse and register the options
@@ -36,7 +44,7 @@ def command( args:Optional[List[str]]=None, name="tlang" ):
 			print (res.describe())
 			return None
 		else:
-			return run(processor.process(res))
+			return run(processor.process(res), opts.log)
 
 if __name__ == '__main__':
 	res = command()

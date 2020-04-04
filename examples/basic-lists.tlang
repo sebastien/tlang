@@ -1,0 +1,19 @@
+;; As TLang is a Lisp-like, you'll need to quote (`'`) any list so that
+;; it is not interpreted as an invocation.
+
+;; A list
+'(1 2 3 4)
+
+;; A list with items of different types
+'(1 "one" :Two #three)
+
+;; A list with one element
+'(1)
+
+;; An empty list
+()
+
+;; You can also use quote directly
+;; FIXME: Not working yet
+;; (quote 1 2 3 4)
+;; (quote (1 2 3 4))

@@ -5,6 +5,13 @@ Priorities
 ==========
 
 
+Lib::
+
+[ ] `(default VALUE EXPR)` if VALUE is `#Undefined` then we evalue EXPR.
+[ ] lambda should support protocol
+[ ] let should support effects like `export`
+[ ] d"XXX" for docstrings
+
 Syntax::
 
 [ ]  `path.join` → `(. join path)` ie. "resolve `join` in `path`
@@ -13,14 +20,19 @@ Syntax::
 [ ]  `key:` for a binding, `:Symbol` for a singleton
 [ ] `"*.xml"` for globbing node names
 
+Concepts:
+
+[ ] Symbol is a non-value: it denotes something that does not exist at the
+    runtime level, but that you can reify with the corresponding primitive.
+
 Runtime:
 
 [ ] IDL: Write an IDL description and generate flat buffer structure for the
     data format.
 [ ] Primitives:  `seq`, `iter` and `lazy` are all key primitives that support
-    deferred and lazy evaluation. We need to find a unified structure 
+    deferred and lazy evaluation. We need to find a unified structure
     (probably the channel) to make this work. This will serve as a building
-    block for concurrent 
+    block for concurrent
 [ ] (with A O1 O2 O3) -> (O1 A) (O2 A) (O3 A)
 [ ] Async
 
@@ -30,13 +42,13 @@ AST:
 Rework::
 
 [x] Naming: I find the AST very verbose (`expr-value-number`), and I primarily
-    did that because I wanted an easy way to know if a node is a subset of 
+    did that because I wanted an easy way to know if a node is a subset of
     another. I think it's easier to create groups that we name:
     `(group :Expressions number string computation …)`. There's something
     to be said, though, about the advantage of using prefixes like `type-data-*`,
     as it acts pretty much like namespaces and also makes it possible to
     define groups easily, using the schema. So you could say that `list` is
-    actually of type `expr-value-list` and you have that hierarchy in the 
+    actually of type `expr-value-list` and you have that hierarchy in the
     already.
 
 [ ] TLang: run queries on the command line.
@@ -60,7 +72,7 @@ Design::
 [ ] Compiler: the notion of pass (mutates), transform (one way mapping) and projection
     (two way mapping).
 
-[ ] Meta programming: defines ways to rewrite TLang expressions, ie 
+[ ] Meta programming: defines ways to rewrite TLang expressions, ie
     using macros.
 
 [ ] State machines: we'll need to implement state machines for traversal, but
@@ -76,7 +88,7 @@ Design::
 [ ] Immutability: at least as a flag, that would ensure some properties about
     the values.
 
-[ ] Errors: it's going to be important to communicate errors properly, and 
+[ ] Errors: it's going to be important to communicate errors properly, and
     logging is part of it. Maybe logging could be done through a tree through
     which we emit events? That would be nice.
 
@@ -136,7 +148,7 @@ New features::
 
 Query::
 
-[ ] A syntax to say "all A that are not nested within an A, from 
+[ ] A syntax to say "all A that are not nested within an A, from
     the current node." (what does this even mean?)
 
 Expr::

@@ -1,4 +1,4 @@
-from .model import Context,Argument,META_INVOCATION,NODE,DATA,LAZY
+from .model import Context,Argument,Singleton,META_INVOCATION,NODE,DATA,LAZY
 from tlang.tree.model import TreeTransform,TreeProcessor,TreeBuilder,NodeError,SemanticError
 from typing import List,Dict,Optional,Any
 
@@ -33,16 +33,20 @@ class ValueInterpreter(TreeProcessor):
 	#NOTE: This is a direct invocation
 	#TODO: @on("(list (name (@ (name A))) … REST)")
 	def on_list( self, node ):
-		target = self.process(node.children[0])
-		# NOTE: We do eager evaluation here
-		raw_args = [_ for _ in node.children[1:]]
-		if target is None:
-			raise NodeError(node.children[0], SemanticError("Target resolved to None"))
-		if not hasattr(target, META_INVOCATION):
-			raise NodeError(node, SemanticError("Invocation target is missing invocation protocol meta-information"))
+		if not node.children:
+			# This is a runtime value
+			return []
 		else:
-			protocol = getattr(target, META_INVOCATION)
-			return self.invoke(target, protocol, raw_args)
+			target = self.process(node.children[0])
+			# NOTE: We do eager evaluation here
+			raw_args = [_ for _ in node.children[1:]]
+			if target is None:
+				raise NodeError(node.children[0], SemanticError("Target resolved to None"))
+			if not hasattr(target, META_INVOCATION):
+				raise NodeError(node, SemanticError("Invocation target is missing invocation protocol meta-information"))
+			else:
+				protocol = getattr(target, META_INVOCATION)
+				return self.invoke(target, protocol, raw_args)
 
 	def on_seq( self, node ):
 		for _ in node.children:
@@ -60,7 +64,7 @@ class ValueInterpreter(TreeProcessor):
 		name = node["name"]
 		res = self.context.resolve(name)
 		if res is None:
-			raise NodeError(node, SemanticError(f"Cannot resolve symbol: {name}"))
+			raise NodeError(node, SemanticError(f"Cannot resolve symbol: '{name}' in {node}\n ↳ slots: {','.join(sorted(self.context.listReachableSlots()))}"))
 		else:
 			return res
 
@@ -71,7 +75,11 @@ class ValueInterpreter(TreeProcessor):
 		return node["value"]
 
 	def on_quote( self, node ):
-		return [self.literalInterpreter.process(_) for _ in node.children]
+		# (quote (1 2 3)) returns (1 2 3)
+		# (quote (1 2 3) (4 5)) returns ((1 2 3) (4 5))
+		# FIXME: This should actually be a primitive, as (quote …) should have
+		# the same effect.
+		return self.literalInterpreter.process(node.head) if len(node.children) == 1 else [self.literalInterpreter.process(_) for _ in node.children]
 
 	def invoke( self, target, protocol:'Arguments', args:List[Any] ):
 		"""Performs an invocation of the target using the given arguments.
@@ -118,10 +126,13 @@ class LiteralInterpreter(TreeTransform):
 	PREFIX = "ex:"
 
 	def on_list( self, node ):
-		return [self.process(_) for _ in node.children]
+		return [self.process(_) for _ in node.children] if node.children else []
 
 	def on_name( self, node ):
 		return node["value"]
+
+	def on_singleton( self, node ):
+		return Singleton.Get(node["name"][1:])
 
 	def on_string( self, node ):
 		return node["value"]

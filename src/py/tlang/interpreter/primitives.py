@@ -1,7 +1,7 @@
 from .model import Context,Channel,Argument,Rest,invocation,EAGER,LAZY,VALUE,DATA,NODE
 from tlang.tree.model import NodeError,Node
 from collections import OrderedDict
-from typing import Iterator,Iterable,Any
+from typing import Iterator,Iterable,Any,List
 import math
 
 # TLang primitives are defined as a context to which are bound implementations
@@ -22,6 +22,7 @@ class Primitives:
 	def bind( self, context ):
 		# Core operations
 		context.define("let",        self.do_let)
+		context.define("set!",       self.do_set)
 
 		# Channel
 		context.define("lazy",       self.do_lazy)
@@ -33,6 +34,11 @@ class Primitives:
 		context.define("primitive",  self.do_primitive)
 		context.define("out!",       self.do_out)
 		context.define("lambda",     self.do_lambda)
+
+		# Collections
+		context.define("map",        self.do_map)
+		context.define("filter",     self.do_filter)
+		context.define("reduce",     self.do_reduce)
 
 		# Logic
 		context.define("and",        self.do_and)
@@ -170,6 +176,19 @@ class Primitives:
 		a, b = args
 		return b if a else a
 
+	@invocation( name=NODE, value=EAGER )
+	def do_set( self, interpreter, args:Iterable[Node] ):
+		"""Of the form `(set! SYMBOL VALUE)`"""
+		if len(args) < 2:
+			raise RuntimeError("set! has a form (set! SYMBOL VALUE)")
+		name, value = args
+		# TODO: It could also be a list which would attach attributes
+		# to the slot, we need to support that.
+		name = name.attr("name")
+		# We access the parent context as the subcontext is the attributes
+		interpreter.context.parent.define(name, value)
+		return value
+
 	@invocation( __=NODE )
 	def do_let( self, interpreter, args:Iterable[Node] ):
 		"""Of the form `(let (SYMBOL VALUE)… VALUE)`, eagerly evaluates the
@@ -194,6 +213,23 @@ class Primitives:
 			else:
 				interp.context.define(name, value)
 		yield from interp.feed(args[-1])
+
+	@invocation( collection=EAGER, functor=EAGER )
+	def do_map( self, interpreter, args:List[Any] ):
+		l, f = args
+		return [f(v,i) for i,v in enumerate(l)]
+
+	@invocation( collection=EAGER, functor=EAGER )
+	def do_filter( self, interpreter, args:List[Any] ):
+		l, f = args
+		return [v for i,v in enumerate(l) if f(v,i)]
+
+	@invocation( collection=EAGER, functor=EAGER )
+	def do_reduce( self, interpreter, args:List[Any] ):
+		l, f, r = args
+		for i,v in enumerate(l):
+			r = f(r,v,i)
+		return r
 
 	# FIXME: Lambda should be rewritten using channels.
 	@invocation( args=NODE, __=NODE )
