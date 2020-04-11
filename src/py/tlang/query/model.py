@@ -10,6 +10,7 @@ Defines a model to represent selector and queries.
 
 
 class Axis(Enum):
+	# FIXME: Should we add the "or self"?
 	SELF        = "."
 	PARENT      = "\\"
 	ANCESTORS   = "\\\\"

@@ -19,8 +19,10 @@ tree = node("dir", {"name":"tlang"},
 # We start the querty interpreter
 i = QueryInterpreter()
 i.register(query)
+for _ in i.terminals + i.composites:
+	print (f"- {_}")
 print (f"Registering query: {query}")
 print (f"Running query '{query}' on tree:\n{tree}")
-i.run(tree)
+# i.run(tree)
 
 # EOF - vim: ts=4 sw=4 noet
