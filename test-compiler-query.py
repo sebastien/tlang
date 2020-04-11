@@ -20,7 +20,6 @@ tree = node("dir", {"name":"tlang"},
 i = QueryInterpreter()
 i.register(query)
 print (f"Registering query: {query}")
-print (f"Query interpreter mapping: {i.next}")
 print (f"Running query '{query}' on tree:\n{tree}")
 i.run(tree)
 

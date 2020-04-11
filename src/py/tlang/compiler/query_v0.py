@@ -95,6 +95,9 @@ class Rule:
 
 # The `RuleMap` is used to keep list of rules that should become active
 # once a give rule matches.
+# ---
+# TODO: The List Rule might be better as a set, as I don't think order
+# is important there.
 TRuleMap = Dict[Optional[Rule], List[Rule]]
 
 class QueryInterpreter:

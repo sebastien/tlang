@@ -55,7 +55,7 @@ class AttributeNamePredicate(Predicate):
 		self.attribute = attribute
 
 	def match( self, node:Node ) -> bool:
-		self.node.hasAttribute(self.attribute)
+		return node.hasAttribute(self.attribute)
 
 	def clone( self ):
 		return self.__class__(self.attribute)
