@@ -8,7 +8,6 @@ __doc__ = """
 Defines a model to represent selector and queries.
 """
 
-
 class Axis:
 	# FIXME: Should we add the "or self"?
 	SELF        = "."
@@ -93,10 +92,15 @@ class Selection:
 		self._where:List['Selection'] = []
 		self.axis = axis
 		self.predicate = predicate
+		self._captures:Optional[str] = None
 
 	# =========================================================================
 	# COMBINATORS
 	# =========================================================================
+
+	def captures( self, name ):
+		self._captures = name
+		return self
 
 	def where( self, selection:'Selection' ) -> 'Selection':
 		"""Adds a selection that will filter out matching nodes for this

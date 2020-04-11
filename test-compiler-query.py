@@ -6,7 +6,7 @@ from tlang.tree import Node,node
 query = Select.Descendants(With.Name("dir")).then(
 	Select.Children(With.Name("file")).where(
 		Select.Ancestors(With.Name("dir")).where(
-			Select.Self(With.Attribute("name")))))
+			Select.Self(With.Attribute("name"))))).captures("_")
 
 # This is the tree we want to work with
 tree = node("dir", {"name":"tlang"},
@@ -19,11 +19,9 @@ tree = node("dir", {"name":"tlang"},
 # We start the querty interpreter
 i = QueryInterpreter()
 i.register(query)
-for _ in i.terminals + i.composites:
-	print (f"- {_}")
 print (f"Registering query: {query}")
 print (f"Running query '{query}' on tree:\n{tree}")
-
-i.printMatchTable(i.run(tree))
+for name,node in i.run(tree):
+	print ("Matched", node)
 
 # EOF - vim: ts=4 sw=4 noet

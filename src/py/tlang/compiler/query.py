@@ -64,6 +64,10 @@ class TraversalRule:
 		self.id = id
 		self.usedBy:List['Composite'] = []
 
+	@property
+	def captures( self ):
+		return None
+
 	def match( self, step:TraversalStep, matches:TMatches ) -> bool:
 		return False
 
@@ -162,7 +166,6 @@ class RuleDependency:
 #
 # -----------------------------------------------------------------------------
 
-
 class Composite(TraversalRule):
 	"""A composite rule typically depends on other rules to be triggered."""
 
@@ -173,6 +176,10 @@ class Composite(TraversalRule):
 		Composite.IDS += 1
 		self.selection:Selection = selection
 		self.dependencies:List[RuleRequirement] = []
+
+	@property
+	def captures( self ):
+		return self.selection._captures
 
 	def requires( self, rule:TraversalRule, axis:Axis=Axis.SELF, comparator:Comparator=Comparator.NONE, distance:Union[int,Tuple[int,int]]=(0,0)):
 		# We register a dependecy between the required rule and this
@@ -283,25 +290,33 @@ class QueryInterpreter:
 	def run( self, root:Node ):
 		matches:Dict[TraversalRule, List[TraversalStep]] = {}
 		for step in Traversal.DownDepth(root):
-			print ("―┄ Step:", step.index, "/", ",".join(str(_) for _ in matches.keys()))
-			print ("―┄┄ Node:", step.node)
+			# print ("―┄ Step:", step.index, "/", ",".join(str(_) for _ in matches.keys()))
+			# print ("―┄┄ Node:", step.node)
 			# We seed the lis of rules to check with the terminals
 			to_check = [_ for _ in self.terminals]
+			# Some rules might be matched more than one, so we keep
+			# track of the matched ones.
+			matched = []
 			while to_check:
 				rule = to_check.pop(0)
-				if rule.match(step, matches):
-					print ("―┄┄ ✓ Match:", rule, "matched")
+				if rule.match(step, matches) and rule not in matched:
+					# print ("―┄┄ ✓ Match:", rule, "matched")
+					if rule.captures:
+						yield (rule.captures, step.node)
 					# The latest matches go first
 					matches.setdefault(rule,[]).insert(0, step)
 					# FIXME: This might lead ot testing the same rule
 					# multiple times and potentially having loops. Like
 					# for cells, we should pre-compute the transitive
 					# dependencies.
-					for dep in rule.usedBy:
-						to_check.append(dep)
+					matched.append(rule)
+					for dep_rule in rule.usedBy:
+						if dep_rule not in matched:
+							to_check.append(dep_rule)
 				else:
-					print ("―┄┄ ✗ No match:", rule)
-		return matches
+					pass
+					# print ("―┄┄ ✗ No match:", rule)
+		self.printMatchTable(matches)
 
 	def printMatchTable( self, matches ):
 		rules = self.terminals + self.composites
@@ -313,8 +328,5 @@ class QueryInterpreter:
 		print ("   #\t" + "\t".join(_.id for _ in rules))
 		for i in range(last_index + 1):
 			print (f"{i:4d}\t" + "\t".join("✓" if _[i] else " " for _ in col_values))
-
-
-
 
 # EOF - vim: ts=4 sw=4 noet
