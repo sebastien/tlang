@@ -1,7 +1,7 @@
 from enum import Enum
 from tlang.tree import Node
 from tlang.query import Selection, Predicate, Axis
-from typing import Optional, Iterator, NamedTuple, Tuple, Dict, List
+from typing import Optional, Iterator, NamedTuple, Tuple, Dict, List, Set
 
 ## The core principle of the query compiler/interpreter is that upon traveral
 ## we keep track of the rules that matched:
@@ -62,7 +62,6 @@ class Walk:
 		for c in node.children:
 			yield from Walk.DownBreadth(c, depth + 1, step)
 
-
 # -----------------------------------------------------------------------------
 #
 # RULE
@@ -71,8 +70,8 @@ class Walk:
 
 class Rule:
 	"""A rule wraps a selection's *predicate* in a uniquely identified rule.
-	The rules abstract away from the predicate, creating an opportunity for
-	loose coupling with compiler query model."""
+	The rules abstract away from the predicate, so that the interpreter model
+	can be independent from how it is implemented at the compiler level."""
 
 	COUNT = 0
 
@@ -86,7 +85,7 @@ class Rule:
 		Rule.COUNT += 1
 
 	def __repr__( self ):
-		return f"#{self.name}:{self.predicate}"
+		return f"{self.name}:{self.predicate}"
 
 # -----------------------------------------------------------------------------
 #
@@ -94,9 +93,11 @@ class Rule:
 #
 # -----------------------------------------------------------------------------
 
+# The `RuleMap` is used to keep list of rules that should become active
+# once a give rule matches.
 TRuleMap = Dict[Optional[Rule], List[Rule]]
 
-class Interpreter:
+class QueryInterpreter:
 	"""Captures the map of rules that should be active after a given rule
 	is triggered."""
 
@@ -107,12 +108,11 @@ class Interpreter:
 	# that B cannot occur before A, which means  `NEXT(A) = B`
 	#
 	# A//B also means like A/B that B cannot happen before A, but it also
-	# means that A can also happen next in a top-downtraversal, which 
+	# means that A can also happen next in a top-downtraversal, which
 	# means `NEXT(A) = {A,B}`.
-	# 
 
 	def __init__( self ):
-		# Next is the list of rules that are going to be active after the 
+		# Next is the list of rules that are going to be active after the
 		# given rule matches.
 		# --
 		# For instance, with A/B
@@ -120,10 +120,17 @@ class Interpreter:
 		# and with A//B
 		#    next[A] → [A,B]
 		self.next:TRuleMap = {}
-		# There rules are rules that should be evaluated as part of the current
-		# iteration, not for the next one. This happens in cases like
-		# `file[\\dir]`, where `dir` is a requirement 
+		# Some rules should be evaluated as part of the current
+		# iteration only, not for the next one. This happens in cases like
+		# `file[\\dir]`, where `dir` is a requirement. We define that as
+		# a `there` map.
 		self.there:TRuleMap = {}
+
+
+	# TODO: We should split this is feed/run
+	def run( self, root:Node ):
+		"""Runs the interpreter on the given node. You'll need to have queries
+		already registered (see `register`) or nothing will happen."""
 		# The interpreter has a list of *active rules*, seeded with `next[None]`.
 		# When a rule *matches*, its *action* is triggered, and its *succesors*
 		# (`next[rule]`) are added to the list of active rules, which starts
@@ -131,20 +138,54 @@ class Interpreter:
 		# --
 		# NOTE: Some rules might dynamically decide the next rules, or restrict
 		# them based on some dynamic condition.
+		# --
+		# We get the initial list of rules (our root rules), which are
+		# mapped to None. These become the ACTIVE RULES.
+		root_rules:Set[Rule] = set(self.next[None])
+		active_rules:Set[Rule] = root_rules
+		# We keep track of the matches for a given rule in this structure.
+		matched_rules:Dict[Rule,List[Step]] = {}
+		# We do a depth-first traversal starting from the given root node.
+		for step in Walk.DownDepth(root):
+			print ("―┄ Step:", step.index)
+			print ("―┄┄ Node:", step.node)
+			print ("―┄┄ Active:", active_rules)
+			node = step.node
+			# For each ACTIVE RULE
+			next_rules:Set[Rule] = set(_ for _ in root_rules)
+			for rule in active_rules:
+				# We find the ones that match the nodes:
+				if not rule.predicate.match(node):
+					print ("―┄┄ ✗ No match:", rule)
+				else:
+					if rule in self.there:
+						# Here we would need to make sure that the "there"
+						# rules all match.
+						#raise NotImplementedError(f"There rules are not supported yet: {self.there[rule]} in {rule} at {node}")
+						pass
+					# We register that step as a match for the given rule
+					matched_next = self.next.get(rule, [])
+					print ("―┄┄ ✓ Match:", rule, "→", matched_next)
+					matched_rules.setdefault(rule, []).append(step)
+					# We extend the next rules with these ones
+					next_rules = next_rules.union(matched_next)
+					# This is a terminal rule, ie. it does not have any other
+					# rule
+					# --
+					# TODO: Add the case wher the rule has an action, or
+					# captures the match in the scope.
+					if not matched_next:
+						print ("―┄┄ » Value:", node, "from", rule)
+						#yield (rule, node)
+			# Now we switch the active rules
+			active_rules = next_rules
+			print ("―┄┄ → New active rules:", active_rules)
 
-	def run( self, node:Node ):
-		"""Runs the interpreter on the given node. You'll need to have queries
-		already registered for it to work."""
-		current:Optional[Node] = None
-		rules:List[Rule] = self.next[current]
-		for step in Walk.DownDepth(node):
-			print ("STEP", step)
-			for rule in rules:
-				if rule.predicate.match(node):
-					print ("  RULE MATCHES", rule, "ON", repr(node))
 
 	# FIXME: This assumes depth-first, the logic would be different
 	# for other traversal orders.
+	# FIXME: This algorithm is also quite long and convoluted, it should
+	# be simplified.
 	def register( self, selection:Selection ) -> Tuple[TRuleMap,TRuleMap]:
 		"""Registers the given `selection`. This will extract all the predicates
 		from the selection and wrap them in rules that are uniquely
