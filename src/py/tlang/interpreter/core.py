@@ -1,5 +1,5 @@
 from .model import Context,Argument,Singleton,META_INVOCATION,NODE,DATA,LAZY
-from tlang.tree.model import TreeTransform,TreeProcessor,TreeBuilder,NodeError,SemanticError
+from tlang.tree.model import TreeTransform,TreeProcessor,TreeBuilder,NodeError,SemanticError,Node
 from typing import List,Dict,Optional,Any
 
 # -----------------------------------------------------------------------------
@@ -13,10 +13,11 @@ class ValueInterpreter(TreeProcessor):
 
 	PREFIX = "ex:"
 
-	def __init__( self, context:Context=None, literalInterpreter=None ):
+	def __init__( self, context:Context=None, literalInterpreter=None, treeInterpreter=None ):
 		super().__init__()
 		self.context:Context = context or Context()
 		self.literalInterpreter = literalInterpreter or LiteralInterpreter()
+		self.treeInterpreter = treeInterpreter or TreeInterpreter()
 
 	def pushContext( self ):
 		self.context = Context(self.context)
@@ -28,7 +29,7 @@ class ValueInterpreter(TreeProcessor):
 		return res
 
 	def derive( self ):
-		return self.__class__(self.context.derive(), self.literalInterpreter)
+		return self.__class__(self.context.derive(), self.literalInterpreter, self.treeInterpreter)
 
 	#NOTE: This is a direct invocation
 	#TODO: @on("(list (name (@ (name A))) … REST)")
@@ -121,7 +122,7 @@ class ValueInterpreter(TreeProcessor):
 		return res
 
 class LiteralInterpreter(TreeTransform):
-	"""Creates subtrees from expressions"""
+	"""Evaluates the AST to a primitive structure"""
 
 	PREFIX = "ex:"
 
@@ -139,5 +140,24 @@ class LiteralInterpreter(TreeTransform):
 
 	def on_number( self, node ):
 		return node["value"]
+
+class TreeInterpreter(TreeTransform):
+	"""Evaluates the AST to form a TLang tree"""
+
+	def on_ex__list( self, node ):
+		print ("XXX", node)
+		head = node.head
+		node_name = self.process(node.head)
+		res = Node(node_name)
+		for child in node.tail:
+			print ("CHILD", self.process(child))
+		return res
+
+	def on_ex__ref( self, node ):
+		return node["name"]
+
+	def on__q_query( self, node ):
+		print ("QUERY", node)
+		return None
 
 # EOF - vim: ts=4 sw=4 noet

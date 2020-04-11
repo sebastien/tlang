@@ -132,6 +132,11 @@ class Node:
 	def append( self, node:'Node') -> 'Node':
 		return self.add(node)
 
+	def extend( self, nodes:List['Node']) -> 'Node':
+		for node in nodes:
+			self.add(node.detach())
+		return self
+
 	def remove( self, node:'Node' ) -> 'Node':
 		assert node.parent is self, "Cannot remove node from {0}, it has a different parent: {1}".format(self, node.parent)
 		node.parent = None
@@ -211,7 +216,7 @@ class Repr:
 		yield node.name
 		if node.hasAttributes:
 			for k,v in node.attributes.items():
-				yield f" ({k}: "
+				yield f" (@{k} "
 				# TODO: We should support node references
 				if isinstance(v, Node):
 					yield "#{0}".format(v)
@@ -219,7 +224,7 @@ class Repr:
 					yield json.dumps(v)
 				yield ")"
 		if node.children and compact:
-			yield "…"
+			yield " …"
 		else:
 			for child in node.children:
 				if pretty:
@@ -372,7 +377,7 @@ class TreeProcessor:
 			if hasattr(value, TreeProcessor.META_MATCH):
 				self.matches[getattr(value, TreeProcessor.META_MATCH)] = value
 			elif name.startswith("on_"):
-				self.matches[self.PREFIX + name[3:].replace("_","-")] = value
+				self.matches[self.PREFIX + name[3:].replace("__",":").replace("_","-")] = value
 		self.init()
 
 	def init( self ):

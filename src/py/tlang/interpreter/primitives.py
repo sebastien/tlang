@@ -30,10 +30,14 @@ class Primitives:
 		context.define("next?",      self.do_hasNext)
 		context.define("skip",       self.do_skip)
 
+		# Trees
+		context.define("tree",       self.do_tree)
+
 		# Helpers
 		context.define("primitive",  self.do_primitive)
 		context.define("out!",       self.do_out)
 		context.define("lambda",     self.do_lambda)
+
 
 		# Collections
 		context.define("map",        self.do_map)
@@ -109,6 +113,12 @@ class Primitives:
 				return None
 		else:
 			return None
+
+	@invocation( value=NODE )
+	def do_tree( self, interpreter, args ):
+		# The tree primitive simply forwards the evaluation of the AST
+		# to the tree interpreter.
+		return interpreter.treeInterpreter.run(args[0])
 
 	@invocation( value=EAGER )
 	def do_hasNext( self, interpreter, args ):

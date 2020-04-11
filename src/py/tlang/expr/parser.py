@@ -266,6 +266,10 @@ class ExprProcessor(Processor):
 					# If the SEQ is preceded by a REST or SEQ, then its
 					# content is merged.
 					prefix.merge(suffix)
+				elif prefix_name == "q:attribute":
+					# We have a query attribute like (@PREFIX SUFFIX)
+					prefix.extend(suffix.children)
+					result = prefix
 				else:
 					# Otherwise we inject the preceding value in the SEQ
 					suffix.insert(0, prefix)

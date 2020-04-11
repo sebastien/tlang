@@ -10,15 +10,15 @@ Lib::
 [ ] `(default VALUE EXPR)` if VALUE is `#Undefined` then we evalue EXPR.
 [ ] lambda should support protocol
 [ ] let should support effects like `export`
-[ ] d"XXX" for docstrings
 
 Syntax::
 
-[ ]  `path.join` → `(. join path)` ie. "resolve `join` in `path`
-[ ]   `(a b c)→(d e)` becomes `(lambda (a b c) d e)`
-[ ]  (→ a b)` becomes `(lambda (_ _1 _2) a b)`
-[ ]  `key:` for a binding, `:Symbol` for a singleton
+[ ] `path.join` → `(. join path)` ie. "resolve `join` in `path`
+[ ] `(a b c)→(d e)` becomes `(lambda (a b c) d e)`
+[ ] (→ a b)` becomes `(lambda (_ _1 _2) a b)`
+[ ] `key:` for a binding, `:Symbol` for a singleton
 [ ] `"*.xml"` for globbing node names
+[ ] d"XXX" for docstrings
 
 Concepts:
 
@@ -27,6 +27,7 @@ Concepts:
 
 Runtime:
 
+[ ] Interpreter: make sure errors are linked back to the source text
 [ ] IDL: Write an IDL description and generate flat buffer structure for the
     data format.
 [ ] Primitives:  `seq`, `iter` and `lazy` are all key primitives that support

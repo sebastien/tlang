@@ -1,9 +1,17 @@
 == TLang Interpreter
 
-We have different interpreters:
+TLang has multiple interpreters that will produce different values or effects
+given the same AST:
 
-- Data: produces host data structures from the AST
-- Process: binds values in contexts, creating subinterpreters, returning a value
+- Literal: produces literal values from a subset of the AST. For instance
+  `(1 2 3)` would produce a list, `( (a: 0) (b: 2) (c: 3) )` would produce
+  a map.
+
+- Tree: interprets the AST as the description of a tree. For instance
+  `(html (@xml:lang "en"))` would produce an HTML node.
+
+- Process: that is what a regular interpeter would do, it turns the
+  expressions into values and effects.
 
 The invocation protocol (application) can then make use of different
 interpretations:
@@ -13,7 +21,7 @@ interpretations:
 - `process` turns the AST node into a generator of values and effects
 
 Ex: `(lambda ARGS CODE…)` evaluates `ARGS` as `raw` and extracts the names
-of the arguments, and then `CODE` is only evaluated when the `lambda` is 
+of the arguments, and then `CODE` is only evaluated when the `lambda` is
 used in an invocation. It returns a value that needs N arguments to work.
 
 
@@ -31,17 +39,20 @@ are unstructured, that's important).
 ;; We declare + as a primitive for this process (ie. it's already available
 ;; and bound)
 (primitive +)
+;; We define slots for our arguments A,B and our result R
 (slots A B R)
-
 ;; We receive values A and B from the environment (they're dynamic)
 (receive! :in A)
 (receive! :in B)
-
-;; We switch to the '+' channel
-(channel +)
-(emit! + A)
-(emit! + B)
-(receive! + R)
+;; We open a subchannel I using the '+' symbol, which spawns a new
+;; subprocess with + and opens a communication channel I.
+(open I +)
+;; We send A and B to I
+(emit! I A)
+(emit! I B)
+;; Because + only takes 2 arguments, the process now executes and we're
+;; ready to receive the value.
+(receive! I R)
 (emit! :out R)
 ```
 
@@ -64,8 +75,8 @@ While C needs a full iteration (it's a sort), we could certainly collapse the
 map and the filter. We could define a map filter operation, but maybe the
 interpreter would be able to automatically combine both.
 
-But if the iteration and the pipe is lazy, ie. it happens one element at 
-a time, then the step A will fee B, wich will fee C and D. If we remove
+But if the iteration and the pipe are lazy, ie. it happens one element at
+a time, then the step A will fee B, wich will feed C and D. If we remove
 the sort, we should only iterate on 10 elements.
 
 That's already possible if we're using itertors, so the idea is to have
