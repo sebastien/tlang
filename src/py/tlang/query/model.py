@@ -9,7 +9,7 @@ Defines a model to represent selector and queries.
 """
 
 
-class Axis(Enum):
+class Axis:
 	# FIXME: Should we add the "or self"?
 	SELF        = "."
 	PARENT      = "\\"
@@ -20,6 +20,12 @@ class Axis(Enum):
 	NEXT        = "<"
 	AFTER       = ">>"
 	BEFORE      = "<<"
+
+	# TODO: We might want to have children and parent as just descendants
+	# and ancestors
+	VERTICAL    = (PARENT, ANCESTORS, SELF, CHILDREN, DESCENDANTS)
+	HORIZONTAL  = (PREV, NEXT)
+	TRAVERSAL   = (AFTER, BEFORE)
 
 class Predicate:
 	"""An abstract class that defines a predicate, that might match
@@ -112,7 +118,7 @@ class Selection:
 	def __str__( self ):
 		w = "".join(f"[{str(_)}]" for _ in self._where)
 		t = "".join(str(_) for _ in self._then)
-		return f"{self.axis.value if self.axis is not Axis.SELF else ''}{self.predicate}{w}{t}"
+		return f"{self.axis if self.axis != Axis.SELF else ''}{self.predicate}{w}{t}"
 
 # -----------------------------------------------------------------------------
 #

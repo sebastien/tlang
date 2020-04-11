@@ -18,7 +18,7 @@ class Comparator(Enum):
 # -----------------------------------------------------------------------------
 
 TraversalStep =  NamedTuple('TraversalStep', [
-	('node',Node), ('depth',int), ('breadth',int), ('index',int)])
+	('node',Node), ('depth',int), ('breadth',int), ('index', int)])
 
 class Traversal:
 	"""Traverses a tree, yielding steps that keep track of the position within
@@ -26,13 +26,17 @@ class Traversal:
 	detect if there is a match or not."""
 
 	@classmethod
-	def DownDepth(cls, node:Node, depth:int=0, step:int=0) -> Iterator[TraversalStep]:
+	def DownDepth(cls, node:Node) -> Iterator[TraversalStep]:
 		"""Walks down the given node and yields corresponding TraversalStep, starting
 		off the given `depth` and `step`. """
-		for i,c in enumerate(node.children):
-			yield TraversalStep(c, depth, i, step)
-			step += 1
-			yield from cls.DownDepth(c, depth + 1, step)
+		i = 0
+		stack = [TraversalStep(node, 0, 0, 0)]
+		while stack:
+			step = stack.pop()
+			yield TraversalStep(step.node, step.depth, step.breadth, i)
+			i += 1
+			for j,child in enumerate(step.node.children):
+				stack.append(TraversalStep(child, step.depth + 1, j, 0))
 
 	@classmethod
 	def DownBreadth(cls, node:Node, depth:int=0, step:int=0) -> Iterator[TraversalStep]:
@@ -60,7 +64,7 @@ class TraversalRule:
 		self.id = id
 		self.usedBy:List['Composite'] = []
 
-	def match( self, node:Node, matches:TMatches ) -> bool:
+	def match( self, step:TraversalStep, matches:TMatches ) -> bool:
 		return False
 
 	def __repr__( self ):
@@ -82,9 +86,9 @@ class Terminal(TraversalRule):
 		Terminal.IDS += 1
 		self.predicate = predicate
 
-	def match( self, node:Node, matches:TMatches ):
+	def match( self, step:TraversalStep, matches:TMatches ):
 		# It's a terminal, so we ignore the contextual matches
-		return self.predicate.match(node)
+		return self.predicate.match(step.node)
 
 	def __repr__( self ):
 		return f"{self.id}:{self.predicate}"
@@ -124,14 +128,33 @@ class RuleDependency:
 			raise ValueError(f"Axis not supported: {axis}")
 		return self
 
-	def match( self, node:Node, matches:TMatches ) -> bool:
-		print ("        Dependency on", self.rule)
+	def match( self, step:TraversalStep, matches:TMatches ) -> bool:
+		# NOTE: For performance, the conditional should be outside of the for
 		for match in matches.get(self.rule, ()):
-			# TODO: We need to check the predicates
-			print ("        --> OK", match)
-			return True
-		print ("        --> NOT OK")
+			if self.axis in Axis.VERTICAL:
+				# FIXME: This requires that the matches are popped when
+				# backtracking in the traversal
+				if self.matchDistance(step.depth - match.depth):
+					return True
+			else:
+				raise ValueError(f"Axis type not supported: {self.axis}")
 		return False
+
+	def matchDistance( self, d ):
+		if self.comparator == Comparator.NONE:
+			return True
+		elif self.comparator == Comparator.LTE:
+			return d <= self.minDistance
+		elif self.comparator == Comparator.LT:
+			return d < self.minDistance
+		elif self.comparator == Comparator.EQ:
+			return self.minDistance <= d and d <= self.maxDistance
+		elif self.comparator == Comparator.GT:
+			return d >= self.minDistance
+		elif self.comparator == Comparator.GTE:
+			return d > self.minDistance
+		else:
+			raise ValueError(f"Comparator not supported: {self.comparator}")
 
 # -----------------------------------------------------------------------------
 #
@@ -170,13 +193,12 @@ class Composite(TraversalRule):
 		self.requires(rule, axis=rule.selection.axis)
 		return self
 
-	def match( self, node:Node, matches:TMatches ):
+	def match( self, step:TraversalStep, matches:TMatches ):
 		# The rule dependency is not a terminal, so it ignores the current node
 		# but only matches the context
-		print ("       ", self.id, self.dependencies)
 		assert self.dependencies, f"Composite rule has no dependencies: {self}"
 		for dep in self.dependencies:
-			if not dep.match(node, matches):
+			if not dep.match(step, matches):
 				return False
 		return True
 
@@ -189,7 +211,9 @@ class Composite(TraversalRule):
 #
 # -----------------------------------------------------------------------------
 
-class SelectionTransform:
+class SelectionProcessor:
+	"""Processes selection object and registers rules (terminals and
+	composites) that can then be used by the query interpreter."""
 
 	def __init__( self ):
 		self.terminals:Dict[str,Terminal] = {}
@@ -248,12 +272,12 @@ class SelectionTransform:
 class QueryInterpreter:
 
 	def __init__( self ):
-		self.transform = SelectionTransform()
+		self.transform = SelectionProcessor()
 		self.terminals = []
 		self.composites = []
 
 	def register( self, query:Selection ):
-		(self.terminals, self.composites) = SelectionTransform().process(query)
+		(self.terminals, self.composites) = SelectionProcessor().process(query)
 		return self
 
 	def run( self, root:Node ):
@@ -261,12 +285,11 @@ class QueryInterpreter:
 		for step in Traversal.DownDepth(root):
 			print ("―┄ Step:", step.index, "/", ",".join(str(_) for _ in matches.keys()))
 			print ("―┄┄ Node:", step.node)
-			node = step.node
 			# We seed the lis of rules to check with the terminals
 			to_check = [_ for _ in self.terminals]
 			while to_check:
 				rule = to_check.pop(0)
-				if rule.match(node, matches):
+				if rule.match(step, matches):
 					print ("―┄┄ ✓ Match:", rule, "matched")
 					# The latest matches go first
 					matches.setdefault(rule,[]).insert(0, step)
@@ -278,6 +301,20 @@ class QueryInterpreter:
 						to_check.append(dep)
 				else:
 					print ("―┄┄ ✗ No match:", rule)
+		return matches
+
+	def printMatchTable( self, matches ):
+		rules = self.terminals + self.composites
+		last_index = max(max(_.index for _ in matches.get(r, ())) for r in rules)
+		col_values = [dict( (_.index, _) for _ in matches.get(r, ())) for r in rules]
+		col_values = [[_.get(i,None) for i in range(last_index + 1)] for _ in  col_values]
+		for i,_ in enumerate(rules):
+			print (f"     \t{'┊	'*i}⮦ {_}")
+		print ("   #\t" + "\t".join(_.id for _ in rules))
+		for i in range(last_index + 1):
+			print (f"{i:4d}\t" + "\t".join("✓" if _[i] else " " for _ in col_values))
+
+
 
 
 # EOF - vim: ts=4 sw=4 noet
