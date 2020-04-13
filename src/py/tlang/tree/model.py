@@ -154,16 +154,11 @@ class Node:
 			self.children.insert(index, node)
 		return node
 
-	def walk( self, functor ):
-		return self._walk(self, functor)
-
-	def _walk( self, node, functor ):
-		if functor(node) is False:
-			return False
-		for c in node.children:
-			if self._walk(c, functor) is False:
-				return False
-		return True
+	def walk( self, functor=None ):
+		if not functor or functor(self) is not False:
+			yield self
+			for c in self.children:
+				yield from c.walk(functor)
 
 	def toPrimitive( self ):
 		res   = [self.name]
@@ -362,6 +357,13 @@ class TreeProcessor:
 
 	META_MATCH = "__tlang_model_treebuilder_match"
 	PREFIX     = ""
+	INSTANCE   = None
+
+	@classmethod
+	def Get( cls ):
+		if not cls.INSTANCE:
+			cls.INSTANCE = cls()
+		return cls.INSTANCE
 
 	@staticmethod
 	def Match( name:str ):
@@ -427,7 +429,7 @@ class TreeProcessor:
 		return value
 
 	def catchall( self, node ) -> Iterable[Any]:
-		yield TreeProcessorError(node, f"{self.__class__.__name__} does not support node type: {node.name} in ")
+		yield TreeProcessorError(node, f"{self.__class__.__name__} does not support node type: {node.name}")
 
 # NOTE: We might differenciate later
 class TreeTransform(TreeProcessor):

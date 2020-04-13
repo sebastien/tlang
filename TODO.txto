@@ -20,6 +20,10 @@ Syntax::
 [ ] `"*.xml"` for globbing node names
 [ ] d"XXX" for docstrings
 
+Refactor::
+
+[ ] compiler.query → query.interpreter?
+
 Concepts:
 
 [ ] Symbol is a non-value: it denotes something that does not exist at the

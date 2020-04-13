@@ -282,6 +282,8 @@ class QueryInterpreter:
 		self.transform = SelectionProcessor()
 		self.terminals = []
 		self.composites = []
+		self.isTracing = True
+		self.trace = print
 
 	def register( self, query:Selection ):
 		(self.terminals, self.composites) = SelectionProcessor().process(query)
@@ -290,8 +292,9 @@ class QueryInterpreter:
 	def run( self, root:Node ):
 		matches:Dict[TraversalRule, List[TraversalStep]] = {}
 		for step in Traversal.DownDepth(root):
-			# print ("―┄ Step:", step.index, "/", ",".join(str(_) for _ in matches.keys()))
-			# print ("―┄┄ Node:", step.node)
+			if self.isTracing:
+				self.trace("―┄ Step:", step.index, "/", ",".join(str(_) for _ in matches.keys()))
+				self.trace("―┄┄ Node:", step.node)
 			# We seed the lis of rules to check with the terminals
 			to_check = [_ for _ in self.terminals]
 			# Some rules might be matched more than one, so we keep
@@ -300,7 +303,8 @@ class QueryInterpreter:
 			while to_check:
 				rule = to_check.pop(0)
 				if rule.match(step, matches) and rule not in matched:
-					# print ("―┄┄ ✓ Match:", rule, "matched")
+					if self.isTracing:
+						self.trace ("―┄┄ ✓ Match:", rule, "matched, captures?", rule.captures)
 					if rule.captures:
 						yield (rule.captures, step.node)
 					# The latest matches go first
@@ -314,19 +318,21 @@ class QueryInterpreter:
 						if dep_rule not in matched:
 							to_check.append(dep_rule)
 				else:
-					pass
-					# print ("―┄┄ ✗ No match:", rule)
-		self.printMatchTable(matches)
+					if self.isTracing:
+						self.trace("―┄┄ ✗ No match:", rule)
+		if self.isTracing:
+			self.traceMatchingTable(matches)
 
-	def printMatchTable( self, matches ):
+	def traceMatchingTable( self, matches, trace=None ):
+		trace = self.trace
 		rules = self.terminals + self.composites
 		last_index = max(max(_.index for _ in matches.get(r, ())) for r in rules)
 		col_values = [dict( (_.index, _) for _ in matches.get(r, ())) for r in rules]
 		col_values = [[_.get(i,None) for i in range(last_index + 1)] for _ in  col_values]
 		for i,_ in enumerate(rules):
-			print (f"     \t{'┊	'*i}⮦ {_}")
-		print ("   #\t" + "\t".join(_.id for _ in rules))
+			trace (f"     \t{'┊	'*i}⮦ {_}")
+		trace ("   #\t" + "\t".join(_.id for _ in rules))
 		for i in range(last_index + 1):
-			print (f"{i:4d}\t" + "\t".join("✓" if _[i] else " " for _ in col_values))
+			trace (f"{i:4d}\t" + "\t".join("✓" if _[i] else " " for _ in col_values))
 
 # EOF - vim: ts=4 sw=4 noet

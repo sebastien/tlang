@@ -1,8 +1,8 @@
 from enum import Enum
-from typing import Optional, Any, List, Dict
+from typing import Optional, Any, List, Dict, cast
 from collections import OrderedDict
 from tlang.utils import NOTHING
-from tlang.tree.model import Node
+from tlang.tree.model import Node,TreeProcessor
 
 __doc__ = """
 Defines a model to represent selector and queries.
@@ -25,6 +25,7 @@ class Axis:
 	VERTICAL    = (PARENT, ANCESTORS, SELF, CHILDREN, DESCENDANTS)
 	HORIZONTAL  = (PREV, NEXT)
 	TRAVERSAL   = (AFTER, BEFORE)
+	ALL         = (SELF, PARENT, ANCESTORS, CHILDREN , DESCENDANTS, PREV, NEXT, AFTER, BEFORE)
 
 class Predicate:
 	"""An abstract class that defines a predicate, that might match
@@ -159,5 +160,60 @@ class With:
 	@staticmethod
 	def Attribute( name:str ):
 		return AttributeNamePredicate(name)
+
+
+# -----------------------------------------------------------------------------
+#
+# QUERY PROCESSOR
+#
+# -----------------------------------------------------------------------------
+
+class QueryProcessor(TreeProcessor):
+	"""Processes the parsed query AST and generates a Selection object
+	from it."""
+
+	PREFIX = "q:"
+
+	def on_query( self, node:Node ) -> Selection:
+		assert node.children, f"Query has no children: {node}"
+		for i,child in enumerate(node.children):
+			if i == 0:
+				sel = self.process(child)
+			else:
+				sel.then(cast(Selection,self.process(child)))
+		# We make sure the selection captures the result
+		if not sel._captures:
+			sel.captures("_")
+		return sel
+
+	def on_selection( self, node:Node ) -> Selection:
+		# Like (q:selection (q:axis) EXPR)
+		axis = self.process(node.children[0])
+		predicate = self.process(node.children[1])
+		return Selection(axis, predicate)
+
+	def on_axis( self, node:Node ) -> Axis:
+		# Like (q:axis (@axis "//")
+		axis = node["axis"]
+		if not axis in Axis.ALL:
+			raise ValueError(f"Unsupported axis '{axis}' expected one of: {Axis.ALL}")
+		return axis
+
+	def on_node( self, node:Node ) -> Predicate:
+		# Like (q:node (@name …) (@ns …))
+		name = node["name"]
+		# TODO: NS
+		#ns   = node["ns"]
+		return NodeNamePredicate(name)
+
+
+# -----------------------------------------------------------------------------
+#
+# HIGH LEVEL API
+#
+# -----------------------------------------------------------------------------
+
+def processQuery(query:Node):
+	return QueryProcessor.Get().process(query)
 
 # EOF - vim: ts=4 sw=4 noet
