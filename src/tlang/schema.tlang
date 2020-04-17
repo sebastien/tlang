@@ -5,17 +5,17 @@
 (transform schema-expand-child!
 
 	(any L…)
-		'(consume (assert (type? _ ${L})))
+		'(consume (assert (type? _ {L})))
 
 	(many L…)
-		'(consume-many (assert (type? _ ${L})))
+		'(consume-many (assert (type? _ {L})))
 
 	(maybe L…)
-		'(consume-maybe (type? _ ${L}))
+		'(consume-maybe (type? _ {L}))
 
 	(seq L…)
 		(each L
-			'(consume (assert (type? _ ${_}))))
+			'(consume (assert (type? _ {_}))))
 
 )
 
@@ -31,20 +31,20 @@
 			;; - from: `(schema (expr-value-string (@value type-list))`
 			;; - to:   `(attr (expr-value-string value) (type? _ type-list))`
 
-			'(attr (NODE ${(name ATTRIBUTE))} (assert (type? _ ${ATTRIBUTE})))
+			'(attr (NODE {(name ATTRIBUTE))} (assert (type? _ {ATTRIBUTE})))
 
 		'(stream ./*
 
-			${(each {./*:CHILDREN}
+			{(each {./*:CHILDREN}
 				(apply schema-expand-child! _)
 				(match
 					(many L…)
-						'(consume-while (node? _ ${L})))
+						'(consume-while (node? _ {L})))
 					(any L…)
-						'(consume (assert (node? _ ${L})))
+						'(consume (assert (node? _ L})))
 			}
-						
-	
+
+
 
 ;; Implementing (:seq A B C)
 

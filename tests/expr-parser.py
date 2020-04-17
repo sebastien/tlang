@@ -30,6 +30,10 @@ SUFFIXES = """
 (list A … B C D)
 (list A | A)
 (list A | A B)
+(list A . B)
+(list A…B)
+(list A|B)
+(list A.B)
 """
 
 QUOTES = """
@@ -46,10 +50,14 @@ BINDINGS = """
 """
 
 TEMPLATES = """
-${1}
-(add ${1})
-(add ${(add 1 2)})
-${VARIABLE_NAME}
+{1}
+{VARIABLE_NAME}
+(add {1})
+(add {(add 1 2)})
+{A . B}
+{A.B}
+{A|B}
+{a|format}
 """
 
 def test_values():

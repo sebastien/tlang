@@ -30,7 +30,7 @@
   (ol
     (* li ul ol))
 
-  (link 
+  (link
     (@ (href :String :URL))
     text)
 
@@ -67,7 +67,7 @@
 ;;
 ;; The first step is to express the `token/@length` attribute, which is
 ;; the length of the a text node's `text` attribute, or 0.
-(attr token/@length 
+(attr token/@length
   (match
     (case ./@node|text (len ./@node/@text))
     (else 0)))
@@ -91,7 +91,7 @@
 ;;
 ;; We can start with the easy case: `text` nodes:
 
-(transform 
+(transform
   {(text _)}
   (token (@ (node A))))
 
@@ -99,17 +99,17 @@
 ;; and we can walk our way up to more complicated forms, which are nodes
 ;; that might contain other nodes.
 
-(transform 
+(transform
   {(* (@ _) …NODES)}
-  (token (@ (node A))) … ${(expand NODES)})
+  (token (@ (node A))) … {(expand NODES)})
 
 ;; @texto
 ;; we want the document node to produce the top-level `list` node which
 ;; then contains the `token` nodes.
 
-(transform 
+(transform
   {(document (@ _) …NODES)}
-  (list ${(expand NODES)}))
+  (list {(expand NODES)}))
 
 ;; @h2 Making everything fast
 ;; @texto
@@ -141,7 +141,7 @@
 ;; if there is no previous sibling. The upside is that this works for
 ;; both leaves and nodes.
 (on #add {document text p ul li img style}
-  (when 
+  (when
     ({A<*} (do #insert-after token/@node[(is? B)] …(expand A)))
     ({A/..} (do #insert-after token/@node[(is? B)] …(expand A)))
     (else  (fail "The text node must have a parent"))))
@@ -150,13 +150,13 @@
 ;; We can see in the `#remove` and `#add text` rules that we're doing a queries to
 ;; find the `token` that is mapped to the node. It's a potentially expensive
 ;; operation as the whole tree needs to be traversed. We could make this faster
-;; by using an _index_, in this case the index is a 1-1 mapping. 
+;; by using an _index_, in this case the index is a 1-1 mapping.
 
 (index #one-to-one {text} token/@node[(is? A)])
 
 ;; @h2 Bi-directional linking
 ;; @texto
-;; The icing on the cake here would be to allow for the manipulation of 
+;; The icing on the cake here would be to allow for the manipulation of
 ;; the `token` list and define effects on the corresponding node model. It
 ;; turns out that this is quite easy to do:
 
@@ -164,7 +164,7 @@
   (do #remove token/@node))
 
 (on #add {token}
-  (when 
+  (when
     ;; When the token has a sibling, we need to find the sibling's node
     ;; parent and see if it has children
     ({A<token}
@@ -174,7 +174,7 @@
         (case B/@node|{text}  (do #insert-after C A/@node))
         ;; Otherwise it's potentially ambigious. Let's say we're adding
         ;; a text node in  an ul/li/b node. The text node could
-        ;; go either in the `li` or in `the `b` node. 
+        ;; go either in the `li` or in `the `b` node.
         #todo))))
 
 ;; # EOF - vim: ts=2 sw=2 et syn=scheme

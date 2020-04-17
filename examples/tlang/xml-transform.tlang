@@ -2,7 +2,7 @@
 ;; @created 2019-03-11
 
 ;; @abstract
-;; This example shows how TLang can be used to implement XSLT-like 
+;; This example shows how TLang can be used to implement XSLT-like
 ;; functionality with a better syntax and more maintainable code.
 
 ;; @section imports {collapse}
@@ -13,17 +13,17 @@
 ;; @section body
 ;; @h2 Root transform
 ;; @texto We start by the top-level rule for transforming the root
-(transform #root 
+(transform #root
   (x:html
     ;; @texto
-    ;; Note how logic expressions don't need to be escaped: it's 
+    ;; Note how logic expressions don't need to be escaped: it's
     ;; because the `x:*` namespace is already registered as
     ;; a transform output namespace.
     (if {title/#text:TITLE}
-      (x:head ${TITLE|head|x:title}))
+      (x:head {TITLE|head|x:title}))
     (if {./*:CONTENT}
       (x:body
-        ${(map CONTENT
+        {(map CONTENT
           (apply   ))}))))
 
 ;; @h2 Table of content

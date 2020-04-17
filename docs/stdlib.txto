@@ -1,15 +1,32 @@
 
 
 
+module#ast
+	q:
+	e:
 
-core
-	is?
-	eq?
-	has?
-	isa?
-	cmp
+module#lang
+	scope
+	define
 
-errors
+module#core
+	group:conditionals
+		prim#if:(if COND THEN ELSE)
+
+	group: @predicates
+
+		prim#is:(is? A B)
+		prim#eq?:(eq? A B)
+		prim#gt?:(gt? A B)
+		prim#gte?:(gte? A B)
+		prim#lt?:(lt? A B)
+		prim#lte?:(lte? A B)
+
+	(has? A KEY)
+	(isa? A TYPE)
+	(cmp A B)
+
+module#errors
 	error
 	assert
 	should
@@ -25,7 +42,7 @@ data
 	list
 	map
 	tree
-	
+
 io
 	# NOTE: We consider async as I/O
 	async
@@ -47,7 +64,7 @@ io
 
 tree
 	graft A:Tree B:Tree
-	rewrite 
+	rewrite
 	rewrite-rule
 
 date

@@ -120,7 +120,7 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False, suffixed=False) -> Gramma
 	# a suffix, not just a query with a prefix as things like `(fail!) would not
 	# parse as `fail` is a query prefix, and the `!` would then become
 	# unparseable.
-	s.ExprValuePrefix.insert(9,s.Query)
+	s.ExprValuePrefix.insert(10,s.Query)
 	g.axiom = s.Query
 	g.skip  = s.WS
 
@@ -228,7 +228,7 @@ class QueryProcessor(ExprProcessor):
 		#       (q:selection
 		#           (q:ref (@  (name NAME)))))))
 		# ```
-		# 
+		#
 		# We also have case where we have the following:
 		#
 		# ```

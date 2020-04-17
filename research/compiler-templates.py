@@ -15,8 +15,8 @@ TEMPLATE = parseString("""
 EXPANSION = parseString("""
 (declare-attribute
   (@ (name "name"))
-  ${ATTRIBUTE_QUERY/query-node}
-  ${ATTRIBUTE_QUERY/query-attribute}
+  {ATTRIBUTE_QUERY/query-node}
+  {ATTRIBUTE_QUERY/query-attribute}
   VALUE
 )
 """)

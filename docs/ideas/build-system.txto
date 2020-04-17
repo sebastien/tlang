@@ -5,8 +5,8 @@ There's a lot of overlap between build system, web servers with transpilations
 
 Build systems are typically one-off: they rebuild everything, while webservers
 are more continous: a page refresh might trigger "recompilation" of files.
-Compilers, on the other hand might be invoked through several processess, but 
-need to re-use as much as possible (eg. compiling modules `a` and `b`, which 
+Compilers, on the other hand might be invoked through several processess, but
+need to re-use as much as possible (eg. compiling modules `a` and `b`, which
 both use module `c`).
 
 There are a few facilities required here:
@@ -18,7 +18,7 @@ There are a few facilities required here:
 
 Most of the time, the complete list of things to output can be known by just
 having the list of paths, but sometimes it needs to process the paths themselves,
-for instance if the output paths are parametered by the contents of some of the 
+for instance if the output paths are parametered by the contents of some of the
 nodes/files.
 
 Expressing this in TLang, we would first define a schema that would accomodate
@@ -34,29 +34,29 @@ to file types.
 ```
 
 Now we need to define transformations, for instance, here is how we would
-map the result of `dep-parse-c(string)` to children of a node with 
+map the result of `dep-parse-c(string)` to children of a node with
 the file's source path under  `/deps`.
 
 # FIXME: Do we create a new node here?
 
 ```transform
 (on //{file-c:REF}/{#contents:CONTENTS}
-	(set /deps/${REF/@path}
+	(set /deps/{REF/@path}
 		(run 'dep-parse-c' CONTENTS)))
 ```
 
 The declarative equivalent of that would be:
 
 ```transform
-makes (/deps/${*:FILE}/@path}/{*/@path:DEP},
+makes (/deps/{*:FILE}/@path}/{*/@path:DEP},
 	ensure-in (run('dep-parse-c', FILE/#contents), DEP)
 )
 ```
 
-The declarative equivent is more like a predicate, while the imperative 
+The declarative equivent is more like a predicate, while the imperative
 equivalent shows all the matches.
 
-Now this all makes sense when we 
+Now this all makes sense when we
 
 ```
 on (
@@ -86,7 +86,7 @@ or the declarative equivalent (dual):
 
 	;; This is going to be a dynamic selection with a string as
 	;; a node name.
-	(all 
+	(all
 		{//file/@path[(eq _ SOURCE)]:SOURCES}
 		(:depends SOURCES/@contents …SOURCES/@depends)
 		(:compile-c …SOURCES)))
@@ -117,7 +117,7 @@ So basically, we need two main operations:
 
 - `set_changed(id)`: flags the given resource as dirty (has changed)
 
-- `set_dirty_recursive(id)`: a variant that explicitely flags all the 
+- `set_dirty_recursive(id)`: a variant that explicitely flags all the
   transitive dependencies as recurisve.
 
 

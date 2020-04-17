@@ -11,26 +11,27 @@ def symbols( g:Grammar ) -> Symbols:
 	defined in this moddule."""
 	s      = g.symbols
 	tokens = {
-		"WS"                      : "[\s\n]+",
-		"NUMBER"                  : "[0-9]+(\.[0-9]+)?",
-		"STRING_DQ"               : "\"([^\"]*)\"",
-		"EXPR_NAME"               : "[a-z][\-a-z0-9]*[\!\?]?",
-		"EXPR_VARIABLE"           : "[_A-Z][\_A-Z0-9]*",
-		"EXPR_SYMBOL"             : ":[A-Za-z][\_a-zA-Z0-9]*",
-		"EXPR_SINGLETON"          : "#[A-Za-z][\-a-zA-Z0-9]*[\!\?]?",
-		"EXPR_KEY"                : "[A-Za-z][\_a-zA-Z0-9]*:",
-		"EXPR_TYPE"               : "[A-Z][\_a-zA-Z0-9]*",
-		"EXPR_COMMENT"            : ";+([^\n]*)",
-		"REST"                    : "(\\.\\.\\.)|…",
+		"WS"                      : r"[ \s]+",
+		"NUMBER"                  : r"[0-9]+(\.[0-9]+)?",
+		"STRING_DQ"               : r"\"([^\"]*)\"",
+		"EXPR_NAME"               : r"[a-z][\-a-z0-9]*[\!\?]?",
+		"EXPR_VARIABLE"           : r"[_A-Z][\_A-Z0-9]*",
+		"EXPR_SYMBOL"             : r":[A-Za-z][_a-zA-Z0-9]*",
+		"EXPR_SINGLETON"          : r"#[A-Za-z][\-a-zA-Z0-9]*[\!\?]?",
+		"EXPR_KEY"                : r"[A-Za-z][\_a-zA-Z0-9]*:",
+		"EXPR_TYPE"               : r"[A-Z][\_a-zA-Z0-9]*",
+		"EXPR_COMMENT"            : r";+([^\n]*)",
+		"REST"                    : r"(\\.\\.\\.)|…",
 	}
 	words = {
-		"LP"              : "(",
-		"RP"              : ")",
-		"COMMA"           : ",",
-		"QUOTE"           : "'",
-		"PIPE"            : "|",
-		"EXPR_TEMPLATE"   : "${",
-		"RB"              : "}",
+		"LP"    : "(",
+		"RP"    : ")",
+		"COMMA" : ",",
+		"DOT"   : ".",
+		"QUOTE" : "'",
+		"PIPE"  : "|",
+		"LB"    : "{",
+		"RB"    : "}",
 	}
 	groups = ()
 	return ParserUtils.EnsureSymbols(g, tokens, words, groups)
@@ -50,12 +51,13 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False) -> Grammar:
 	g.group("ExprValuePrefix")
 	g.group("ExprComment",   s.EXPR_COMMENT)
 	g.rule("ExprValue")
-	g.rule("ExprTemplate"  , s.EXPR_TEMPLATE, s.ExprValue._as("value"), s.RB)
+	g.rule("ExprTemplate"  , s.LB, s.ExprValue._as("value"), s.RB)
 
 	g.rule("ExprList",       s.LP,    s.ExprValue.optional()._as("arg"),  s.RP)
 	# NOTE: Here we want to avoid using `ExprValue` as otherwise we'll end up
 	# with really deeply nested matches.
 	g.rule("ExprQuote",      s.QUOTE, s.ExprValuePrefix._as("arg"))
+	g.rule("ExprDecompose",  s.DOT,   s.ExprValuePrefix._as("arg"))
 	g.rule("ExprPipe",       s.PIPE,  s.ExprValuePrefix._as("arg"))
 	g.rule("ExprJoin",       s.WS,    s.ExprValuePrefix._as("arg"))
 	g.rule("ExprRest",       s.REST,  s.ExprValuePrefix._as("arg"))
@@ -65,18 +67,19 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False) -> Grammar:
 		s.ExprQuote,
 		s.ExprTemplate,
 		s.ExprComment,
-		s.NUMBER,                # 5
+		s.NUMBER,                # 6
 		s.STRING_DQ,
 		s.EXPR_SINGLETON,
 		s.EXPR_KEY,
-		# NOTE: Query is going to be inserted here #9
-		s.EXPR_NAME,             # 10
-		s.EXPR_SYMBOL,           # 11
-		s.EXPR_VARIABLE,         # 12
-		s.EXPR_TYPE,             # 13
+		# NOTE: Query is going to be inserted here #10
+		s.EXPR_NAME,             # 11
+		s.EXPR_SYMBOL,           # 12
+		s.EXPR_VARIABLE,         # 13
+		s.EXPR_TYPE,             # 14
 	)
 	g.group("ExprValueSuffix").set(
 		s.ExprPipe,
+		s.ExprDecompose,
 		s.ExprRest,
 		s.ExprJoin,
 		s.ExprComment,
@@ -224,6 +227,10 @@ class ExprProcessor(Processor):
 
 	def onExprQuote( self, match, arg ):
 		return self.tree.node("ex:quote", arg)
+
+	def onExprDecompose( self, match, arg ):
+		# FIXME: Not sure that's the right format
+		return self.tree.node("ex:decompose", arg)
 
 	# FIXME: Not sure what the difference between invocation and list
 	# is in practice. Should be the same.

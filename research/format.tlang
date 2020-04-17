@@ -10,18 +10,18 @@
 	(transform TREE
 		(rewrite expr-seq
 			(map ./* (lambda (_) (
-				(emit! '(line … ${(rewrite _)} )))))
+				(emit! '(line … {(rewrite _)} )))))
 
 		(rewrite expr-list
-			(emit! "(" … ${(rewrite ./*)} ")"))
+			(emit! "(" … {(rewrite ./*)} ")"))
 
 		(rewrite expr-value-name
 			(emit! ./@name))
 
 		(rewrite expr-variable
 			(emit! ./@name))
-		
+
 		(emit!
-			'(text … ${(rewrite ./*)})))))
+			'(text … {(rewrite ./*)})))))
 
 

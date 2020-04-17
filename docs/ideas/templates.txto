@@ -3,7 +3,7 @@
 An important part of TLang is the ability to rewrite parts of a tree. If
 we look at XSLT, this process can be as simple as applying a template
 to a selection. However, there are obvious limitations when we're transforming
-a subtree, as many sub-selections need to be nested and guarded with 
+a subtree, as many sub-selections need to be nested and guarded with
 conditionals.
 
 Lisp and Scheme offer interesting tree-based templates that offer a more
@@ -39,13 +39,13 @@ and a `query-attribute`, which we do want to extract:
 
 ```tlang
 (declare-attribute
-  ${ATTRIBUTE_QUERY/query-node}
-  ${ATTRIBUTE_QUERY/query-attribute}
+  {ATTRIBUTE_QUERY/query-node}
+  {ATTRIBUTE_QUERY/query-attribute}
   VALUE
 )
 ```
 
-we see that the first part is the template that defines the 
+we see that the first part is the template that defines the
 structure of the subtree to be matched, then we have the expansion
 that defines how to create the resulting tree.
 
@@ -57,11 +57,11 @@ We have two main steps there:
 2) The traversal of the expansion and the creation of a new subtree.
 
 Both of these steps should support iterative matching and update, so that
-when a subset of the matched subtree changes, only the matching 
+when a subset of the matched subtree changes, only the matching
 subset of the expansion is updated (an important use case for model-view
 rendering in a DOM-like view).
 
-Transforms in DOM rendering 
+Transforms in DOM rendering
 ===========================
 
 Here's an example of rendering applied to a structural/projective editor. Here,
@@ -103,19 +103,19 @@ based on a selection on the original node set:
 ```tlang
 (rewrite (assign SYMBOL EXPRESSION)
   (div (@ (class "assign"))
-    ${SYMBOL|rewrite}
-    (div (@ (class "symbol") ${SYMBOL|rewrite}))
+    {SYMBOL|rewrite}
+    (div (@ (class "symbol") {SYMBOL|rewrite}))
     (div (@ (class "assign-equals")) '=)
-    ${EXPRESSION|rewrite}))
+    {EXPRESSION|rewrite}))
 
 (rewrite (computation OPERATOR OPERANDS…)
   (div (@ (class "computation"))
-    ${OPERATOR|rewrite}
-    …${OPERANDS|rewrite}))
+    {OPERATOR|rewrite}
+    …{OPERANDS|rewrite}))
 ```
 
 Here some of the transformed nodes are readonly, or at least disconnected
-from the model, but some others are directly linked. It's important to 
+from the model, but some others are directly linked. It's important to
 notice that any model→view transform should be reversible, at the very
 least have reversible addressing, so that we can go back to the model
 from the view.
@@ -142,14 +142,14 @@ can be directly executed in the document.
 ```
 
 We might want to have two separate treatments for each. The better option
-would be, of course, to use a template that includes the a guard on the 
+would be, of course, to use a template that includes the a guard on the
 attribute, but we're going to try it with conditionals:
 
 ```tlang
 (rewrite code
   {(match @lang
-    (case 'tlang 
-      (emit 
+    (case 'tlang
+      (emit
         ;; Put the nodes for 'tlang))
     (case 'javascript
       (emit
@@ -158,7 +158,7 @@ attribute, but we're going to try it with conditionals:
 
 but of course the pattern-based alternative is better:
 
-``` 
+```
 (rewrite (code (@ (lang 'tlang)))
   …)
 
@@ -166,7 +166,7 @@ but of course the pattern-based alternative is better:
   …)
 ```
 
-      
+
 
 
 

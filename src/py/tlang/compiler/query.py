@@ -1,6 +1,6 @@
 from enum import Enum
 from tlang.tree import Node
-from tlang.query import Selection, Predicate, Axis
+from tlang.query import Selection, Predicate
 from typing import Optional, Iterator, NamedTuple, Tuple, Dict, List, Set, Union
 
 class Comparator(Enum):
@@ -10,6 +10,11 @@ class Comparator(Enum):
 	EQ  = 0
 	GT  = 1
 	GTE = 2
+
+class QueryAxis(Enum):
+	VERTICAL = 0
+	HORIZONTAL = 1
+	TRAVERSAL = 2
 
 # -----------------------------------------------------------------------------
 #
@@ -74,6 +79,8 @@ class TraversalRule:
 	def __repr__( self ):
 		return self.id
 
+RootRule = TraversalRule("RR")
+
 # -----------------------------------------------------------------------------
 #
 # TERMINAL
@@ -107,30 +114,18 @@ class RuleDependency:
 	"""Represents a dependency between two rules. For instance, in the
 	selection `dir/file`, `file` depends on `dir`."""
 
-	def __init__( self, rule:TraversalRule, axis:Axis=Axis.SELF, comparator:Comparator=Comparator.NONE, distance:Union[int,Tuple[int,int]]=(0,0)):
-		min_distance, max_distance = (distance,distance) if not isinstance(distance, tuple) else distance
-		self.rule = rule
-		self.axis = axis
-		self.comparator = comparator
-		self.minDistance = min_distance
-		self.maxDistance = max_distance
+	@staticmethod
+	def FromRule( rule, axis ):
 
-	def transpose( self, axis:Axis ) -> 'RuleDependency':
-		"""Transposes the given rule depdendency so that it is now relative
-		to a node that is accessed through the given axis."""
-		# FIXME: We need to consider the current axis and the new axis as well.
-		# For instance /dir\\file would actually mean //file/dir
+	def __init__( self, rule:TraversalRule, axis:Axis )
+		self.rule = rule
+		self.axis:QueryAxis, self.comparator:Comparator, self.minDistance:int, self.maxDistance:int = self.parseAxis(axis)
+
+	def parseAxis( self, axis:Axis ):
 		if axis == Axis.CHILDREN:
-			# For children A/B, we increase the distance by 1
-			self.minDistance += 1
-			self.maxDistance += 1
+			return (QueryAxis.VERTICAL, Comparator.EQ, 1, 1)
 		elif axis == Axis.DESCENDANTS:
-			# For descendents A//B, we set the comparator to be < instead
-			# of (presumably) >
-			self.comparator = Comparator.LT
-		else:
-			raise ValueError(f"Axis not supported: {axis}")
-		return self
+			return (QueryAxis.VERTICAL, Comparator.EQ, 1, 1)
 
 	def match( self, step:TraversalStep, matches:TMatches ) -> bool:
 		# NOTE: For performance, the conditional should be outside of the for
@@ -171,25 +166,27 @@ class Composite(TraversalRule):
 
 	IDS = 0
 
-	def __init__( self, selection ):
+	def __init__( self, selection, anchor=RootRule ):
 		super().__init__(f"R{Composite.IDS}")
 		Composite.IDS += 1
 		self.selection:Selection = selection
-		self.dependencies:List[RuleRequirement] = []
+		self.dependencies:List[RuleDependency] = [
+			RuleDependency.FromSelection(selection)
+		]
 
 	@property
 	def captures( self ):
 		return self.selection._captures
 
-	def requires( self, rule:TraversalRule, axis:Axis=Axis.SELF, comparator:Comparator=Comparator.NONE, distance:Union[int,Tuple[int,int]]=(0,0)):
-		# We register a dependecy between the required rule and this
-		# rule. This is useful as terminals need to know which rules
-		# shold be then checked.
-		assert isinstance(rule, TraversalRule), f"Expected TraversalRule, got: {rule}"
-		if self not in rule.usedBy:
-			rule.usedBy.append(self)
-		self.dependencies.append(RuleDependency(rule, axis, comparator, distance))
-		return self
+	# def requires( self, rule:TraversalRule ):
+	# 	# We register a dependency between the required rule and this
+	# 	# rule. This is useful as terminals need to know which rules
+	# 	# shold be then checked.
+	# 	assert isinstance(rule, TraversalRule), f"Expected TraversalRule, got: {rule}"
+	# 	if self not in rule.usedBy:
+	# 		rule.usedBy.append(self)
+	# 	self.dependencies.append(RuleDependency(rule, axis, comparator, distance))
+	# 	return self
 
 	def compose( self, rule:'Composite' ):
 		assert isinstance(rule, Composite), f"Cannot compose with a terminal: {self} with {rule}"
@@ -290,7 +287,9 @@ class QueryInterpreter:
 		return self
 
 	def run( self, root:Node ):
-		matches:Dict[TraversalRule, List[TraversalStep]] = {}
+		matches:Dict[TraversalRule, List[TraversalStep]] = {
+			RootRule:[TraversalStep(root,0,0,0)],
+		}
 		for step in Traversal.DownDepth(root):
 			if self.isTracing:
 				self.trace("―┄ Step:", step.index, "/", ",".join(str(_) for _ in matches.keys()))

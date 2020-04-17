@@ -1,7 +1,7 @@
 == Query Language
 
 # TODO: Recursion selectors. For instance a way to say that
-# section//section would only match a section descendant, but not 
+# section//section would only match a section descendant, but not
 # the descendants of the matched section. In othe words, we should
 # break the recursion upon match.
 # TODO: Conditions on the axes to limit the depth/range
@@ -9,7 +9,7 @@
 The _query language_ defines a compact language to select nodes and node
 sets (lists of nodes) in a tree. The first part of the language is focused
 on denoting selections made on a tree, while the second part of the language is
-focused on definining expressions (predicates) that allow to dynamically 
+focused on definining expressions (predicates) that allow to dynamically
 refine a selection based on per-node logic.
 
 ```
@@ -22,13 +22,13 @@ TODO:
 
 Subtle difference between `//{node}` implies (for each node) and `{//node}` (all nodes).
 
-The query language uses the [expression language](expr.txto) to bind
-values and ally computation. They are both in turn used in the [transform language](transform.txto)
-to describe how to transform trees.
+The query language uses the [expression language](expr.txto) to compute and bind.
+They are both in turn used in the [transform language](transform.txto) that
+describes tree transformations.
 
 
 Model
-===== 
+=====
 
 Values::
 
@@ -84,7 +84,7 @@ Values::
 Representation
 ===============
 
-A query is represented by a **selector**, which is composed of the following 
+A query is represented by a **selector**, which is composed of the following
 parts:
 
 - node selectors
@@ -116,8 +116,8 @@ The axes are denoted with the following symbols:
 
 The axes are shallow (single level) unless they are doubled `//`
 (descendants), `\\` (ancestors), etc. If the axis is doubled and contains a number, the
-number will be used to limit the depth:  `/2/` will look for all the nodes up to 
-two levels. 
+number will be used to limit the depth:  `/2/` will look for all the nodes up to
+two levels.
 
 ```query
 \\         ;; all ancestors
@@ -134,7 +134,7 @@ Unless prefixed by a selector, an axis starts at the root node of the tree.
 ```query
 /          ;; direct children of the root
 ./         ;; direct children of the current node
-``` 
+```
 
 Parent (`:Node?`) ::
 
@@ -284,7 +284,7 @@ your variable name.
 Expression substitution
 -----------------------
 
-Expressions can have dynamic elements enclosed in `${…}`, in which case
+Expressions can have dynamic elements enclosed in `{…}`, in which case
 they will be dynamically evaluated. However, be careful because dynamically
 evaluated queries cannot be optimized as well (if at all), as all the information
 is only known at runtime.
@@ -362,7 +362,7 @@ example[(eq? @type "test")]
 Variables
 ---------
 
-Any selection or invocation can be wrapped in a variable binding and 
+Any selection or invocation can be wrapped in a variable binding and
 later user using a variable reference. For instance
 
 ```selector
@@ -399,8 +399,8 @@ file[@path]
 
 ;; Same as above, but the node also needs a size attirbute > 100, and the
 ;; path in captured as variable.
-file[{@path}][(> @size 100)]  
-``` 
+file[{@path}][(> @size 100)]
+```
 
 Constraints can be nested, here we capture the paths of all the `dir` nodes
 with at least 10 `file` nodes of size > 100.
@@ -439,7 +439,7 @@ TLang's query language was inspired by the following languages:
 
 - [XPath]:<https://en.wikipedia.org/wiki/XPath>. XPath is a very powerful and
   complete selection language that is part of the XML/XSLT toolkit. While it's
-  relatively popular, it has a few usability issues. 
+  relatively popular, it has a few usability issues.
 
 - [jQuery selectors]:<https://api.jquery.com/category/selectors/>. jQuery
   selectors is a superset of CSS selectors that incorporate some of XPath's

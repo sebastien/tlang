@@ -1,7 +1,7 @@
 == Tree Formatting & Templates
 
 XSLT is probably most well-know tree transformation and formatting language.
-It can generate a valid XML tree, but can also generate plain text. 
+It can generate a valid XML tree, but can also generate plain text.
 
 One of the challenge of working with plain text is that whitespace matters,
 if you're transpiling an AST to Python, you'll need to have the indentation
@@ -25,16 +25,16 @@ maybe be expanded into multiple lines.
 ```
 (template
   (if COND STATEMENT…)
-  (line "if ${COND|format}:")
+  (line "if {COND|format}:")
   (indented …(map STATEMENT expand)))
 ```
 
 which could alternatively be expressed as
 
 ```
-if ${COND}
+if {COND}
 @each STATEMENT
-@indent ${_}
+@indent {_}
 @end
 ```
 
