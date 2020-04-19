@@ -29,5 +29,5 @@
 	(numbers (list 1 2 3 4 5))
 	(tree
 		(ul
-			{(map (numbers) (tree (li "Number" {_})))})))
+			{(map numbers (lambda (_) (tree (li "Number" {_}))))})))
 

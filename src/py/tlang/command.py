@@ -71,7 +71,10 @@ def onError( error, err=sys.stdout ):
 		if error.hint:
 			err.write(f"    ↳ {error.hint}{RESET}\n")
 	else:
-		err.write(f" ─ {BOLD}Error{RESET} {RED}{error}{RESET}\n")
+		# This is a runtime error, not really a managed error. This means
+		# that error should be reported.
+		err.write(f" ↳ {BOLD}Runtime error{RESET}({error.__class__.__name__}) {RED}{error}{RESET}\n")
+		raise (error)
 
 def run( tree:Node, logValues=False, out=sys.stdout, err=sys.stderr ):
 	inter = ValueInterpreter()

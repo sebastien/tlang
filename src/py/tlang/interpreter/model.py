@@ -22,9 +22,14 @@ class Slot:
 
 class Context:
 
-	def __init__( self, parent:'Context'=None ):
+	def __init__( self, parent:'Context'=None, reference=None ):
 		self.parent:Optional[Context] = parent
 		self.slots:Dict[str,Slot] = {}
+		self.reference = reference
+
+	def setReference( self, reference ):
+		self.reference = reference
+		return self
 
 	def listReachableSlots( self ) -> List[str]:
 		res = []
@@ -36,8 +41,8 @@ class Context:
 			context = context.parent
 		return res
 
-	def derive( self ) -> 'Context':
-		return Context(self)
+	def derive( self, reference ) -> 'Context':
+		return Context(self, reference=reference)
 
 	def has( self, name:str ) -> bool:
 		return name in self.slots

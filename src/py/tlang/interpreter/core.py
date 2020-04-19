@@ -1,6 +1,6 @@
 from .model import Context,Argument,Singleton,META_INVOCATION,NODE,DATA,LAZY
 from tlang.tree.model import TreeTransform,TreeProcessor,TreeBuilder,NodeError,SemanticError,Node
-from typing import List,Dict,Optional,Any
+from typing import List,Dict,Optional,Any,Callable
 
 # -----------------------------------------------------------------------------
 #
@@ -21,8 +21,8 @@ class ValueInterpreter(TreeProcessor):
 		# as the tree can have template expressions.
 		self.treeInterpreter = treeInterpreter or TreeInterpreter(self)
 
-	def pushContext( self ):
-		self.context = Context(self.context)
+	def pushContext( self, reference ):
+		self.context = Context(self.context).setReference(reference)
 		return self.context
 
 	def popContext( self ):
@@ -30,8 +30,8 @@ class ValueInterpreter(TreeProcessor):
 		self.context = self.context.parent
 		return res
 
-	def derive( self ):
-		return self.__class__(self.context.derive(), self.literalInterpreter, self.treeInterpreter)
+	def derive( self, reference ):
+		return self.__class__(self.context.derive(reference), self.literalInterpreter, self.treeInterpreter)
 
 	#NOTE: This is a direct invocation
 	#TODO: @on("(list (name (@ (name A))) … REST)")
@@ -45,7 +45,9 @@ class ValueInterpreter(TreeProcessor):
 			raw_args = [_ for _ in node.children[1:]]
 			if target is None:
 				raise NodeError(node.children[0], SemanticError("Target resolved to None"))
-			if not hasattr(target, META_INVOCATION):
+			elif not isinstance(target, Callable):
+				raise NodeError(node, SemanticError(f"Invocation target is not a function or invocable, got: {target}"))
+			elif not hasattr(target, META_INVOCATION):
 				raise NodeError(node, SemanticError("Invocation target is missing invocation protocol meta-information"))
 			else:
 				protocol = getattr(target, META_INVOCATION)
@@ -67,6 +69,7 @@ class ValueInterpreter(TreeProcessor):
 		name = node["name"]
 		res = self.context.resolve(name)
 		if res is None:
+			import ipdb;ipdb.set_trace()
 			raise NodeError(node, SemanticError(
 				f"Cannot resolve symbol '{name}'",
 				f"reachable slots are: {','.join(sorted(self.context.listReachableSlots()))}"))
@@ -95,7 +98,7 @@ class ValueInterpreter(TreeProcessor):
 		j    = len(protocol) - 1
 		# Here we iterate through the arguments, extract the corresponding
 		# protocol information and process the arguments accordingly.
-		self.pushContext()
+		self.pushContext(("invocation", target))
 		inter = self
 		has_rest = protocol and protocol[-1].name == "__"
 		# We skip comments from invocations, but they're still part

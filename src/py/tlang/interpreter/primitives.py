@@ -235,7 +235,8 @@ class Primitives:
 		if len(args) < 2:
 			raise RuntimeError("Let has a form (let (SYMBOL VALUE)… VALUE))")
 		# We create a subcontext
-		interp = interpreter.derive()
+		# TODO: We should capture the node as well
+		interpreter.pushContext(("let",))
 		# We bind the values in the context
 		for node in args[:-1]:
 			# Expected (expr-value-symbol *)
@@ -244,13 +245,14 @@ class Primitives:
 			# interpreter.
 			# FIXME: This should probably be the first node that is not a comment
 			value = None
-			for v in interp.feed(node.children[1]):
+			for v in interpreter.feed(node.children[1]):
 				value = v
 			if isinstance(value, RuntimeError):
 				yield RuntimeError(f"Could not define symbol '{name}' because: {value}")
 			else:
-				interp.context.define(name, value)
-		yield from interp.feed(args[-1])
+				interpreter.context.define(name, value)
+		yield from interpreter.feed(args[-1])
+		interpreter.popContext()
 
 	@invocation( collection=EAGER, functor=EAGER )
 	def do_map( self, interpreter, args:List[Any] ):
