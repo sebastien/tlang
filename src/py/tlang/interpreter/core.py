@@ -144,17 +144,48 @@ class LiteralInterpreter(TreeTransform):
 class TreeInterpreter(TreeTransform):
 	"""Evaluates the AST to form a TLang tree"""
 
+	def isListAttribute( self, node ):
+		# NOTE: This doesn't work for something like
+		# ({pick((list a: b: c: d:))} 1.0)
+		return node.name == "ex:list" and len(node.children) >= 1 and len(node.children) <= 2 and node.head.name == "ex:key"
+
 	def on_ex__list( self, node ):
-		print ("XXX", node)
 		head = node.head
-		node_name = self.process(node.head)
-		res = Node(node_name)
-		for child in node.tail:
-			print ("CHILD", self.process(child))
-		return res
+		# An empty list in a tree leads to nothing
+		if not head:
+			print ("EMPTY NODE", node, ":", head)
+			return None
+		# If the first node is a key, then we have a list of
+		# attributes (ie. it's a map)
+		elif head.name == "ex:key":
+			return []
+		# If it's a reference, then we have a node
+		# attributes (ie. it's a map)
+		elif head.name == "ex:ref":
+			res = Node(self.process(head))
+			for child in node.tail:
+				if self.isListAttribute(child):
+					# TODO: We should probably interpret the value if it's
+					# not a key.
+					head = child.head
+					assert head.name == "ex:key"
+					if len(child.children) == 1:
+						res.attr(head["name"], None)
+					else:
+						res.attr(head["name"], self.process(child[1]))
+				else:
+					value = self.process(child)
+					res.add(Node("#text").attr("value", value) if isinstance(value, str) else value)
+			return res
 
 	def on_ex__ref( self, node ):
 		return node["name"]
+
+	def on_ex__key( self, node ):
+		return node["name"]
+
+	def on_ex__string( self, node ):
+		return node["value"]
 
 	def on__q_query( self, node ):
 		print ("QUERY", node)

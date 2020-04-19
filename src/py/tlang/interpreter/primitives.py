@@ -30,14 +30,15 @@ class Primitives:
 		context.define("next?",      self.do_hasNext)
 		context.define("skip",       self.do_skip)
 
-		# Trees
+		# Constructors
+		context.define("list",       self.do_list)
+		context.define("dict",       self.do_dict)
 		context.define("tree",       self.do_tree)
 
 		# Helpers
 		context.define("primitive",  self.do_primitive)
 		context.define("out!",       self.do_out)
 		context.define("lambda",     self.do_lambda)
-
 
 		# Collections
 		context.define("map",        self.do_map)
@@ -113,6 +114,33 @@ class Primitives:
 				return None
 		else:
 			return None
+
+	@invocation( __=EAGER )
+	def do_tuple( self, interpreter, args ):
+		return tuple(_ for _ in args)
+
+	@invocation( __=EAGER )
+	def do_list( self, interpreter, args ):
+		return [_ for _ in args]
+
+	@invocation( __=NODE )
+	def do_dict( self, interpreter, args ):
+		count = 0
+		expect_value = False
+		res = {}
+		for node in args:
+			if expect_value:
+				value = interpreter.run(node)
+				res[key] = value
+				expect_value = False
+			elif node.name == "ex:key":
+				key = node["name"]
+				expect_value = True
+			else:
+				key = count
+				value = interpreter.run(node)
+				res[key] = value
+		return res
 
 	@invocation( value=NODE )
 	def do_tree( self, interpreter, args ):

@@ -1,0 +1,16 @@
+;; TLang is really designed to work with trees, and that's one of the key
+;; difference with Lisp.
+
+;; Trees can be created by using the `(tree TREE)` primitive.
+
+
+(tree (meta (charset: "UTF8")))
+
+(tree
+	(html
+		(head
+			(meta (charset: "UTF 8"))
+			(title "Hello, world"))
+		(body
+			(h1 "Heading")
+			(p "Lorem ipsum dolor sit amet"))))

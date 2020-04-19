@@ -1,0 +1,18 @@
+
+;; Integer
+1
+
+;; Floats
+1.10
+
+;; Duration
+;; 10ms
+;; 10s
+;; 1h10m
+
+
+;; Lists
+(list 1 2 3 4 5)
+
+;; Mappings
+(dict a: 1 b: 2 c: 3 )

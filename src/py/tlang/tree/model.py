@@ -29,6 +29,7 @@ class Node:
 
 	def __init__( self, name:str ):
 		# FIXME: This does not support namespace
+		assert isinstance(name,str), f"Node name must be a string, got: {name}"
 		self.name = name
 		self.id   = Node.IDS ; Node.IDS += 1
 		self.parent:Optional['Node'] = None
@@ -80,6 +81,10 @@ class Node:
 
 	def hasAttribute( self, name:str ) -> bool:
 		return name in self.attributes
+
+	def setAttribute( self, name, value=None ):
+		self.attributes[name] = value
+		return self
 
 	def attr( self, name, value=NOTHING ):
 		if value is NOTHING:
@@ -206,28 +211,33 @@ class Repr:
 	@classmethod
 	def Apply( cls, node, pretty=True, compact=False, depth=0 ):
 		prefix = "  " * depth if pretty else ""
-		yield prefix
-		yield "("
-		yield node.name
-		if node.hasAttributes:
-			for k,v in node.attributes.items():
-				yield f" (@{k} "
-				# TODO: We should support node references
-				if isinstance(v, Node):
-					yield "#{0}".format(v)
-				else:
-					yield json.dumps(v)
-				yield ")"
-		if node.children and compact:
-			yield " …"
+		if node.name == "#text":
+			# Special handling of text nodes
+			yield json.dumps(node["value"])
 		else:
-			for child in node.children:
-				if pretty:
-					yield "\n"
-				yield prefix
-				yield " "
-				yield from cls.Apply(child, pretty, depth + 1)
-		yield ")"
+			yield prefix
+			yield "("
+			yield node.name
+			if node.hasAttributes:
+				for k,v in node.attributes.items():
+					yield f" ({k}: "
+					# TODO: We should support node references
+					if isinstance(v, Node):
+						yield "#{0}".format(v)
+					else:
+						yield json.dumps(v)
+					yield ")"
+			if node.children and compact:
+				yield " …"
+			else:
+				many_children = len(node.children) > 1
+				for child in node.children:
+					if pretty and many_children:
+						yield "\n"
+						yield prefix
+					yield " "
+					yield from cls.Apply(child, pretty=pretty, compact=compact, depth=depth + 1)
+			yield ")"
 
 # -----------------------------------------------------------------------------
 #
