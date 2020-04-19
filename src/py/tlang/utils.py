@@ -1,11 +1,22 @@
 import os, sys
 BASE = os.path.normpath(os.path.abspath(__file__) + "/../../../../")
 NOTHING = object()
+from libparsing import Processor
+from tlang.tree.model import Node
 
 try:
 	from texto.main import run as texto
 except ImportError as e:
 	texto = None
+
+class SourceProcessor(Processor):
+
+	def postProcess( self, match, result ):
+		if isinstance(result, Node):
+			result.meta("offset", match.offset)
+			result.meta("length", match.length)
+			result.meta("line",   match.line)
+		return result
 
 # -----------------------------------------------------------------------------
 #

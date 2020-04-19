@@ -1,8 +1,8 @@
-from libparsing import Grammar, Symbols, Processor, ensure_string
+from libparsing import Grammar, Symbols, ensure_string
 from typing import Optional
-from tlang.utils import ParserUtils
+from tlang.utils import SourceProcessor, ParserUtils
 from tlang.tree.model import TreeBuilder
-import sys, os
+import sys, os, functools
 
 GRAMMAR = None
 
@@ -100,18 +100,8 @@ def grammar(g:Optional[Grammar]=None, isVerbose=False) -> Grammar:
 #
 # -----------------------------------------------------------------------------
 
-def sourcemap(f ):
-	def decorator( self, match ):
-		# TODO: This should be an option, ie. we don't necessarily want
-		# that all the time
-		node = f(self, match)
-		node.meta("offset", match.offset)
-		node.meta("length", match.length)
-		node.meta("line",   match.line)
-		return node
-	return decorator
 
-class ExprProcessor(Processor):
+class ExprProcessor(SourceProcessor):
 
 	INSTANCE = None
 
@@ -121,56 +111,47 @@ class ExprProcessor(Processor):
 		return cls.INSTANCE
 
 	def __init__( self, grammar=None, strict=True ):
-		Processor.__init__( self, grammar, strict )
+		super().__init__( grammar, strict )
 		self.tree = TreeBuilder()
 
 	def createGrammar(self) -> Grammar:
 		return GRAMMAR or grammar()
 
-	@sourcemap
 	def onNUMBER( self, match):
 		m = self.process(match)
 		value = int(m[0]) if len(m) == 1 else float(m[0])
 		return self.tree.node("ex:number", {"value":value})
 
-	@sourcemap
 	def onSTRING_DQ( self, match):
 		value = self.process(match)[1]
 		return self.tree.node("ex:string", {"value":value})
 
-	@sourcemap
 	def onEXPR_SYMBOL( self, match):
 		value = self.process(match)[0]
 		# We strip the leading ":"
 		return self.tree.node("ex:symbol", {"name":value[1:]})
 
-	@sourcemap
 	def onEXPR_NAME( self, match):
 		value = self.process(match)[0]
 		return self.tree.node("ex:ref", {"name":value})
 
-	@sourcemap
 	def onEXPR_SINGLETON( self, match):
 		value = self.process(match)[0]
 		return self.tree.node("ex:singleton", {"name":value})
 
-	@sourcemap
 	def onEXPR_KEY( self, match):
 		value = self.process(match)[0]
 		# We strip the trailing :
 		return self.tree.node("ex:key", {"name":value[:-1]})
 
-	@sourcemap
 	def onEXPR_VARIABLE( self, match):
 		value = self.process(match)[0]
 		return self.tree.node("ex:ref", {"name":value})
 
-	@sourcemap
 	def onEXPR_TYPE( self, match):
 		value = self.process(match)[0]
 		return self.tree.node("ex:type", {"name":value})
 
-	@sourcemap
 	def onExprComment( self, match ):
 		value = self.process(match)[0][1]
 		return self.tree.node("ex:comment", {"value":value})
@@ -229,7 +210,7 @@ class ExprProcessor(Processor):
 		return self.tree.node("ex:quote", arg)
 
 	def onExprDecompose( self, match, arg ):
-		# FIXME: Not sure that's the right format
+		# FIXME: This might be more than that
 		return self.tree.node("ex:decompose", arg)
 
 	# FIXME: Not sure what the difference between invocation and list

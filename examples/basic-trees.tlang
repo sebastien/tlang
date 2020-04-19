@@ -1,11 +1,18 @@
 ;; TLang is really designed to work with trees, and that's one of the key
-;; difference with Lisp.
-
-;; Trees can be created by using the `(tree TREE)` primitive.
-
+;; difference with Lisp. Trees can be created by using the `(tree TREE)`
+;; primitive like so:
 
 (tree (meta (charset: "UTF8")))
 
+;; In case you add more than one argument to the tree primitive, the nodes
+;; will be wrapped in a special `#fragment` node.
+(tree
+	(meta (charset: "UTF8"))
+	(title "Hello, world!"))
+
+;; The `tree` primitive makes it possible to embed tree data within the
+;; program. The `tree` primitive uses a specialised interpreter that won't
+; process the AST as the regular expression interpreter would.
 (tree
 	(html
 		(head
@@ -14,3 +21,13 @@
 		(body
 			(h1 "Heading")
 			(p "Lorem ipsum dolor sit amet"))))
+
+;; The power of the tree primitive is that is can use template expressions
+;; wrapped in curly braces like `{EXPRESSION}`. These template expressions
+;; will be evaluated right away (at declaration time).
+(let
+	(numbers (list 1 2 3 4 5))
+	(tree
+		(ul
+			{(map (numbers) (tree (li "Number" {_})))})))
+

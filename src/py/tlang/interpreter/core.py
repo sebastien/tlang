@@ -17,7 +17,9 @@ class ValueInterpreter(TreeProcessor):
 		super().__init__()
 		self.context:Context = context or Context()
 		self.literalInterpreter = literalInterpreter or LiteralInterpreter()
-		self.treeInterpreter = treeInterpreter or TreeInterpreter()
+		# NOTE: The tree interpreter needs a reference to the value interpreter
+		# as the tree can have template expressions.
+		self.treeInterpreter = treeInterpreter or TreeInterpreter(self)
 
 	def pushContext( self ):
 		self.context = Context(self.context)
@@ -65,7 +67,9 @@ class ValueInterpreter(TreeProcessor):
 		name = node["name"]
 		res = self.context.resolve(name)
 		if res is None:
-			raise NodeError(node, SemanticError(f"Cannot resolve symbol: '{name}' in {node}\n ↳ slots: {','.join(sorted(self.context.listReachableSlots()))}"))
+			raise NodeError(node, SemanticError(
+				f"Cannot resolve symbol '{name}'",
+				f"reachable slots are: {','.join(sorted(self.context.listReachableSlots()))}"))
 		else:
 			return res
 
@@ -144,6 +148,10 @@ class LiteralInterpreter(TreeTransform):
 class TreeInterpreter(TreeTransform):
 	"""Evaluates the AST to form a TLang tree"""
 
+	def __init__( self, valueInterpreter:ValueInterpreter ):
+		super().__init__()
+		self.valueInterpreter = valueInterpreter
+
 	def isListAttribute( self, node ):
 		# NOTE: This doesn't work for something like
 		# ({pick((list a: b: c: d:))} 1.0)
@@ -153,7 +161,6 @@ class TreeInterpreter(TreeTransform):
 		head = node.head
 		# An empty list in a tree leads to nothing
 		if not head:
-			print ("EMPTY NODE", node, ":", head)
 			return None
 		# If the first node is a key, then we have a list of
 		# attributes (ie. it's a map)
@@ -178,6 +185,15 @@ class TreeInterpreter(TreeTransform):
 					res.add(Node("#text").attr("value", value) if isinstance(value, str) else value)
 			return res
 
+	def on_ex__template( self, node ):
+		# We have a template node, and we need to expand it
+		if len(node.children) == 0:
+			return None
+		elif len(node.children) == 1:
+			return self.valueInterpreter.run(node.head)
+		else:
+			return [self.valueInterpreter.run(_) for _ in node.children]
+
 	def on_ex__ref( self, node ):
 		return node["name"]
 
@@ -186,6 +202,7 @@ class TreeInterpreter(TreeTransform):
 
 	def on_ex__string( self, node ):
 		return node["value"]
+
 
 	def on__q_query( self, node ):
 		print ("QUERY", node)

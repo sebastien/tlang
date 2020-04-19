@@ -119,6 +119,18 @@ class FormatProcessor(Processor):
 	def createGrammar(self) -> Grammar:
 		return GRAMMAR or grammar()
 
+def sourcemap(f):
+	def decorator( self, match, *args, **kwargs ):
+		# TODO: This should be an option, ie. we don't necessarily want
+		# that all the time
+		node = f(self, match, *args, **kwargs)
+		node.meta("offset", match.offset)
+		node.meta("length", match.length)
+		node.meta("line",   match.line)
+		return node
+	functools.update_wrapper(decorator, f)
+	return decorator
+
 # -----------------------------------------------------------------------------
 #
 # HIGH-LEVEL API

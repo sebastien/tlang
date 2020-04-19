@@ -5,7 +5,75 @@ from tlang.tree.model import Node,NodeError,Repr
 from tlang.interpreter.primitives import Primitives
 from tlang.interpreter.core import ValueInterpreter
 
-def run( tree:Node, logValues=False, out = sys.stdout ):
+try:
+	import colorama
+	colorama.init()
+	RED = colorama.Fore.RED
+	CYAN = colorama.Fore.CYAN
+	BLUE = colorama.Fore.BLUE
+	GREEN = colorama.Fore.GREEN
+	YELLOW = colorama.Fore.YELLOW
+	BOLD = colorama.Style.BRIGHT
+	DIM = colorama.Style.DIM
+	NORMAL = colorama.Style.NORMAL
+	RESET = colorama.Style.RESET_ALL
+
+except ImportError as e:
+	RED = ""
+	GREEN = ""
+	BLUE = ""
+	CYAN = ""
+	YELLOW = ""
+	BRIGHT = ""
+	BOLD = ""
+	DIM = ""
+	NORMAL = ""
+	RESET = ""
+
+def onError( error, err=sys.stdout ):
+	if isinstance( error, NodeError):
+		context = error.node
+		while context and context.meta("line") == None:
+			context = context.parent
+		if not context:
+			err.write(f" ! Error at node {node}\n")
+		else:
+			# We harvest the line and source information. We might
+			# want to abstract this out.
+			line = context.meta("line")
+			offset = context.meta("offset")
+			length = context.meta("length")
+			source = context.root.meta("source")
+			if source:
+				# We get the relative line offset, and to do so we need to
+				# read all the lines in the file.
+				error_line = None
+				with open(source, 'rt') as f:
+					o = 0
+					for i,_ in enumerate(f.readlines()):
+						if i == line:
+							error_line = _
+							break
+						else:
+							o += len(_)
+				error_start = offset - o
+				error_end = error_start + length
+				error_prefix = "".join(_ if _ in "\t \n" else " " for _ in error_line[:error_start])
+				error_cursor = f"└{'─' * (length - 2)}┘" if length > 2 else "↥"
+				err.write(f" ┌ {BOLD}Error{RESET} at line {line}[{error_start}:{error_end}] of '{BLUE}{source}{RESET}':\n")
+				err.write(f" ├ {error_line[:error_start]}{RED}{BOLD}{error_line[error_start:error_end]}{RESET}{error_line[error_end:]}{RESET}")
+				err.write(f" │ {error_prefix}{RED}{error_cursor}{RESET}\n")
+			else:
+				err.write(f" ┌  {BOLD}Error{RESET} at line {line} range {offset}-{offset+length}:\n")
+		err.write(f" └→ {RED}{BOLD}{error.error}{RESET}\n")
+		if not source:
+			err.write(f"    ↳ {error.node}{RESET}\n")
+		if error.hint:
+			err.write(f"    ↳ {error.hint}{RESET}\n")
+	else:
+		err.write(f" ─ {BOLD}Error{RESET} {RED}{error}{RESET}\n")
+
+def run( tree:Node, logValues=False, out=sys.stdout, err=sys.stderr ):
 	inter = ValueInterpreter()
 	Primitives().bind(inter.context)
 	def print_out(value):
@@ -24,8 +92,8 @@ def run( tree:Node, logValues=False, out = sys.stdout ):
 				if child.name == "ex:comment":
 					continue
 				print_out (inter.run(child))
-	except NodeError as e:
-		print (e)
+	except Exception as e:
+		onError(e, err=err)
 
 # TODO: -c to interpret a command
 # TODO: -i for interactive mode
@@ -57,6 +125,8 @@ def command( args:Optional[List[str]]=None, name="tlang" ):
 			return None
 		else:
 			ast = processor.process(res)
+			ast.meta("source", path)
+			assert ast.meta("source") == path
 			if opts.ast:
 				for _ in Repr.Apply(ast, depth=-1):
 					sys.stdout.write(_)

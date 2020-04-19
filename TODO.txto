@@ -11,6 +11,11 @@ Lib::
 [ ] lambda should support protocol
 [ ] let should support effects like `export`
 
+Usability:
+
+[ ] Stack traces
+[ ] Refine errors, including suggestions of corrections (using text matching)
+
 Syntax::
 
 [ ] Attributes in tree.

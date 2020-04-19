@@ -454,13 +454,17 @@ class TreeTransform(TreeProcessor):
 	# TODO: The catchall might just be a copy?
 
 class SemanticError(Exception):
-	pass
+
+	def __init__( self, message:str, hint=None ):
+		super().__init__(message)
+		self.hint = hint
 
 class NodeError(Exception):
 
-	def __init__( self, node:Node, error:Exception ):
+	def __init__( self, node:Node, error:Exception, hint=None ):
 		self.node = node
 		self.error = error
+		self.hint = hint or (error.hint if error and hasattr(error, "hint") else None)
 
 	def __str__( self ):
 		return f"{self.error} in {self.node}"
