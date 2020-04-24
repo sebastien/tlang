@@ -2,10 +2,10 @@
 
 # TODO: Describe the schema
 
-Trees are represented as [S-Expressions], which can also be represented as
-JSON and XML using conventions. The tree language is intended for both humans
+Trees in TLang are represented as [S-Expressions], which can also be represented as
+JSON and XML using mapping conventions. The tree language is intended for both humans
 and machines, and also offers a canoncial representation, as some elements
-have shorthands that make them easier to read for humans.
+have shorthands that make them easier to read.
 
 Here is an example:
 
@@ -66,10 +66,10 @@ Children
 A node *with children* is represented like this:
 
 ```tree
-(node-name (child-1) (child-2) (child-3))    ;; node with children
+(node-name child-1 child-2 child-3)    ;; node with children
 (node-name
 	(attribute-1: value))
-	(child-1) (child-2) (child-3))             ;; and attributes
+	child-1 child-2 child-3)             ;; and attributes
 ```
 
 Special nodes
@@ -82,28 +82,28 @@ The **string** node has as only one child, and its child is not a node but a lit
 and is denoted like this:
 
 ```tree
-(string  (value: "Hello, world")) ;; Canonical representation
-"Hello, world"                    ;; Shorthand equivalent
+(#text  (value: "Hello, world")) ;; Canonical representation
+"Hello, world"                   ;; Shorthand equivalent
 ```
 
-Likewise for the **number** node:
+Likewise for the numbers node (**integer**, **float**):
 
 ```tree
-(number (value: 1.0)) ;; Canonical representation
-1.0                   ;; Shorthand equivalent
+(#integer (value: 1.0)) ;; Canonical representation
+1.0                     ;; Shorthand equivalent
 ```
 
 and the **symbol** node:
 
 ```tree
-(symbol (value: true))) ;; Canonical representation
-'true                   ;; Shorthand equivalent
+(#symbol (value: true))) ;; Canonical representation
+'true                    ;; Shorthand equivalent
 ```
 
 Namespace
 ---------
 
-Node name can be prefixed with a namespace 
+Node name can be prefixed with a namespace
 
 
 ```
@@ -113,10 +113,10 @@ ns:node
 # FIXME: Not anymore
 # Subtyping
 # ---------
-# 
+#
 # A node type `A` is a subtype of a node type `B` when the name of `A` starts
 # with  `B`. If followed, this simple convention can be quite powerful:
-# 
+#
 # ```
 # (number)
 # (number-float)        ;; A float is a number
@@ -127,7 +127,7 @@ ns:node
 Pattern templates
 -----------------
 
-The tree language also has dedicated syntax to support template patterns. 
+The tree language also has dedicated syntax to support template patterns.
 A template pattern is denoted in `UPPER_CASE` and might be prefixed with
 `…` (or `...`):
 
@@ -146,7 +146,7 @@ XML mapping
 -----------
 
 XML does not inherently have any notion of type: everything is a string. As a
-result, attributes have to be specified as children. 
+result, attributes have to be specified as children.
 
 ```xml
 <node name="NODE_NAME"

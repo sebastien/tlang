@@ -29,5 +29,6 @@
 	(numbers (list 1 2 3 4 5))
 	(tree
 		(ul
-			{(map numbers (lambda (_) (tree (li "Number" {_}))))})))
+			{"hello" "world"})))
+			;;{(map numbers (lambda (_) (tree (li "Number" {_}))))})))
 

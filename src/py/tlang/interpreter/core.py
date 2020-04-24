@@ -1,6 +1,7 @@
-from .model import Context,Argument,Singleton,META_INVOCATION,NODE,DATA,LAZY
+from .model import Context,Argument,Arguments,Singleton,META_INVOCATION,NODE,DATA,LAZY
 from tlang.tree.model import TreeTransform,TreeProcessor,TreeBuilder,NodeError,SemanticError,Node
 from typing import List,Dict,Optional,Any,Callable
+import types
 
 # -----------------------------------------------------------------------------
 #
@@ -58,6 +59,8 @@ class ValueInterpreter(TreeProcessor):
 			for _ in self.feed(_):
 				if isinstance(_, Exception):
 					raise _
+				else:
+					yield _
 
 	def on_comment( self, node ):
 		return node
@@ -69,7 +72,6 @@ class ValueInterpreter(TreeProcessor):
 		name = node["name"]
 		res = self.context.resolve(name)
 		if res is None:
-			import ipdb;ipdb.set_trace()
 			raise NodeError(node, SemanticError(
 				f"Cannot resolve symbol '{name}'",
 				f"reachable slots are: {','.join(sorted(self.context.listReachableSlots()))}"))
@@ -81,6 +83,13 @@ class ValueInterpreter(TreeProcessor):
 
 	def on_number( self, node ):
 		return node["value"]
+
+	def on_template( self, node ):
+		# Templates return None when empty, the first child when only one
+		# child or the list of children.
+		res =  [self.process(_) for _ in node.children]
+		res = None if len(res) == 0 else (res[0] if len(res) == 1 else res)
+		return res
 
 	def on_quote( self, node ):
 		# (quote (1 2 3)) returns (1 2 3)
@@ -184,18 +193,27 @@ class TreeInterpreter(TreeTransform):
 					else:
 						res.attr(head["name"], self.process(child[1]))
 				else:
-					value = self.process(child)
-					res.add(Node("#text").attr("value", value) if isinstance(value, str) else value)
+					value = self.wrapValueInNode(self.run(child))
+					res.add(value)
 			return res
+
+	def wrapValueInNode( self, value ):
+		if isinstance(value, str):
+			return Node("#text").attr("value", value)
+		elif isinstance(value, int):
+			return Node("#integer").attr("value", value)
+		elif isinstance(value, float):
+			return Node("#float").attr("value", value)
+		else:
+			assert isinstance(value, Node)
+			return value
 
 	def on_ex__template( self, node ):
 		# We have a template node, and we need to expand it
-		if len(node.children) == 0:
-			return None
-		elif len(node.children) == 1:
-			return self.valueInterpreter.run(node.head)
-		else:
-			return [self.valueInterpreter.run(_) for _ in node.children]
+		res = []
+		for expr in [self.valueInterpreter.run(_) for _ in node.children]:
+			res.append(expr)
+		return None if len(res) == 0 else (res[0] if len(res) == 1 else res)
 
 	def on_ex__ref( self, node ):
 		return node["name"]
@@ -205,7 +223,6 @@ class TreeInterpreter(TreeTransform):
 
 	def on_ex__string( self, node ):
 		return node["value"]
-
 
 	def on__q_query( self, node ):
 		print ("QUERY", node)

@@ -1,7 +1,7 @@
 from typing import List,Dict,Optional,Any
 
 class Singleton:
-	ALL = {}
+	ALL:Dict[str,'Singleton'] = {}
 
 	@classmethod
 	def Get( cls, name ):
@@ -33,7 +33,7 @@ class Context:
 
 	def listReachableSlots( self ) -> List[str]:
 		res = []
-		context = self
+		context:Optional[Context] = self
 		while context:
 			for k in context.slots:
 				if k not in res:

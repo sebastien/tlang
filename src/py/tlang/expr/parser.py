@@ -181,7 +181,18 @@ class ExprProcessor(SourceProcessor):
 		return node
 
 	def onExprTemplate( self, match, value ):
-		return self.tree.node("ex:template", value)
+		# Templates are likely to have a sequence as a child, and in that
+		# case we want to absorb the children:
+		# {1 2 3} would be (ex:template (ex:seq 1 2 3)) and we want this
+		# to evaluate to (1 2 3), not (3).
+		res =  self.tree.node("ex:template")
+		if value and value.name == "ex:seq":
+			# NOTE: If we don't copy the children, we'll be skipping nodes
+			for child in [_ for _ in value.children]:
+				res.add(child.detach())
+		else:
+			res.add(value)
+		return res
 
 	def onExprJoin( self, match, arg ):
 		# NOTE: The join suffix creates a sequence of values which

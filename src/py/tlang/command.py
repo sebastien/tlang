@@ -73,14 +73,16 @@ def onError( error, err=sys.stdout ):
 	else:
 		# This is a runtime error, not really a managed error. This means
 		# that error should be reported.
-		err.write(f" ↳ {BOLD}Runtime error{RESET}({error.__class__.__name__}) {RED}{error}{RESET}\n")
+		err.write(f" {RED}⚠ {RESET} {BOLD}Internal error: {RED}{error.__class__.__name__}{RESET}\n")
 		raise (error)
 
 def run( tree:Node, logValues=False, out=sys.stdout, err=sys.stderr ):
 	inter = ValueInterpreter()
 	Primitives().bind(inter.context)
 	def print_out(value):
-		if isinstance(value, Node):
+		if isinstance(value, Exception):
+			raise value
+		elif isinstance(value, Node):
 			for _ in Repr.Apply(value, depth=-1):
 				out.write(_)
 		else:

@@ -35,16 +35,24 @@ class Node:
 		self.parent:Optional['Node'] = None
 		# FIXME: This does not support namespaces for attributes
 		self.attributes:Dict[str,Any] = OrderedDict()
-		self.children:List['Node'] = []
+		self._children:List['Node'] = []
 		self.metadata:Optional[Dict[str,Any]] = None
 
 	@property
 	def head( self ) -> Optional['Node']:
-		return self.children[0] if self.children else None
+		return self._children[0] if self._children else None
 
 	@property
 	def tail( self ) -> List['Node']:
-		return self.children[1:]
+		return self._children[1:]
+
+	@property
+	def children( self ) -> List['Node']:
+		return self._children
+
+	@property
+	def childrenCount( self ) -> int:
+		return len(self._children)
 
 	@property
 	def root( self ) -> Optional['Node']:
@@ -69,11 +77,11 @@ class Node:
 
 	@property
 	def isLeaf( self ) -> bool:
-		return len(self.children) == 0
+		return len(self._children) == 0
 
 	@property
 	def isNode( self ) -> bool:
-		return len(self.children) > 0
+		return len(self._children) > 0
 
 	@property
 	def hasAttributes( self ) -> bool:
@@ -99,8 +107,8 @@ class Node:
 		node = Node(self.name)
 		self.attributes = type(self.attributes)((k,v) for k,v in self.attributes.items())
 		if depth != 0:
-			for child in self.children:
-				self.append(child.copy(depth - 1))
+			for child in self._children:
+				node.append(child.copy(depth - 1))
 		return node
 
 	def meta( self, name:str, value=NOTHING ):
@@ -115,7 +123,7 @@ class Node:
 			return self
 
 	def index( self, node ) -> int:
-		return self.children.index(node)
+		return self._children.index(node)
 
 	def detach( self ) -> 'Node':
 		if self.parent:
@@ -123,15 +131,16 @@ class Node:
 		return self
 
 	def merge( self, node:'Node' ) -> 'Node':
-		children = [_ for _ in node.children]
+		children = [_ for _ in node._children]
 		for c in children:
 			self.add(c.detach())
 		return self
 
 	def add( self, node:'Node' ) -> 'Node':
+		assert isinstance(node, Node), f"Expected a Node, got: {node}"
 		assert not node.parent, "Cannot add node to {0}, it already has a parent: {1}".format(self, node)
 		node.parent = self
-		self.children.append(node)
+		self._children.append(node)
 		return node
 
 	def append( self, node:'Node') -> 'Node':
@@ -145,24 +154,24 @@ class Node:
 	def remove( self, node:'Node' ) -> 'Node':
 		assert node.parent is self, "Cannot remove node from {0}, it has a different parent: {1}".format(self, node.parent)
 		node.parent = None
-		self.children.remove(node)
+		self._children.remove(node)
 		return node
 
 	def insert( self, index:int, node:'Node' ) -> 'Node':
-		index = index if index >= 0 else len(self.children) + index
-		assert index >=0 and index <= len(self.children), "Index out of bounds {0} in: {1}".format(index, self)
+		index = index if index >= 0 else len(self._children) + index
+		assert index >=0 and index <= len(self._children), "Index out of bounds {0} in: {1}".format(index, self)
 		assert not node.parent, "Cannot add node to {0}, it already has a parent: {1}".format(self, node)
 		node.parent = self
-		if index == len(self.children):
-			self.children.append(node)
+		if index == len(self._children):
+			self._children.append(node)
 		else:
-			self.children.insert(index, node)
+			self._children.insert(index, node)
 		return node
 
 	def walk( self, functor=None ):
 		if not functor or functor(self) is not False:
 			yield self
-			for c in self.children:
+			for c in self._children:
 				yield from c.walk(functor)
 
 	def toPrimitive( self ):
@@ -170,7 +179,7 @@ class Node:
 		attr  = dict( (k,v) for k,v in self.attributes.items())
 		if attr:
 			res.append(attr)
-		for _ in self.children:
+		for _ in self._children:
 			res.append(_.toPrimitive())
 		return res
 
@@ -181,13 +190,13 @@ class Node:
 			else:
 				return self.attributes[index]
 		else:
-			return self.children[index]
+			return self._children[index]
 
 	def __str__( self ):
 		return "".join(Repr.Apply(self))
 
 	def __repr__( self ):
-		return f"<Node:{self.name} {' '.join(str(k)+'='+repr(v) for k,v in self.attributes.items())}{' …' + str(len(self.children)) if self.children else ''}>"
+		return f"<Node:{self.name} {' '.join(str(k)+'='+repr(v) for k,v in self.attributes.items())}{' …' + str(len(self.children)) if self._children else ''}>"
 
 # -----------------------------------------------------------------------------
 #
@@ -227,10 +236,10 @@ class Repr:
 					else:
 						yield json.dumps(v)
 					yield ")"
-			if node.children and compact:
+			if not node.isLeaf and compact:
 				yield " …"
 			else:
-				many_children = len(node.children) > 1
+				many_children = node.childrenCount
 				for child in node.children:
 					if pretty and many_children:
 						yield "\n"

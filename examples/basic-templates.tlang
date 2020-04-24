@@ -1,0 +1,16 @@
+;; TLang supports templates, which means that expressions are evaluated
+;; in place.
+
+;; When used in expressions, templates can be used to create composite values
+;; in the same way you'd use `list` or `dict`.
+
+;; {"hello"}
+;; {"hello" "world" 1 2 3}
+;; {"hello" {"world" 1 2} 3}
+
+;; But templates are more useful when used in a context that changes the
+;; interpretation of the code, such as in `(quote)` or `(quote)`.
+
+;;(quote range {(add 20 30)})
+
+(tree (integer {(add 20 30)}))
