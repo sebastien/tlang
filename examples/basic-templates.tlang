@@ -1,8 +1,8 @@
 ;; TLang supports templates, which means that expressions are evaluated
 ;; in place.
 
-;; When used in expressions, templates can be used to create composite values
-;; in the same way you'd use `list` or `dict`.
+;; When used in expressions, templates can be used to add zero or more items
+;; to the given
 
 ;; {"hello"}
 ;; {"hello" "world" 1 2 3}
@@ -13,4 +13,11 @@
 
 ;;(quote range {(add 20 30)})
 
-(tree (integer {(add 20 30)}))
+;; '(0 1 {range 2 10})
+
+;;(tree (integer {(add 20 30)}))
+
+;; FIXME: This one does not work , it generates [Lorem [ispum …]]
+;; (list "Lorem" {"ipsum" {"color" "sit"} "amet"})
+
+(tree (node {"hello" {"world" 1 2} 3}))

@@ -86,7 +86,7 @@ def run( tree:Node, logValues=False, out=sys.stdout, err=sys.stderr ):
 			for _ in Repr.Apply(value, depth=-1):
 				out.write(_)
 		else:
-			out.write(json.dumps(value))
+			out.write(repr(value))
 		out.write("\n")
 	try:
 		if not logValues:

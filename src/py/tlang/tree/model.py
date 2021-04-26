@@ -192,6 +192,15 @@ class Node:
 		else:
 			return self._children[index]
 
+	def toPrimtive(self):
+		res = {"id":self.id}
+		if self.name: res["name"] = self.name
+		if self.parent: res["parent"] = self.parent.id
+		if self.attributes: res["attributes"]  = self.attributes
+		if self.metadata: res["metadata"]  = self.metadata
+		if self._children: res["children"] = [_._asdict() for _ in self._children]
+		return res
+
 	def __str__( self ):
 		return "".join(Repr.Apply(self))
 
@@ -456,8 +465,12 @@ class TreeTransform(TreeProcessor):
 	def catchall( self, node ):
 		n = node.copy(0)
 		for c in node.children:
-			for _ in self.process(c):
-				pass
+			r = self.process(c)
+			try:
+				for _ in iter(r):
+					yield _
+			except TypeError as e:
+				yield r
 		yield n
 
 	# TODO: The catchall might just be a copy?

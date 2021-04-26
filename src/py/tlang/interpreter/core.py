@@ -87,7 +87,19 @@ class ValueInterpreter(TreeProcessor):
 	def on_template( self, node ):
 		# Templates return None when empty, the first child when only one
 		# child or the list of children.
-		res =  [self.process(_) for _ in node.children]
+		res = []
+		# NOTE: The templates are absorbed/flattened
+		for child in node.children:
+			child_res = self.process(child)
+			if child.name == "ex:template":
+				if child_res == None:
+					pass
+				elif isinstance(child_res, list):
+					res += child_res
+				else:
+					res.append(child_res)
+			else:
+				res.append(child_res)
 		res = None if len(res) == 0 else (res[0] if len(res) == 1 else res)
 		return res
 
@@ -193,20 +205,34 @@ class TreeInterpreter(TreeTransform):
 					else:
 						res.attr(head["name"], self.process(child[1]))
 				else:
-					value = self.wrapValueInNode(self.run(child))
-					res.add(value)
+					value = self.run(child)
+					self.addValueToNode(res, value)
 			return res
 
+	def addValueToNode( self, node, value ):
+		"""Adds the given value to the given node, flattening any list."""
+		if isinstance(value, str):
+			node.append(self.wrapValueInNode(value))
+		else:
+			try:
+				for _ in iter(value):
+					self.addValueToNode(node, _)
+			except TypeError as e:
+				node.append(self.wrapValueInNode(value))
+		return node
+
 	def wrapValueInNode( self, value ):
+		"""Wraps the given value in a tree notation node."""
 		if isinstance(value, str):
 			return Node("#text").attr("value", value)
 		elif isinstance(value, int):
 			return Node("#integer").attr("value", value)
 		elif isinstance(value, float):
 			return Node("#float").attr("value", value)
-		else:
-			assert isinstance(value, Node)
+		elif isinstance(value, Node):
 			return value
+		else:
+			raise ValueError(f"Expected value to be node, string or number, got: {value}")
 
 	def on_ex__template( self, node ):
 		# We have a template node, and we need to expand it
